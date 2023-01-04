@@ -1,3 +1,5 @@
+mod nlm;
+
 fn main() {
-    println!("Hello, world!");
+    nlm::random(5, 5);
 }
