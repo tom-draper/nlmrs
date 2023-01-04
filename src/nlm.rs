@@ -3,7 +3,7 @@ use rand::prelude::*;
 fn zeros_arr(rows: usize, cols: usize) -> Vec<Vec<i32>> {
     let mut vec: Vec<Vec<i32>> = Vec::with_capacity(rows);
     for _ in 0..rows {
-        let row = vec![0i32; cols];
+        let row = Vec::with_capacity(cols);
         vec.push(row);
     }
     vec
@@ -25,5 +25,7 @@ fn rand_arr(rows: usize, cols: usize) -> Vec<Vec<f32>> {
 
 pub fn random(rows: usize, cols: usize) {
     let arr = rand_arr(rows, cols);
-    println!("{:?}", arr);
+    for i in 0..rows {
+        println!("{:?}", arr[i]);
+    }
 }

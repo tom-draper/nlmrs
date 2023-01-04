@@ -1,5 +1,5 @@
 mod nlm;
 
 fn main() {
-    nlm::random(5, 5);
+    nlm::random(100, 100);
 }
