@@ -1,4 +1,6 @@
+
 use rand::prelude::*;
+use crate::output::display_arr;
 
 fn zeros_arr(rows: usize, cols: usize) -> Vec<Vec<i32>> {
     let mut vec: Vec<Vec<i32>> = Vec::with_capacity(rows);
@@ -25,7 +27,5 @@ fn rand_arr(rows: usize, cols: usize) -> Vec<Vec<f32>> {
 
 pub fn random(rows: usize, cols: usize) {
     let arr = rand_arr(rows, cols);
-    for i in 0..rows {
-        println!("{:?}", arr[i]);
-    }
+    display_arr(arr);
 }
