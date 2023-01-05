@@ -64,15 +64,15 @@ pub fn random_element(rows: usize, cols: usize, n: f32) -> Vec<Vec<f32>> {
 /// * `rows` - Number of rows in the array.
 /// * `cols` - Number of columns in the array.
 #[allow(dead_code)]
-pub fn planar_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
+pub fn planar_gradient(rows: usize, cols: usize, direction: Option<f32>) -> Vec<Vec<f32>> {
     let mut rng = rand::thread_rng();
-    let direction: f64 = rng.gen_range(0.0..360.0);
-    let right = direction.sin() as f32;
-    let down = -direction.cos() as f32;
+    let d = direction.unwrap_or(rng.gen_range(0.0..360.0));
+    let right = d.sin() as f32;
+    let down = -d.cos() as f32;
     // Two 2D indices arrays each of size (rows x cols)
     let (mut row_idx, mut col_idx) = indices_arr(rows, cols);
 
-    // Build gradient
+    // Build gradient array
     multiply_value(&mut row_idx, down);
     multiply_value(&mut col_idx, right);
     // Combine two directions to create final gradient array
@@ -94,8 +94,8 @@ pub fn planar_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
 /// * `rows` - Number of rows in the array.
 /// * `cols` - Number of columns in the array.
 #[allow(dead_code)]
-pub fn edge_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
-    let mut arr = planar_gradient(rows, cols);
+pub fn edge_gradient(rows: usize, cols: usize, direction: Option<f32>) -> Vec<Vec<f32>> {
+    let mut arr = planar_gradient(rows, cols, direction);
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             arr[i][j] = -(2.0 * (arr[i][j] - 0.5).abs()) + 1.0;
@@ -116,8 +116,8 @@ pub fn edge_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
 /// * `cols` - Number of columns in the array.
 /// * `period` - Period of the wave function. Smaller = larger wave.
 #[allow(dead_code)]
-pub fn wave_gradient(rows: usize, cols: usize, period: f32) -> Vec<Vec<f32>> {
-    let mut arr = planar_gradient(rows, cols);
+pub fn wave_gradient(rows: usize, cols: usize, period: f32, direction: Option<f32>) -> Vec<Vec<f32>> {
+    let mut arr = planar_gradient(rows, cols, direction);
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             arr[i][j] = (arr[i][j] * 2.0 * std::f32::consts::PI * period).sin();
