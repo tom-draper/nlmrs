@@ -27,23 +27,24 @@ pub fn min(vec: &Vec<Vec<f32>>) -> f32 {
 
 fn nearest_neighbour(vec: &Vec<Vec<f32>>, row: usize, col: usize) -> f32 {
     let mut rng = rand::thread_rng();
-    let n = rng.gen_range(0..4);
-    if n == 0 {
-        return vec[row+1][col];
-    } else if n == 1 {
-        return vec[row-1][col];
-    } else if n == 2 {
-        return vec[row][col+1];
-    } else  {
-        return vec[row][col-1];
+    let mut options: Vec<f32> = Vec::new();
+    if row < vec.len() - 1 {
+        options.push(vec[row+1][col]);
+    } else if row > 0{
+        options.push(vec[row-1][col]);
+    } else if col < vec[0].len()-1 {
+        options.push(vec[row][col+1]);
+    } else if col > 0 {
+        options.push(vec[row][col-1]);
     }
+    options[rng.gen_range(0..options.len())]
 }
 
 pub fn interpolate(vec: &mut Vec<Vec<f32>>, mask: Vec<Vec<bool>>) {
     for i in 0..vec.len() {
         for j in 0..vec[i].len() {
             if mask[i][j] {
-                // Replace with nearest neighbour
+                // Replace with nearest neighbour value
                 vec[i][j] = nearest_neighbour(vec, i, j);
             }
         }
