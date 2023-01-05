@@ -70,7 +70,7 @@ pub fn linear_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
     let right = direction.sin() as f32;
     let down = -direction.cos() as f32;
     // Two 2D indicies arrays each of size rows x cols
-    let (mut row_idx, mut col_idx) = indicies_arr(rows, cols);
+    let (mut row_idx, mut col_idx) = indices_arr(rows, cols);
 
     // Build gradient
     multiply_value(&mut row_idx, down);
