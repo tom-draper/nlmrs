@@ -1,9 +1,9 @@
 use rand::Rng;
 
 
-pub fn max(vec: &Vec<Vec<f32>>) -> f32 {
+pub fn max(arr: &Vec<Vec<f32>>) -> f32 {
     let mut max: f32 = 0.0;
-    for row in vec.iter() {
+    for row in arr.iter() {
         for val in row.iter() {
             if *val > max {
                 max = *val;
@@ -13,9 +13,9 @@ pub fn max(vec: &Vec<Vec<f32>>) -> f32 {
     max
 }
 
-pub fn min(vec: &Vec<Vec<f32>>) -> f32 {
+pub fn min(arr: &Vec<Vec<f32>>) -> f32 {
     let mut min: f32 = 0.0;
-    for row in vec.iter() {
+    for row in arr.iter() {
         for val in row.iter() {
             if *val < min {
                 min = *val;
@@ -25,38 +25,70 @@ pub fn min(vec: &Vec<Vec<f32>>) -> f32 {
     min
 }
 
-fn nearest_neighbour(vec: &Vec<Vec<f32>>, row: usize, col: usize) -> f32 {
+fn nearest_neighbour(arr: &Vec<Vec<f32>>, row: usize, col: usize) -> f32 {
     let mut rng = rand::thread_rng();
     let mut options: Vec<f32> = Vec::new();
-    if row < vec.len() - 1 {
-        options.push(vec[row+1][col]);
+    if row < arr.len() - 1 {
+        options.push(arr[row+1][col]);
     } else if row > 0{
-        options.push(vec[row-1][col]);
-    } else if col < vec[0].len()-1 {
-        options.push(vec[row][col+1]);
+        options.push(arr[row-1][col]);
+    } else if col < arr[0].len()-1 {
+        options.push(arr[row][col+1]);
     } else if col > 0 {
-        options.push(vec[row][col-1]);
+        options.push(arr[row][col-1]);
     }
     options[rng.gen_range(0..options.len())]
 }
 
-pub fn interpolate(vec: &mut Vec<Vec<f32>>, mask: Vec<Vec<bool>>) {
-    for i in 0..vec.len() {
-        for j in 0..vec[i].len() {
+pub fn interpolate(arr: &mut Vec<Vec<f32>>, mask: Vec<Vec<bool>>) {
+    for i in 0..arr.len() {
+        for j in 0..arr[i].len() {
             if mask[i][j] {
                 // Replace with nearest neighbour value
-                vec[i][j] = nearest_neighbour(vec, i, j);
+                arr[i][j] = nearest_neighbour(arr, i, j);
             }
         }
     }
 }
 
-pub fn scale(vec: &mut Vec<Vec<f32>>) {
-    let max = max(&vec);
-    let min = min(&vec);
-    for i in 0..vec.len() {
-        for j in 0..vec[i].len() {
-            vec[i][j] = (vec[i][j] - min)/(max - min);
+pub fn scale(arr: &mut Vec<Vec<f32>>) {
+    let max = max(&arr);
+    let min = min(&arr);
+    for i in 0..arr.len() {
+        for j in 0..arr[i].len() {
+            arr[i][j] = (arr[i][j] - min)/(max - min);
+        }
+    }
+}
+
+pub fn multiply_value(arr: &mut Vec<Vec<f32>>, value: f32) {
+    for i in 0..arr.len() {
+        for j in 0..arr[i].len() {
+            arr[i][j] *= value;
+        }
+    }
+}
+
+pub fn multiply(arr: &mut Vec<Vec<f32>>, arr2: Vec<Vec<f32>>) {
+    for i in 0..arr.len() {
+        for j in 0..arr[i].len() {
+            arr[i][j] *= arr2[i][j];
+        }
+    }
+}
+
+pub fn add(arr: &mut Vec<Vec<f32>>, arr2: Vec<Vec<f32>>) {
+    for i in 0..arr.len() {
+        for j in 0..arr[i].len() {
+            arr[i][j] += arr2[i][j];
+        }
+    }
+}
+
+pub fn add_value(arr: &mut Vec<Vec<f32>>, value: f32) {
+    for i in 0..arr.len() {
+        for j in 0..arr[i].len() {
+            arr[i][j] += value;
         }
     }
 }

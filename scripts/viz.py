@@ -5,7 +5,7 @@ def heatmap(data: list[list[float]]):
     plt.figure(figsize=(6, 6))
     man = plt.get_current_fig_manager()
     man.canvas.manager.set_window_title("Neutral Landscape Model")
-    plt.pcolormesh(data, cmap='summer')
+    plt.pcolormesh(data, cmap='terrain')
     plt.axis('off')
     plt.tight_layout()
     plt.show()
