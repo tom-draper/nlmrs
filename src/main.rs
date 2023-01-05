@@ -1,10 +1,10 @@
-mod nlm;
-mod export;
 mod array;
+mod export;
+mod nlm;
 mod operation;
 use std::time::Instant;
 
-use crate::export::{write_to_csv};
+use crate::export::write_to_csv;
 
 fn main() {
     let start = Instant::now();

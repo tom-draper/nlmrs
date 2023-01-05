@@ -1,6 +1,6 @@
+use crate::array::{indices_arr, ones_arr, rand_arr, value_mask};
+use crate::operation::{add, interpolate, max, multiply_value, scale};
 use rand::Rng;
-use crate::array::{rand_arr, ones_arr, value_mask, indices_arr};
-use crate::operation::{max, interpolate, scale, multiply_value, add};
 
 /// Returns a spatially random NLM with values ranging [0, 1).
 ///
@@ -56,9 +56,9 @@ pub fn random_element(rows: usize, cols: usize, n: f32) -> Vec<Vec<f32>> {
 
 /// Returns a linear gradient NLM with values ranging [0, 1).
 ///
-/// A linear gradient with 0 and 1 values on directly opposite ends of the 2D 
+/// A linear gradient with 0 and 1 values on directly opposite ends of the 2D
 /// array. The gradient falls across the array in a random direction.
-/// 
+///
 /// # Arguments
 ///
 /// * `rows` - Number of rows in the array.
@@ -85,10 +85,10 @@ pub fn linear_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
 
 /// Returns an edge gradient NLM with values ranging [0, 1).
 ///
-/// A edge gradient with 0 values on directly opposite ends of the 2D array, 
-/// with 1 in the midpoint between the two. The gradient falls across the array 
+/// A edge gradient with 0 values on directly opposite ends of the 2D array,
+/// with 1 in the midpoint between the two. The gradient falls across the array
 /// in a random direction.
-/// 
+///
 /// # Arguments
 ///
 /// * `rows` - Number of rows in the array.
@@ -107,9 +107,9 @@ pub fn edge_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
 
 /// Returns an wave gradient NLM with values ranging [0, 1).
 ///
-/// A wave gradient cycles through 0->1->0... repeatedly from one end of the 
+/// A wave gradient cycles through 0->1->0... repeatedly from one end of the
 /// array to the other. The gradient falls across the array in a random direction.
-/// 
+///
 /// # Arguments
 ///
 /// * `rows` - Number of rows in the array.

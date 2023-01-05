@@ -1,6 +1,5 @@
 use rand::Rng;
 
-
 pub fn max(arr: &Vec<Vec<f32>>) -> f32 {
     let mut max: f32 = 0.0;
     for row in arr.iter() {
@@ -29,13 +28,13 @@ fn nearest_neighbour(arr: &Vec<Vec<f32>>, row: usize, col: usize) -> f32 {
     let mut rng = rand::thread_rng();
     let mut options: Vec<f32> = Vec::new();
     if row < arr.len() - 1 {
-        options.push(arr[row+1][col]);
-    } else if row > 0{
-        options.push(arr[row-1][col]);
-    } else if col < arr[0].len()-1 {
-        options.push(arr[row][col+1]);
+        options.push(arr[row + 1][col]);
+    } else if row > 0 {
+        options.push(arr[row - 1][col]);
+    } else if col < arr[0].len() - 1 {
+        options.push(arr[row][col + 1]);
     } else if col > 0 {
-        options.push(arr[row][col-1]);
+        options.push(arr[row][col - 1]);
     }
     options[rng.gen_range(0..options.len())]
 }
@@ -56,7 +55,7 @@ pub fn scale(arr: &mut Vec<Vec<f32>>) {
     let min = min(&arr);
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
-            arr[i][j] = (arr[i][j] - min)/(max - min);
+            arr[i][j] = (arr[i][j] - min) / (max - min);
         }
     }
 }

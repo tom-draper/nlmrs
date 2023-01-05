@@ -39,7 +39,7 @@ pub fn rand_arr(rows: usize, cols: usize) -> Vec<Vec<f32>> {
 pub fn value_mask(arr: &Vec<Vec<f32>>, value: f32) -> Vec<Vec<bool>> {
     let rows = arr.len();
     let mut mask: Vec<Vec<bool>> = Vec::with_capacity(rows);
-    for i in 0..rows{
+    for i in 0..rows {
         let cols = arr[i].len();
         let mut row: Vec<bool> = Vec::with_capacity(cols);
         for j in 0..cols {
@@ -51,7 +51,7 @@ pub fn value_mask(arr: &Vec<Vec<f32>>, value: f32) -> Vec<Vec<bool>> {
 }
 
 /// Returns two 2D indicies arrays of size (rows x cols) containing
-/// 
+///
 /// # Examples
 ///
 /// ```
