@@ -1,6 +1,6 @@
 use rand::prelude::*;
 
-/// Returns a 2D array of size rows x cols containing zeros
+/// Returns a 2D array of size (rows x cols) containing zeros
 pub fn zeros_arr(rows: usize, cols: usize) -> Vec<Vec<f32>> {
     let mut vec: Vec<Vec<f32>> = Vec::with_capacity(rows);
     for _ in 0..rows {
@@ -10,7 +10,7 @@ pub fn zeros_arr(rows: usize, cols: usize) -> Vec<Vec<f32>> {
     vec
 }
 
-/// Returns a 2D array of size rows x cols containing ones
+/// Returns a 2D array of size (rows x cols) containing ones
 pub fn ones_arr(rows: usize, cols: usize) -> Vec<Vec<f32>> {
     let mut vec: Vec<Vec<f32>> = Vec::with_capacity(rows);
     for _ in 0..rows {
@@ -20,7 +20,7 @@ pub fn ones_arr(rows: usize, cols: usize) -> Vec<Vec<f32>> {
     vec
 }
 
-/// Returns a 2D array of size rows x cols containing uniform random [0, 1) values
+/// Returns a 2D array of size (rows x cols) containing uniform random [0, 1) values
 pub fn rand_arr(rows: usize, cols: usize) -> Vec<Vec<f32>> {
     let mut rng = rand::thread_rng();
     let mut vec: Vec<Vec<f32>> = Vec::with_capacity(rows);
@@ -35,7 +35,7 @@ pub fn rand_arr(rows: usize, cols: usize) -> Vec<Vec<f32>> {
     vec
 }
 
-/// Returns a 2D array of size rows x cols containing uniform random [0, 1) values
+/// Returns a 2D array of size (rows x cols) containing uniform random [0, 1) values
 pub fn value_mask(arr: &Vec<Vec<f32>>, value: f32) -> Vec<Vec<bool>> {
     let rows = arr.len();
     let mut mask: Vec<Vec<bool>> = Vec::with_capacity(rows);
@@ -50,7 +50,7 @@ pub fn value_mask(arr: &Vec<Vec<f32>>, value: f32) -> Vec<Vec<bool>> {
     mask
 }
 
-/// Returns two 2D indicies arrays of size rows x cols containing
+/// Returns two 2D indicies arrays of size (rows x cols) containing
 /// 
 /// # Examples
 ///
