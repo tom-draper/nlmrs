@@ -59,7 +59,7 @@ pub fn value_mask(arr: &Vec<Vec<f32>>, value: f32) -> Vec<Vec<bool>> {
 /// assert_eq!(rows_idx, [[0, 0, 0], [1, 1, 1], [2, 2, 2]]);
 /// assert_eq!(cols_idx, [[0, 1, 2], [0, 1, 2], [0, 1, 2]]);
 /// ```
-pub fn indicies_arr(rows: usize, cols: usize) -> (Vec<Vec<f32>>, Vec<Vec<f32>>) {
+pub fn indices_arr(rows: usize, cols: usize) -> (Vec<Vec<f32>>, Vec<Vec<f32>>) {
     let mut row_idx = zeros_arr(rows, cols);
     let mut cols_idx = zeros_arr(rows, cols);
     for i in 0..rows {

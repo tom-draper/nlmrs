@@ -92,3 +92,13 @@ pub fn add_value(arr: &mut Vec<Vec<f32>>, value: f32) {
         }
     }
 }
+
+pub fn abs(arr: &mut Vec<Vec<f32>>) {
+    for i in 0..arr.len() {
+        for j in 0..arr[i].len() {
+            if arr[i][j] < 0.0 {
+                arr[i][j] *= -1.0;
+            }
+        }
+    }
+}
