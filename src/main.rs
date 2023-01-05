@@ -1,8 +1,8 @@
 mod nlm;
-mod output;
+mod export;
 mod array;
 mod operation;
-use crate::output::{write_to_csv};
+use crate::export::{write_to_csv};
 
 fn main() {
     let arr = nlm::nlm_random(100, 100);
