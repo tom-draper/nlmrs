@@ -54,9 +54,9 @@ pub fn random_element(rows: usize, cols: usize, n: f32) -> Vec<Vec<f32>> {
     arr
 }
 
-/// Returns a linear gradient NLM with values ranging [0, 1).
+/// Returns a planar gradient NLM with values ranging [0, 1).
 ///
-/// A linear gradient with 0 and 1 values on directly opposite ends of the 2D
+/// A planar gradient with 0 and 1 values on directly opposite ends of the 2D
 /// array. The gradient falls across the array in a random direction.
 ///
 /// # Arguments
@@ -64,12 +64,12 @@ pub fn random_element(rows: usize, cols: usize, n: f32) -> Vec<Vec<f32>> {
 /// * `rows` - Number of rows in the array.
 /// * `cols` - Number of columns in the array.
 #[allow(dead_code)]
-pub fn linear_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
+pub fn planar_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
     let mut rng = rand::thread_rng();
     let direction: f64 = rng.gen_range(0.0..360.0);
     let right = direction.sin() as f32;
     let down = -direction.cos() as f32;
-    // Two 2D indicies arrays each of size (rows x cols)
+    // Two 2D indices arrays each of size (rows x cols)
     let (mut row_idx, mut col_idx) = indices_arr(rows, cols);
 
     // Build gradient
@@ -95,7 +95,7 @@ pub fn linear_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
 /// * `cols` - Number of columns in the array.
 #[allow(dead_code)]
 pub fn edge_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
-    let mut arr = linear_gradient(rows, cols);
+    let mut arr = planar_gradient(rows, cols);
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             arr[i][j] = -(2.0 * (arr[i][j] - 0.5).abs()) + 1.0;
@@ -117,7 +117,7 @@ pub fn edge_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
 /// * `period` - Period of the wave function. Smaller = larger wave.
 #[allow(dead_code)]
 pub fn wave_gradient(rows: usize, cols: usize, period: f32) -> Vec<Vec<f32>> {
-    let mut arr = linear_gradient(rows, cols);
+    let mut arr = planar_gradient(rows, cols);
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             arr[i][j] = (arr[i][j] * 2.0 * std::f32::consts::PI * period).sin();
