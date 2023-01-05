@@ -5,6 +5,6 @@ mod operation;
 use crate::export::{write_to_csv};
 
 fn main() {
-    let arr = nlm::nlm_random(100, 100);
+    let arr = nlm::random_element(200, 200, 100000);
     write_to_csv(arr);
 }

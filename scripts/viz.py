@@ -2,9 +2,9 @@ import csv
 import matplotlib.pyplot as plt
 
 def heatmap(data: list[list[float]]):
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(6, 6))
     man = plt.get_current_fig_manager()
-    man.canvas.set_window_title("Neutral Landscape Model")
+    man.canvas.manager.set_window_title("Neutral Landscape Model")
     plt.pcolormesh(data, cmap='summer')
     plt.axis('off')
     plt.tight_layout()
