@@ -13,7 +13,7 @@ pub fn max(arr: &Vec<Vec<f32>>) -> f32 {
 }
 
 pub fn min(arr: &Vec<Vec<f32>>) -> f32 {
-    let mut min: f32 = 0.0;
+    let mut min: f32 = std::f32::INFINITY;
     for row in arr.iter() {
         for val in row.iter() {
             if *val < min {
@@ -22,6 +22,22 @@ pub fn min(arr: &Vec<Vec<f32>>) -> f32 {
         }
     }
     min
+}
+
+pub fn min_max(arr: &Vec<Vec<f32>>) -> (f32, f32) {
+    let mut min: f32 = std::f32::INFINITY;
+    let mut max: f32 = 0.0;
+    for row in arr.iter() {
+        for val in row.iter() {
+            if *val < min {
+                min = *val;
+            }
+            if *val > max {
+                max = *val;
+            }
+        }
+    }
+    (min, max)
 }
 
 fn nearest_neighbour(arr: &Vec<Vec<f32>>, row: usize, col: usize) -> f32 {
@@ -51,8 +67,7 @@ pub fn interpolate(arr: &mut Vec<Vec<f32>>, mask: Vec<Vec<bool>>) {
 }
 
 pub fn scale(arr: &mut Vec<Vec<f32>>) {
-    let max = max(&arr);
-    let min = min(&arr);
+    let (min, max) = min_max(arr);
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             arr[i][j] = (arr[i][j] - min) / (max - min);

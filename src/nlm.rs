@@ -67,8 +67,8 @@ pub fn random_element(rows: usize, cols: usize, n: f32) -> Vec<Vec<f32>> {
 pub fn planar_gradient(rows: usize, cols: usize, direction: Option<f32>) -> Vec<Vec<f32>> {
     let mut rng = rand::thread_rng();
     let d = direction.unwrap_or(rng.gen_range(0.0..360.0));
-    let right = d.sin() as f32;
-    let down = -d.cos() as f32;
+    let right = d.sin();
+    let down = -d.cos();
     // Two 2D indices arrays each of size (rows x cols)
     let (mut row_idx, mut col_idx) = indices_arr(rows, cols);
 
