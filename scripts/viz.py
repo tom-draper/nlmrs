@@ -1,6 +1,7 @@
 import csv
 import matplotlib.pyplot as plt
 
+
 def heatmap(data: list[list[float]]):
     plt.figure(figsize=(6, 6))
     man = plt.get_current_fig_manager()
@@ -9,7 +10,8 @@ def heatmap(data: list[list[float]]):
     plt.axis('off')
     plt.tight_layout()
     plt.show()
-    
+
+
 def sideview(data: list[float]):
     plt.figure(figsize=(10, 4))
     man = plt.get_current_fig_manager()
