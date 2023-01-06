@@ -1,5 +1,5 @@
-use crate::array::{indices_arr, ones_arr, rand_arr, value_mask};
-use crate::operation::{add, interpolate, max, multiply_value, scale};
+use crate::array::{indices_arr, ones_arr, rand_arr, value_mask, zeros_arr};
+use crate::operation::{interpolate, max, scale, euclidean_distance_transform, invert};
 use rand::Rng;
 
 /// Returns a spatially random NLM with values ranging [0, 1).
@@ -63,6 +63,7 @@ pub fn random_element(rows: usize, cols: usize, n: f32) -> Vec<Vec<f32>> {
 ///
 /// * `rows` - Number of rows in the array.
 /// * `cols` - Number of columns in the array.
+/// * `direction` - Direction of the gradient in degrees [0, 360).
 #[allow(dead_code)]
 pub fn planar_gradient(rows: usize, cols: usize, direction: Option<f32>) -> Vec<Vec<f32>> {
     let mut rng = rand::thread_rng();
@@ -70,14 +71,15 @@ pub fn planar_gradient(rows: usize, cols: usize, direction: Option<f32>) -> Vec<
     let right = d.sin();
     let down = -d.cos();
     // Two 2D indices arrays each of size (rows x cols)
-    let (mut row_idx, mut col_idx) = indices_arr(rows, cols);
+    let (row_idx, col_idx) = indices_arr(rows, cols);
 
     // Build gradient array
-    multiply_value(&mut row_idx, down);
-    multiply_value(&mut col_idx, right);
-    // Combine two directions to create final gradient array
-    add(&mut row_idx, col_idx);
-    let mut gradient = row_idx;
+    let mut gradient = zeros_arr(rows, cols);
+    for i in 0..rows {
+        for j in 0..cols{
+            gradient[i][j] = (row_idx[i][j] * down) + (col_idx[i][j] * right)
+        }
+    }
 
     scale(&mut gradient);
     gradient
@@ -93,6 +95,7 @@ pub fn planar_gradient(rows: usize, cols: usize, direction: Option<f32>) -> Vec<
 ///
 /// * `rows` - Number of rows in the array.
 /// * `cols` - Number of columns in the array.
+/// * `direction` - Direction of the gradient in degrees [0.0, 360.0).
 #[allow(dead_code)]
 pub fn edge_gradient(rows: usize, cols: usize, direction: Option<f32>) -> Vec<Vec<f32>> {
     let mut arr = planar_gradient(rows, cols, direction);
@@ -101,6 +104,24 @@ pub fn edge_gradient(rows: usize, cols: usize, direction: Option<f32>) -> Vec<Ve
             arr[i][j] = -(2.0 * (arr[i][j] - 0.5).abs()) + 1.0;
         }
     }
+    scale(&mut arr);
+    arr
+}
+
+/// Returns a distance gradient NLM with values ranging [0, 1).
+///
+/// A distance gradient with a 0 value at a single point, with the gradient
+/// emanating from this point.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows in the array.
+/// * `cols` - Number of columns in the array.
+#[allow(dead_code)]
+pub fn distance_gradient(rows: usize, cols: usize) -> Vec<Vec<f32>> {
+    let mut arr = rand_arr(rows, cols);
+    invert(&mut arr);
+    euclidean_distance_transform(&mut arr);
     scale(&mut arr);
     arr
 }
@@ -114,7 +135,8 @@ pub fn edge_gradient(rows: usize, cols: usize, direction: Option<f32>) -> Vec<Ve
 ///
 /// * `rows` - Number of rows in the array.
 /// * `cols` - Number of columns in the array.
-/// * `period` - Period of the wave function. Smaller = larger wave.
+/// * `period` - Period of the wave function (smaller = larger wave).
+/// * `direction` - Direction of the gradient in degrees [0, 360).
 #[allow(dead_code)]
 pub fn wave_gradient(rows: usize, cols: usize, period: f32, direction: Option<f32>) -> Vec<Vec<f32>> {
     let mut arr = planar_gradient(rows, cols, direction);
