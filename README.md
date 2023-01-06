@@ -2,7 +2,7 @@
 
 A Rust crate for simulating <b>Neutral Landscape Models</b>.
 
-<img src="https://user-images.githubusercontent.com/41476809/211021671-df9cddff-78b6-40b2-954f-d682707deb0d.png" width=250 alt="" />
+<img src="https://user-images.githubusercontent.com/41476809/211021671-df9cddff-78b6-40b2-954f-d682707deb0d.png" width=300 alt="" />
 
 Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.com/ropensci/NLMR).
 
