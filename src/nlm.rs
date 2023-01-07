@@ -1,6 +1,10 @@
-use crate::array::{indices_arr, ones_arr, rand_arr, value_mask, zeros_arr, diamond_square};
-use crate::operation::{interpolate, max, scale, euclidean_distance_transform, invert};
+mod array;
+mod operation;
 use rand::Rng;
+use crate::operation::{interpolate, max, scale, euclidean_distance_transform, invert};
+use crate::array::{indices_arr, ones_arr, rand_arr, value_mask, zeros_arr, diamond_square};
+
+// use crate::array;
 
 /// Returns a spatially random NLM with values ranging [0, 1).
 ///
@@ -179,4 +183,76 @@ pub fn midpoint_displacement(rows: usize, cols: usize, h: f32) -> Vec<Vec<f32>> 
 
     scale(&mut surface);
     surface
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn nan_count(arr: Vec<Vec<f32>>) -> usize {
+        let mut count = 0;
+        for i in 0..arr.len() {
+            count += arr[i].iter().filter(|n| n.is_nan()).count();
+        }
+        count
+    }
+
+    fn zero_count(arr: Vec<Vec<f32>>) -> usize {
+        let mut count = 0;
+        for i in 0..arr.len() {
+            count += arr[i].iter().filter(|n| **n == 0.).count();
+        }
+        count
+    }
+
+    fn one_count(arr: Vec<Vec<f32>>) -> usize {
+        let mut count = 0;
+        for i in 0..arr.len() {
+            count += arr[i].iter().filter(|n| **n == 1.).count();
+        }
+        count
+    }
+
+    #[test]
+    fn test_random() {
+        let arr = random(1000, 1000);
+        assert_eq!(nan_count(arr), 0)
+    }
+
+    #[test]
+    fn test_random_element() {
+        let arr = random_element(1000, 1000, 900.0);
+        assert_eq!(nan_count(arr), 0)
+    }
+
+    #[test]
+    fn test_planar_gradient() {
+        let arr = planar_gradient(1000, 1000, Some(90.));
+        assert_eq!(nan_count(arr), 0)
+    }
+
+    #[test]
+    fn test_edge_gradient() {
+        let arr = edge_gradient(1000, 1000, Some(90.));
+        assert_eq!(nan_count(arr), 0);
+    }
+
+    #[test]
+    fn test_distance_gradient() {
+        let arr = distance_gradient(200, 200);
+        assert_eq!(nan_count(arr), 0);
+    }
+
+    #[test]
+    fn test_wave_gradient() {
+        let arr = wave_gradient(1000, 1000, 2.0, Some(90.));
+        assert_eq!(nan_count(arr), 0);
+    }
+
+    #[test]
+    fn test_midpoint_displacement() {
+        let arr = midpoint_displacement(250, 250, 2.0);
+        assert_eq!(nan_count(arr), 0);
+    }
+
 }

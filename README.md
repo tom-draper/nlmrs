@@ -8,6 +8,10 @@ Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.c
 
 ## Installation
 
+```bash
+cargo add nlmrs
+```
+
 ## Example
 
 ## Overview
