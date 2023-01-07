@@ -4,8 +4,6 @@ use rand::Rng;
 use crate::operation::{interpolate, max, scale, euclidean_distance_transform, invert};
 use crate::array::{indices_arr, ones_arr, rand_arr, value_mask, zeros_arr, diamond_square};
 
-// use crate::array;
-
 /// Returns a spatially random NLM with values ranging [0, 1).
 ///
 /// # Arguments
@@ -15,6 +13,22 @@ use crate::array::{indices_arr, ones_arr, rand_arr, value_mask, zeros_arr, diamo
 #[allow(dead_code)]
 pub fn random(rows: usize, cols: usize) -> Vec<Vec<f32>> {
     rand_arr(rows, cols)
+}
+
+/// Returns a spatially random NLM with values ranging [0, 1).
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows in the array.
+/// * `cols` - Number of columns in the array.
+#[allow(dead_code)]
+pub fn random_arr<'a>(arr: &mut[&mut[f32]], rows: usize, cols: usize){
+    let mut rng = rand::thread_rng();
+    for i in 0..rows {
+        for j in 0..cols {
+            arr[i][j] = rng.gen();
+        }
+    }
 }
 
 /// Returns a random cluster nearest-neighbour NLM with values ranging [0, 1).
@@ -188,6 +202,7 @@ pub fn midpoint_displacement(rows: usize, cols: usize, h: f32) -> Vec<Vec<f32>> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
     fn nan_count(arr: Vec<Vec<f32>>) -> usize {
         let mut count = 0;
@@ -213,45 +228,127 @@ mod tests {
         count
     }
 
-    #[test]
-    fn test_random() {
-        let arr = random(1000, 1000);
-        assert_eq!(nan_count(arr), 0)
-    }
-
-    #[test]
-    fn test_random_element() {
-        let arr = random_element(1000, 1000, 900.0);
-        assert_eq!(nan_count(arr), 0)
-    }
-
-    #[test]
-    fn test_planar_gradient() {
-        let arr = planar_gradient(1000, 1000, Some(90.));
-        assert_eq!(nan_count(arr), 0)
-    }
-
-    #[test]
-    fn test_edge_gradient() {
-        let arr = edge_gradient(1000, 1000, Some(90.));
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(2, 1)]
+    #[case(3, 2)]
+    #[case(4, 3)]
+    #[case(5, 5)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    #[case(500, 1000)]
+    #[case(1000, 500)]
+    #[case(1000, 1000)]
+    #[case(10000, 10000)]
+    fn test_random(#[case] rows: usize, #[case] cols: usize) {
+        let arr = random(rows, cols);
         assert_eq!(nan_count(arr), 0);
     }
-
-    #[test]
-    fn test_distance_gradient() {
-        let arr = distance_gradient(200, 200);
+    
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(2, 1)]
+    #[case(3, 2)]
+    #[case(4, 3)]
+    #[case(5, 5)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    #[case(500, 1000)]
+    #[case(1000, 500)]
+    #[case(1000, 1000)]
+    fn test_random_element(#[case] rows: usize, #[case] cols: usize) {
+        let arr = random_element(rows, cols, 900.0);
+        assert_eq!(nan_count(arr), 0)
+    }
+    
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(2, 1)]
+    #[case(3, 2)]
+    #[case(4, 3)]
+    #[case(5, 5)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    #[case(500, 1000)]
+    #[case(1000, 500)]
+    #[case(1000, 1000)]
+    #[case(10000, 10000)]
+    fn test_planar_gradient(#[case] rows: usize, #[case] cols: usize) {
+        let arr = planar_gradient(rows, cols, Some(90.));
+        assert_eq!(nan_count(arr), 0)
+    }
+    
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(2, 1)]
+    #[case(3, 2)]
+    #[case(4, 3)]
+    #[case(5, 5)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    #[case(500, 1000)]
+    #[case(1000, 500)]
+    #[case(1000, 1000)]
+    #[case(10000, 10000)]
+    fn test_edge_gradient(#[case] rows: usize, #[case] cols: usize) {
+        let arr = edge_gradient(rows, cols, Some(90.));
         assert_eq!(nan_count(arr), 0);
     }
-
-    #[test]
-    fn test_wave_gradient() {
-        let arr = wave_gradient(1000, 1000, 2.0, Some(90.));
+    
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(2, 1)]
+    #[case(3, 2)]
+    #[case(4, 3)]
+    #[case(5, 5)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    #[case(500, 1000)]
+    #[case(1000, 500)]
+    #[case(1000, 1000)]
+    fn test_distance_gradient(#[case] rows: usize, #[case] cols: usize) {
+        let arr = distance_gradient(rows, cols);
         assert_eq!(nan_count(arr), 0);
     }
-
-    #[test]
-    fn test_midpoint_displacement() {
-        let arr = midpoint_displacement(250, 250, 2.0);
+    
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(2, 1)]
+    #[case(3, 2)]
+    #[case(4, 3)]
+    #[case(5, 5)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    #[case(500, 1000)]
+    #[case(1000, 500)]
+    #[case(1000, 1000)]
+    #[case(10000, 10000)]
+    fn test_wave_gradient(#[case] rows: usize, #[case] cols: usize) {
+        let arr = wave_gradient(rows, cols, 2.0, Some(90.));
+        assert_eq!(nan_count(arr), 0);
+    }
+    
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(2, 1)]
+    #[case(3, 2)]
+    #[case(4, 3)]
+    #[case(5, 5)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    #[case(500, 1000)]
+    #[case(1000, 500)]
+    #[case(1000, 1000)]
+    #[case(10000, 10000)]
+    fn test_midpoint_displacement(#[case] rows: usize, #[case] cols: usize) {
+        let arr = midpoint_displacement(rows, cols, 2.0);
         assert_eq!(nan_count(arr), 0);
     }
 

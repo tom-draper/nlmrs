@@ -14,6 +14,9 @@ categories = ["mathematics", "graphics", "simulation", "multimedia::images", "vi
 path = "src/nlm.rs"    # The source file of the target.
 crate-type = ["lib"]   # The crate types to generate.
 
+[dev-dependencies]
+rstest = "0.16.0"
+
 [dependencies]
 rand = "0.8.5"
 csv = "1.1.6"
