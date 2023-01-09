@@ -2,36 +2,61 @@ use rand::prelude::*;
 
 /// Returns a 2D array of size (rows x cols) containing zeros.
 pub fn zeros_arr(rows: usize, cols: usize) -> Vec<Vec<f64>> {
-    let mut vec: Vec<Vec<f64>> = Vec::with_capacity(rows);
+    let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
     for _ in 0..rows {
         let row = vec![0f64; cols];
-        vec.push(row);
+        arr.push(row);
     }
-    vec
+    arr
 }
 
 /// Returns a 2D array of size (rows x cols) containing ones.
 pub fn ones_arr(rows: usize, cols: usize) -> Vec<Vec<f64>> {
-    let mut vec: Vec<Vec<f64>> = Vec::with_capacity(rows);
+    let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
     for _ in 0..rows {
         let row = vec![1f64; cols];
-        vec.push(row);
+        arr.push(row);
     }
-    vec
+    arr
+}
+
+/// Returns a 2D array of size (rows x cols) containing a given value.
+pub fn value_arr(rows: usize, cols: usize, value: f64) -> Vec<Vec<f64>> {
+    let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
+    for _ in 0..rows {
+        let row = vec![value; cols];
+        arr.push(row);
+    }
+    arr
+}
+
+/// Returns a 2D array of size (rows x cols) containing zeros.
+pub fn binary_rand_arr(rows: usize, cols: usize) -> Vec<Vec<f64>> {
+    let mut rng = rand::thread_rng();
+    let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
+    for _ in 0..rows {
+        let mut row = Vec::with_capacity(cols);
+        for _ in 0..cols {
+            let value = f64::from(rng.gen_bool(0.5) as i32);
+            row.push(value);
+        }
+        arr.push(row);
+    }
+    arr
 }
 
 /// Returns a 2D array of size (rows x cols) containing uniform random [0, 1) values.
 pub fn rand_arr(rows: usize, cols: usize) -> Vec<Vec<f64>> {
     let mut rng = rand::thread_rng();
-    let mut vec: Vec<Vec<f64>> = Vec::with_capacity(rows);
+    let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
     for _ in 0..rows {
         let mut row = Vec::with_capacity(cols);
         for _ in 0..cols {
             row.push(rng.gen());
         }
-        vec.push(row);
+        arr.push(row);
     }
-    vec
+    arr
 }
 
 /// Returns a 2D array of size (rows x cols) containing uniform random [0, 1) values.
@@ -142,17 +167,17 @@ pub fn diamond_square(dim: usize, h: f64) -> Vec<Vec<f64>> {
         // Square
         for i in (0..dim-1).step_by(inc) {
             for j in (0..dim-1).step_by(inc) {
-                let mut vec = vec![surface[i][j]];
+                let mut arr = vec![surface[i][j]];
                 if i + inc < dim {
-                    vec.push(surface[i+inc][j]);
+                    arr.push(surface[i+inc][j]);
                     if j + inc < dim {
-                        vec.push(surface[i+inc][j+inc]);
+                        arr.push(surface[i+inc][j+inc]);
                     }
                 } else if j + inc < dim {
-                    vec.push(surface[i+inc][j+inc]);
+                    arr.push(surface[i+inc][j+inc]);
                 }
                 let r = rng.gen();
-                surface[i+mid][j+mid] = displace_vals(&mut vec, disheight, r).unwrap();
+                surface[i+mid][j+mid] = displace_vals(&mut arr, disheight, r).unwrap();
             }
         }
 

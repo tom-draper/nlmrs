@@ -31,8 +31,7 @@ pub fn min_and_max(arr: &Vec<Vec<f64>>) -> (f64, f64) {
         for val in row.iter() {
             if *val < min {
                 min = *val;
-            }
-            if *val > max {
+            } else if *val > max {
                 max = *val;
             }
         }
@@ -86,11 +85,11 @@ fn euclidean_distance(x1: i32, y1: i32, x2: i32, y2: i32) -> f64 {
     y.sqrt()
 }
 
-fn nearest_non_zero(arr: &Vec<Vec<f64>>, row: usize, col: usize) -> (usize, usize) {
+fn nearest_zero(arr: &Vec<Vec<f64>>, row: usize, col: usize) -> (usize, usize) {
     let mut best = (std::f64::INFINITY, 0, 0);
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
-            if row != i || col != j {
+            if arr[i][j] == 0. && (row != i || col != j) {
                 let d = euclidean_distance(row as i32, col as i32, i as i32, j as i32);
                 if d < best.0 {
                     best = (d, i, j);
@@ -102,10 +101,11 @@ fn nearest_non_zero(arr: &Vec<Vec<f64>>, row: usize, col: usize) -> (usize, usiz
 }
 
 pub fn euclidean_distance_transform(arr: &mut Vec<Vec<f64>>) {
+    // Computes distances from non-zero points to the nearest zero point.
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             if arr[i][j] != 0.0 {
-                let (row, col) = nearest_non_zero(arr, i, j);
+                let (row, col) = nearest_zero(arr, i, j);
                 arr[i][j] = euclidean_distance(row as i32, col as i32, i as i32, j as i32) as f64;
             }
         }
@@ -115,7 +115,7 @@ pub fn euclidean_distance_transform(arr: &mut Vec<Vec<f64>>) {
 pub fn invert(arr: &mut Vec<Vec<f64>>) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
-            arr[i][j] = 1.0 - arr[i][j]
+            arr[i][j] = 1. - arr[i][j]
         }
     }
 }
@@ -155,8 +155,8 @@ pub fn add_value(arr: &mut Vec<Vec<f64>>, value: f64) {
 pub fn abs(arr: &mut Vec<Vec<f64>>) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
-            if arr[i][j] < 0.0 {
-                arr[i][j] *= -1.0;
+            if arr[i][j] < 0. {
+                arr[i][j] *= -1.;
             }
         }
     }

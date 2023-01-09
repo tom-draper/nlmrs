@@ -1,9 +1,13 @@
 mod array;
 mod operation;
 pub mod export;
+use array::{binary_rand_arr, value_arr};
+use rand::prelude::*;
 use rand::Rng;
+use rand::distributions::WeightedIndex;
 use crate::operation::{interpolate, max, scale, euclidean_distance_transform, invert};
 use crate::array::{indices_arr, ones_arr, rand_arr, value_mask, zeros_arr, diamond_square, rand_sub_arr};
+
 
 /// Returns a spatially random NLM with values ranging [0, 1).
 ///
@@ -150,7 +154,7 @@ pub fn edge_gradient(rows: usize, cols: usize, direction: Option<f64>) -> Vec<Ve
 /// Implementation ported from NLMpy.
 #[allow(dead_code)]
 pub fn distance_gradient(rows: usize, cols: usize) -> Vec<Vec<f64>> {
-    let mut arr = rand_arr(rows, cols);
+    let mut arr = binary_rand_arr(rows, cols);
     invert(&mut arr);
     euclidean_distance_transform(&mut arr);
     scale(&mut arr);
@@ -208,6 +212,74 @@ pub fn midpoint_displacement(rows: usize, cols: usize, h: f64) -> Vec<Vec<f64>> 
 
     scale(&mut surface);
     surface
+}
+
+fn grow_neighbours(arr: &mut Vec<Vec<f64>>, row: usize, col: usize, factor: Option<f64>) {
+    let f = factor.unwrap_or(0.1);
+
+    arr[row][col] += f;
+    if row > 0 {
+        arr[row-1][col] += f * 0.5;
+    }
+    if col > 0 {
+        arr[row][col-1] += f * 0.5;
+    }
+    if row < arr.len()-1 {
+        arr[row+1][col] += f * 0.5;
+    }
+    if col < arr.len()-1 {
+        arr[row][col+1] += f * 0.5;
+    }
+}
+
+fn hill_grow_next_point(arr: &Vec<Vec<f64>>, runaway: bool) -> (usize, usize) {
+    let mut rng = rand::thread_rng();
+    if runaway {
+        let mut points= Vec::new();
+        let mut weights = Vec::new();
+        for i in 0..arr.len() {
+            for j in 0..arr[i].len() {
+                points.push((i, j));
+                weights.push(arr[i][j]);
+            }
+        }
+        let total: f64 = weights.iter().sum();
+        for i in 0..weights.len() {
+            weights[i] /= total;
+        }
+        let dist = WeightedIndex::new(&weights).unwrap();
+        dist.sample(&mut rng);
+        return points[dist.sample(&mut rng)];
+    } else {
+        let r = rng.gen_range(0..arr.len());
+        let mut c = 0;
+        if arr.len() > 0 {
+            c = rng.gen_range(0..arr[0].len());
+        }
+        return (r, c)
+    }
+}
+
+/// Returns a hill-grow NLM with values ranging [0, 1).
+#[allow(dead_code)]
+pub fn hill_grow(rows: usize, cols: usize, n: usize, runaway: bool) -> Vec<Vec<f64>> {
+    let mut rng = rand::thread_rng();
+    let mut arr = value_arr(rows, cols, 0.5);
+
+    let factor = 0.1;
+    for _ in 0..n {
+        let (r, c) = hill_grow_next_point(&arr, runaway);
+        let grow = rng.gen_bool(0.5);
+        if grow {
+            grow_neighbours(&mut arr, r, c, Some(factor));
+        } else {
+            // Shrink
+            grow_neighbours(&mut arr, r, c, Some(-factor));
+        }
+    };
+
+    scale(&mut arr);
+    arr
 }
 
 
@@ -429,13 +501,36 @@ mod tests {
         }
         let n = ((max_dim - 1) as f64).log2().ceil() as u32;
         let dim = usize::pow(2, n) + 1;
-
+        
         let arr = diamond_square(dim, h);
         assert_eq!(arr.len(), rows);
         if arr.len() > 0 {
             assert_eq!(arr[0].len(), cols);
         }
         assert_eq!(nan_count(&arr), 0);
+    }
+    
+    #[rstest]
+    #[case(0, 0, 50000, true)]
+    #[case(1, 1, 50000, true)]
+    #[case(2, 1, 50000, true)]
+    #[case(3, 2, 50000, true)]
+    #[case(4, 3, 50000, true)]
+    #[case(5, 5, 50000, true)]
+    #[case(10, 10, 50000, true)]
+    #[case(100, 100, 50000, true)]
+    #[case(500, 1000, 50000, true)]
+    #[case(1000, 500, 50000, true)]
+    #[case(1000, 1000, 50000, true)]
+    #[case(2000, 2000, 50000, true)]
+    fn test_hill_grow(#[case] rows: usize, #[case] cols: usize, #[case] n: usize, #[case] runaway: bool) {
+        let arr = hill_grow(rows, cols, n, runaway);
+        assert_eq!(arr.len(), rows);
+        if arr.len() > 0 {
+            assert_eq!(arr[0].len(), cols);
+        }
+        assert_eq!(nan_count(&arr), 0);
+        assert_eq!(zero_to_one_count(&arr), rows*cols);
     }
 
     #[test]
@@ -447,6 +542,7 @@ mod tests {
         // let arr = distance_gradient(100, 100);
         // let arr = wave_gradient(100, 100, 2.5, Some(90.));
         let arr = midpoint_displacement(100, 100, 1.);
+        // let arr = hill_grow(100, 100, 10000, true);
         export::write_to_csv(arr);
     }
 }
