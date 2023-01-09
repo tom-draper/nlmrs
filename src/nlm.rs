@@ -190,8 +190,10 @@ pub fn wave_gradient(rows: usize, cols: usize, period: f32, direction: Option<f3
 #[allow(dead_code)]
 pub fn midpoint_displacement(rows: usize, cols: usize, h: f32) -> Vec<Vec<f32>> {
     let max_dim = std::cmp::max(rows, cols);
-    let n = ((max_dim - 1) as f32).log2().ceil() as usize;
-    let dim = n.pow(2) + 1;
+    let n = ((max_dim - 1) as f32).log2().ceil() as u32;
+    let dim = usize::pow(2, n) + 1;
+
+    println!("{} {} {}", max_dim, n, dim);
 
     let mut surface = diamond_square(dim, h);
 
@@ -199,11 +201,12 @@ pub fn midpoint_displacement(rows: usize, cols: usize, h: f32) -> Vec<Vec<f32>> 
     surface
 }
 
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use rstest::rstest;
-
+    
     fn nan_count(arr: Vec<Vec<f32>>) -> usize {
         let mut count = 0;
         for i in 0..arr.len() {
@@ -348,7 +351,29 @@ mod tests {
     #[case(1000, 1000)]
     #[case(10000, 10000)]
     fn test_midpoint_displacement(#[case] rows: usize, #[case] cols: usize) {
-        let arr = midpoint_displacement(rows, cols, 2.0);
+        let arr = midpoint_displacement(rows, cols, 2.);
+        assert_eq!(nan_count(arr), 0);
+    }
+    
+    #[rstest]
+    #[case(0, 0, 2.)]
+    #[case(1, 1, 2.)]
+    #[case(2, 1, 2.)]
+    #[case(3, 2, 2.)]
+    #[case(4, 3, 2.)]
+    #[case(5, 5, 2.)]
+    #[case(10, 10, 2.)]
+    #[case(100, 100, 2.)]
+    #[case(500, 1000, 2.)]
+    #[case(1000, 500, 2.)]
+    #[case(1000, 1000, 2.)]
+    #[case(10000, 10000, 2.)]
+    fn test_diamond_square(#[case] rows: usize, #[case] cols: usize, #[case] h: f32) {
+        let max_dim = std::cmp::max(rows, cols);
+        let n = ((max_dim - 1) as f32).log2().ceil() as u32;
+        let dim = usize::pow(2, n) + 1;
+
+        let arr = diamond_square(dim, h);
         assert_eq!(nan_count(arr), 0);
     }
 

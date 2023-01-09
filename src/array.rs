@@ -101,8 +101,8 @@ fn check_diamond_coords(diax: i32, diay: i32, dim: i32, i2: i32) -> Vec<(i32, i3
     return vec![(diax+i2, diay), (diax-i2, diay), (diax, diay-i2), (diax, diay+i2)]
 }
 
-fn diamond_step(surface: &mut Vec<Vec<f32>>, disheight: f32, i2: usize, dim: usize, rng: &mut ThreadRng, diax: usize, diay: usize) {
-    let diaco = check_diamond_coords(diax as i32, diay as i32, dim as i32, i2 as i32);
+fn diamond_step(surface: &mut Vec<Vec<f32>>, disheight: f32, mid: usize, dim: usize, rng: &mut ThreadRng, diax: usize, diay: usize) {
+    let diaco = check_diamond_coords(diax as i32, diay as i32, dim as i32, mid as i32);
     let mut diavals = vec![0f32; diaco.len()];
     for c in 0..diavals.len() {
         diavals[c] = surface[diaco[c].0 as usize][diaco[c].1 as usize];
@@ -126,24 +126,34 @@ pub fn diamond_square(dim: usize, h: f32) -> Vec<Vec<f32>> {
     let mut inc = dim - 1;
     let mut rng = rand::thread_rng();
     while inc > 1 {
-        let i2 = inc/2;  // Centre point
-
+        let mid = inc/2;  // Centre point
+        
+        println!("{} {}", inc, mid);
+        
         // Square
         for i in (0..dim-1).step_by(inc) {
             for j in (0..dim-1).step_by(inc) {
-                let mut vec = vec![surface[i][j], surface[i+inc][j], surface[i+inc][j+inc], surface[i][j+inc]];
+                let mut vec = vec![surface[i][j]];
+                if i + inc < dim {
+                    vec.push(surface[i+inc][j]);
+                    if j + inc < dim {
+                        vec.push(surface[i+inc][j+inc]);
+                    }
+                } else if j + inc < dim {
+                    vec.push(surface[i+inc][j+inc]);
+                }
                 let r = rng.gen();
-                surface[i+i2][j+i2] = displace_vals(&mut vec, disheight, r).unwrap();
+                surface[i+mid][j+mid] = displace_vals(&mut vec, disheight, r).unwrap();
             }
         }
 
         // Diamond
         for i in (0..dim-1).step_by(inc) {
             for j in (0..dim-1).step_by(inc) {
-                diamond_step(&mut surface, disheight, i2, dim, &mut rng, i+i2, j);
-                diamond_step(&mut surface, disheight, i2, dim, &mut rng, i, j+i2);
-                diamond_step(&mut surface, disheight, i2, dim, &mut rng, i+inc, j+i2);
-                diamond_step(&mut surface, disheight, i2, dim, &mut rng, i+i2, j+inc);
+                diamond_step(&mut surface, disheight, mid, dim, &mut rng, i+mid, j);
+                diamond_step(&mut surface, disheight, mid, dim, &mut rng, i, j+mid);
+                diamond_step(&mut surface, disheight, mid, dim, &mut rng, i+inc, j+mid);
+                diamond_step(&mut surface, disheight, mid, dim, &mut rng, i+mid, j+inc);
             }
         }
 
