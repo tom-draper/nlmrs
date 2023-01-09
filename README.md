@@ -56,6 +56,8 @@ fn main() {
 
 ### Distance Gradient
 
+<img src="https://user-images.githubusercontent.com/41476809/211400760-8558426c-330b-4a01-9024-246b4432819a.png" alt="" width=300 />
+
 ### Wave Gradient
 
 <img src="https://user-images.githubusercontent.com/41476809/211368695-61bc245b-214c-4e7d-9f74-dcfc8dde0087.png" alt="" width=300 />
@@ -63,6 +65,10 @@ fn main() {
 ### Midpoint Displacement
 
 <img src="https://user-images.githubusercontent.com/41476809/211368739-3bfd4026-f47b-4b15-92ab-38e48c963d87.png" alt="" width=300 />
+
+### Hill Grow
+
+<img src="https://user-images.githubusercontent.com/41476809/211400491-79c4767e-3caf-44ca-a58f-859fbbf2a8c7.png" alt="" width=300 />
 
 ## Visualization
 
