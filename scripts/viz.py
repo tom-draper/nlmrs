@@ -1,5 +1,7 @@
 import csv
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def heatmap(data: list[list[float]]):
@@ -30,5 +32,8 @@ if __name__ == '__main__':
         for lines in csvf:
             lines = list(map(float, lines))
             arr.append(lines)
+        
+        arr = np.array(arr)
+        print(arr.shape)
         
         heatmap(arr)

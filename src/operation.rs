@@ -1,7 +1,7 @@
 use rand::Rng;
 
-pub fn max(arr: &Vec<Vec<f32>>) -> f32 {
-    let mut max: f32 = 0.0;
+pub fn max(arr: &Vec<Vec<f64>>) -> f64 {
+    let mut max: f64 = 0.0;
     for row in arr.iter() {
         for val in row.iter() {
             if *val > max {
@@ -12,8 +12,8 @@ pub fn max(arr: &Vec<Vec<f32>>) -> f32 {
     max
 }
 
-pub fn min(arr: &Vec<Vec<f32>>) -> f32 {
-    let mut min: f32 = std::f32::INFINITY;
+pub fn min(arr: &Vec<Vec<f64>>) -> f64 {
+    let mut min: f64 = std::f64::INFINITY;
     for row in arr.iter() {
         for val in row.iter() {
             if *val < min {
@@ -24,9 +24,9 @@ pub fn min(arr: &Vec<Vec<f32>>) -> f32 {
     min
 }
 
-pub fn min_and_max(arr: &Vec<Vec<f32>>) -> (f32, f32) {
-    let mut min: f32 = std::f32::INFINITY;
-    let mut max: f32 = 0.0;
+pub fn min_and_max(arr: &Vec<Vec<f64>>) -> (f64, f64) {
+    let mut min: f64 = std::f64::INFINITY;
+    let mut max: f64 = 0.0;
     for row in arr.iter() {
         for val in row.iter() {
             if *val < min {
@@ -40,8 +40,8 @@ pub fn min_and_max(arr: &Vec<Vec<f32>>) -> (f32, f32) {
     (min, max)
 }
 
-fn nearest_neighbour(arr: &Vec<Vec<f32>>, row: usize, col: usize) -> f32 {
-    let mut options: Vec<f32> = Vec::new();
+fn nearest_neighbour(arr: &Vec<Vec<f64>>, row: usize, col: usize) -> f64 {
+    let mut options: Vec<f64> = Vec::new();
     if row < arr.len() - 1 {
         options.push(arr[row + 1][col]);
     } else if row > 0 {
@@ -56,35 +56,38 @@ fn nearest_neighbour(arr: &Vec<Vec<f32>>, row: usize, col: usize) -> f32 {
     options[rng.gen_range(0..options.len())]
 }
 
-pub fn interpolate(arr: &mut Vec<Vec<f32>>, mask: Vec<Vec<bool>>) {
+pub fn interpolate(arr: &mut Vec<Vec<f64>>, mask: Vec<Vec<bool>>) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             if mask[i][j] {
-                // Replace with nearest neighbour value
+                // Replace with nearest non-zero neighbour value
                 arr[i][j] = nearest_neighbour(arr, i, j);
             }
         }
     }
 }
 
-pub fn scale(arr: &mut Vec<Vec<f32>>) {
+pub fn scale(arr: &mut Vec<Vec<f64>>) {
     let (min, max) = min_and_max(arr);
-    if min != max {
-        for i in 0..arr.len() {
-            for j in 0..arr[i].len() {
-                arr[i][j] = (arr[i][j] - min) / (max - min);
+    let range = max - min;
+    for i in 0..arr.len() {
+        for j in 0..arr[i].len() {
+            if range == 0. {
+                arr[i][j] = 0.5;
+            } else {
+                arr[i][j] = (arr[i][j] - min) / range;
             }
         }
     }
 }
 
-fn euclidean_distance(x1: i32, y1: i32, x2: i32, y2: i32) -> f32 {
-    let y = ((x2 - x1).pow(2) + (y2 - y1).pow(2)) as f32;
+fn euclidean_distance(x1: i32, y1: i32, x2: i32, y2: i32) -> f64 {
+    let y = ((x2 - x1).pow(2) + (y2 - y1).pow(2)) as f64;
     y.sqrt()
 }
 
-fn nearest_non_zero(arr: &Vec<Vec<f32>>, row: usize, col: usize) -> (usize, usize) {
-    let mut best = (std::f32::INFINITY, 0, 0);
+fn nearest_non_zero(arr: &Vec<Vec<f64>>, row: usize, col: usize) -> (usize, usize) {
+    let mut best = (std::f64::INFINITY, 0, 0);
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             if row != i || col != j {
@@ -98,18 +101,18 @@ fn nearest_non_zero(arr: &Vec<Vec<f32>>, row: usize, col: usize) -> (usize, usiz
     (best.1, best.2)
 }
 
-pub fn euclidean_distance_transform(arr: &mut Vec<Vec<f32>>) {
+pub fn euclidean_distance_transform(arr: &mut Vec<Vec<f64>>) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             if arr[i][j] != 0.0 {
                 let (row, col) = nearest_non_zero(arr, i, j);
-                arr[i][j] = euclidean_distance(row as i32, col as i32, i as i32, j as i32) as f32;
+                arr[i][j] = euclidean_distance(row as i32, col as i32, i as i32, j as i32) as f64;
             }
         }
     }
 }
 
-pub fn invert(arr: &mut Vec<Vec<f32>>) {
+pub fn invert(arr: &mut Vec<Vec<f64>>) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             arr[i][j] = 1.0 - arr[i][j]
@@ -117,7 +120,7 @@ pub fn invert(arr: &mut Vec<Vec<f32>>) {
     }
 }
 
-pub fn multiply_value(arr: &mut Vec<Vec<f32>>, value: f32) {
+pub fn multiply_value(arr: &mut Vec<Vec<f64>>, value: f64) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             arr[i][j] *= value;
@@ -125,7 +128,7 @@ pub fn multiply_value(arr: &mut Vec<Vec<f32>>, value: f32) {
     }
 }
 
-pub fn multiply(arr: &mut Vec<Vec<f32>>, arr2: Vec<Vec<f32>>) {
+pub fn multiply(arr: &mut Vec<Vec<f64>>, arr2: Vec<Vec<f64>>) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             arr[i][j] *= arr2[i][j];
@@ -133,7 +136,7 @@ pub fn multiply(arr: &mut Vec<Vec<f32>>, arr2: Vec<Vec<f32>>) {
     }
 }
 
-pub fn add(arr: &mut Vec<Vec<f32>>, arr2: Vec<Vec<f32>>) {
+pub fn add(arr: &mut Vec<Vec<f64>>, arr2: Vec<Vec<f64>>) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             arr[i][j] += arr2[i][j];
@@ -141,7 +144,7 @@ pub fn add(arr: &mut Vec<Vec<f32>>, arr2: Vec<Vec<f32>>) {
     }
 }
 
-pub fn add_value(arr: &mut Vec<Vec<f32>>, value: f32) {
+pub fn add_value(arr: &mut Vec<Vec<f64>>, value: f64) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             arr[i][j] += value;
@@ -149,7 +152,7 @@ pub fn add_value(arr: &mut Vec<Vec<f32>>, value: f32) {
     }
 }
 
-pub fn abs(arr: &mut Vec<Vec<f32>>) {
+pub fn abs(arr: &mut Vec<Vec<f64>>) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
             if arr[i][j] < 0.0 {
