@@ -40,29 +40,51 @@ fn main() {
 
 ### Random
 
+`random(100, 100)`
+
 <img src="https://user-images.githubusercontent.com/41476809/211366758-60cd60fa-bc7d-4bfb-b514-1aca1870dfa8.png" alt="" width=300 />
 
 ### Random Element
+
+`random_element(100, 100, 50000.)`
 
 <img src="https://user-images.githubusercontent.com/41476809/211366837-8912ddc8-a541-4060-b948-abb81aeb4c27.png" alt="" width=300 />
 
 ### Planar Gradient
 
+`planar_gradient(100, 100, Some(60.))`
+
 <img src="https://user-images.githubusercontent.com/41476809/211367190-9ed6604f-7352-4fb8-a75a-957bd733e01a.png" alt="" width=300 />
 
 ### Edge Gradient
+
+`edge_gradient(100, 100, Some(140.))`
 
 <img src="https://user-images.githubusercontent.com/41476809/211367676-e731dcc4-3da3-48d6-b7bf-d90b08a3645f.png" alt="" width=300 />
 
 ### Distance Gradient
 
+`distance_gradient(100, 100)`
+
+<img src="https://user-images.githubusercontent.com/41476809/211400760-8558426c-330b-4a01-9024-246b4432819a.png" alt="" width=300 />
+
 ### Wave Gradient
+
+`wave_gradient(100, 100, 2.5, Some(90.))`
 
 <img src="https://user-images.githubusercontent.com/41476809/211368695-61bc245b-214c-4e7d-9f74-dcfc8dde0087.png" alt="" width=300 />
 
 ### Midpoint Displacement
 
+`midpoint_displacement(100, 100, 1.)`
+
 <img src="https://user-images.githubusercontent.com/41476809/211368739-3bfd4026-f47b-4b15-92ab-38e48c963d87.png" alt="" width=300 />
+
+### Hill Grow
+
+`hill_grow(100, 100, 10000, true)`
+
+<img src="https://user-images.githubusercontent.com/41476809/211400491-79c4767e-3caf-44ca-a58f-859fbbf2a8c7.png" alt="" width=300 />
 
 ## Visualization
 
