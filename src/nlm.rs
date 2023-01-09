@@ -227,7 +227,7 @@ fn grow_neighbours(arr: &mut Vec<Vec<f64>>, row: usize, col: usize, factor: Opti
     if row < arr.len()-1 {
         arr[row+1][col] += f * 0.5;
     }
-    if col < arr.len()-1 {
+    if col < arr[0].len()-1 {
         arr[row][col+1] += f * 0.5;
     }
 }
@@ -243,10 +243,21 @@ fn hill_grow_next_point(arr: &Vec<Vec<f64>>, runaway: bool) -> (usize, usize) {
                 weights.push(arr[i][j]);
             }
         }
-        let total: f64 = weights.iter().sum();
+
+        // Normalise weights
+        let mut min: f64 = std::f64::INFINITY;
+        let mut max: f64 = 0.0;
         for i in 0..weights.len() {
-            weights[i] /= total;
+            if weights[i] < min {
+                min = weights[i];
+            } else if weights[i] > max {
+                max = weights[i];
+            }
         }
+        for i in 0..weights.len() {
+            weights[i] = (weights[i] - min )/ (max - min);
+        }
+
         let dist = WeightedIndex::new(&weights).unwrap();
         dist.sample(&mut rng);
         return points[dist.sample(&mut rng)];
