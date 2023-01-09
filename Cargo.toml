@@ -1,6 +1,6 @@
 [package]
 name = "nlmrs"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 description= "A Rust crate for building Neutral Landscape Models."
 repository = "https://github.com/tom-draper/nlmrs"

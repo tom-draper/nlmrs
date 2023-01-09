@@ -1,10 +1,9 @@
 mod array;
 mod operation;
-mod export;
+pub mod export;
 use rand::Rng;
 use crate::operation::{interpolate, max, scale, euclidean_distance_transform, invert};
 use crate::array::{indices_arr, ones_arr, rand_arr, value_mask, zeros_arr, diamond_square, rand_sub_arr};
-use crate::export::{write_to_csv, display_arr};
 
 /// Returns a spatially random NLM with values ranging [0, 1).
 ///
@@ -442,6 +441,6 @@ mod tests {
     #[test]
     fn test_write_to_csv() {
         let arr = midpoint_displacement(100, 250, 1.);
-        write_to_csv(arr);
+        export::write_to_csv(arr);
     }
 }

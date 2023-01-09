@@ -14,7 +14,47 @@ cargo add nlmrs
 
 ## Example
 
-## Overview
+```rs
+use nlmrs;
+
+fn main() {
+    let arr: Vec<Vec<f64>> = nlmrs::midpoint_displacement(10, 10, 1.);
+    println!("{:?}", arr);
+}
+```
+
+### Export
+
+The `export` module holds a collection of user-friendly functions to export your 2D NLM vector.
+
+```rs
+use nlmrs::{distance_gradient, export::write_to_csv};
+
+fn main() {
+    let arr: Vec<Vec<f64>> = distance_gradient(50, 50);
+    write_to_csv(arr, "./data/data.csv");
+}
+```
+
+## Algorithms
+
+### Random
+
+### Random Element
+
+### Planar Gradient
+
+### Edge Gradient
+
+### Distance Gradient
+
+### Wave Gradient
+
+### Midpoint Displacement
+
+## Visualisation
+
+Running `script/vis.py` will read any contents of `data/data.csv` and render them in a matplotlib plot.
 
 ## Contributions
 
