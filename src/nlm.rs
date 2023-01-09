@@ -440,7 +440,13 @@ mod tests {
 
     #[test]
     fn test_write_to_csv() {
-        let arr = midpoint_displacement(100, 250, 1.);
+        // let arr = random(100, 100);
+        // let arr = random_element(100, 100, 50000.);
+        // let arr = planar_gradient(100, 100, Some(60.));
+        // let arr = edge_gradient(100, 100, Some(140.));
+        // let arr = distance_gradient(100, 100);
+        // let arr = wave_gradient(100, 100, 2.5, Some(90.));
+        let arr = midpoint_displacement(100, 100, 1.);
         export::write_to_csv(arr);
     }
 }
