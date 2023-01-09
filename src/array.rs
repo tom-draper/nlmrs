@@ -171,3 +171,24 @@ pub fn diamond_square(dim: usize, h: f64) -> Vec<Vec<f64>> {
     }
     surface
 }
+
+
+/// Selects a random subarray of size( rows x cols) from the arr.
+pub fn rand_sub_arr(arr: Vec<Vec<f64>>, rows: usize, cols: usize) -> Vec<Vec<f64>> {
+    // If original array larger than target size, return original
+    if rows >= arr.len() || (arr.len() > 0 && cols >= arr[0].len()) {
+        return arr;
+    }
+
+    let mut rng = rand::thread_rng();
+    let row_start = rng.gen_range(0..(arr.len() - rows));
+    let col_start = rng.gen_range(0..(arr[0].len() - cols));
+
+    let mut sub_arr = vec![vec![0f64; cols]; rows];
+    for i in 0..rows {
+        for j in 0..cols {
+            sub_arr[i][j] = arr[row_start + i][col_start + j];
+        }
+    }
+    sub_arr
+}

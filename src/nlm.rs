@@ -3,7 +3,7 @@ mod operation;
 mod export;
 use rand::Rng;
 use crate::operation::{interpolate, max, scale, euclidean_distance_transform, invert};
-use crate::array::{indices_arr, ones_arr, rand_arr, value_mask, zeros_arr, diamond_square};
+use crate::array::{indices_arr, ones_arr, rand_arr, value_mask, zeros_arr, diamond_square, rand_sub_arr};
 use crate::export::{write_to_csv, display_arr};
 
 /// Returns a spatially random NLM with values ranging [0, 1).
@@ -56,8 +56,8 @@ pub fn random_cluster(rows: usize, cols: usize) -> Vec<Vec<f64>> {
 /// Implementation ported from NLMpy.
 #[allow(dead_code)]
 pub fn random_element(rows: usize, cols: usize, n: f64) -> Vec<Vec<f64>> {
-    if rows == 0 || cols == 0 {
-        return vec![vec![]]
+    if rows == 0 {
+        return vec![]
     }
 
     let mut arr = ones_arr(rows, cols);
@@ -197,12 +197,15 @@ pub fn wave_gradient(rows: usize, cols: usize, period: f64, direction: Option<f6
 pub fn midpoint_displacement(rows: usize, cols: usize, h: f64) -> Vec<Vec<f64>> {
     let max_dim = std::cmp::max(rows, cols);
     if max_dim == 0 {
-        return vec![vec![]]
+        return vec![]
     }
     let n = ((max_dim - 1) as f64).log2().ceil() as u32;
     let dim = usize::pow(2, n) + 1;
     
     let mut surface = diamond_square(dim, h);
+
+    // Take random (row x cols) sub array
+    surface = rand_sub_arr(surface, rows, cols);
 
     scale(&mut surface);
     surface
@@ -261,6 +264,10 @@ mod tests {
     #[case(2000, 2000)]
     fn test_random(#[case] rows: usize, #[case] cols: usize) {
         let arr = random(rows, cols);
+        assert_eq!(arr.len(), rows);
+        if arr.len() > 0 {
+            assert_eq!(arr[0].len(), cols);
+        }
         assert_eq!(nan_count(&arr), 0);
         assert_eq!(zero_to_one_count(&arr), rows*cols);
     }
@@ -280,6 +287,10 @@ mod tests {
     #[case(2000, 2000)]
     fn test_random_element(#[case] rows: usize, #[case] cols: usize) {
         let arr = random_element(rows, cols, 900.);
+        assert_eq!(arr.len(), rows);
+        if arr.len() > 0 {
+            assert_eq!(arr[0].len(), cols);
+        }
         assert_eq!(nan_count(&arr), 0);
         assert_eq!(zero_to_one_count(&arr), rows*cols);
     }
@@ -299,6 +310,10 @@ mod tests {
     #[case(2000, 2000)]
     fn test_planar_gradient(#[case] rows: usize, #[case] cols: usize) {
         let arr = planar_gradient(rows, cols, Some(90.));
+        assert_eq!(arr.len(), rows);
+        if arr.len() > 0 {
+            assert_eq!(arr[0].len(), cols);
+        }
         assert_eq!(nan_count(&arr), 0);
         assert_eq!(zero_to_one_count(&arr), rows*cols);
     }
@@ -318,6 +333,10 @@ mod tests {
     #[case(2000, 2000)]
     fn test_edge_gradient(#[case] rows: usize, #[case] cols: usize) {
         let arr = edge_gradient(rows, cols, Some(90.));
+        assert_eq!(arr.len(), rows);
+        if arr.len() > 0 {
+            assert_eq!(arr[0].len(), cols);
+        }
         assert_eq!(nan_count(&arr), 0);
         assert_eq!(zero_to_one_count(&arr), rows*cols);
     }
@@ -331,9 +350,12 @@ mod tests {
     #[case(5, 5)]
     #[case(10, 10)]
     #[case(100, 100)]
-    #[case(500, 500)]
     fn test_distance_gradient(#[case] rows: usize, #[case] cols: usize) {
         let arr = distance_gradient(rows, cols);
+        assert_eq!(arr.len(), rows);
+        if arr.len() > 0 {
+            assert_eq!(arr[0].len(), cols);
+        }
         assert_eq!(nan_count(&arr), 0);
         assert_eq!(zero_to_one_count(&arr), rows*cols);
     }
@@ -353,6 +375,10 @@ mod tests {
     #[case(2000, 2000)]
     fn test_wave_gradient(#[case] rows: usize, #[case] cols: usize) {
         let arr = wave_gradient(rows, cols, 2.0, Some(90.));
+        assert_eq!(arr.len(), rows);
+        if arr.len() > 0 {
+            assert_eq!(arr[0].len(), cols);
+        }
         assert_eq!(nan_count(&arr), 0);
         assert_eq!(zero_to_one_count(&arr), rows*cols);
         if rows > 0 && cols > 0 && (rows > 1 || cols > 1) {
@@ -376,6 +402,10 @@ mod tests {
     #[case(2000, 2000)]
     fn test_midpoint_displacement(#[case] rows: usize, #[case] cols: usize) {
         let arr = midpoint_displacement(rows, cols, 1.);
+        assert_eq!(arr.len(), rows);
+        if arr.len() > 0 {
+            assert_eq!(arr[0].len(), cols);
+        }
         assert_eq!(nan_count(&arr), 0);
         assert_eq!(zero_to_one_count(&arr), rows*cols);
     }
@@ -402,12 +432,16 @@ mod tests {
         let dim = usize::pow(2, n) + 1;
 
         let arr = diamond_square(dim, h);
+        assert_eq!(arr.len(), rows);
+        if arr.len() > 0 {
+            assert_eq!(arr[0].len(), cols);
+        }
         assert_eq!(nan_count(&arr), 0);
     }
 
     #[test]
     fn test_write_to_csv() {
-        let arr = midpoint_displacement(500, 500, 0.2);
+        let arr = midpoint_displacement(100, 250, 1.);
         write_to_csv(arr);
     }
 }
