@@ -1,6 +1,6 @@
 # NLMrs
 
-A Rust crate for simulating <b>Neutral Landscape Models</b>.
+A Rust crate for building <b>Neutral Landscape Models</b>.
 
 <img src="https://user-images.githubusercontent.com/41476809/211021671-df9cddff-78b6-40b2-954f-d682707deb0d.png" width=300 alt="" />
 
