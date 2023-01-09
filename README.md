@@ -64,9 +64,9 @@ fn main() {
 
 <img src="https://user-images.githubusercontent.com/41476809/211368739-3bfd4026-f47b-4b15-92ab-38e48c963d87.png" alt="" width=300 />
 
-## Visualisation
+## Visualization
 
-Running `script/vis.py` will read any contents of `data/data.csv` and render them in a matplotlib plot.
+Running `script/viz.py` will read any contents of `data/data.csv` and render them in a matplotlib plot.
 
 ## Contributions
 
