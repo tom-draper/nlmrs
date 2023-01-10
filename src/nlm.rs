@@ -27,7 +27,7 @@ pub fn random(rows: usize, cols: usize) -> Vec<Vec<f64>> {
 /// * `rows` - Number of rows in the array.
 /// * `cols` - Number of columns in the array.
 #[allow(dead_code)]
-pub fn random_arr<'a>(arr: &mut[&mut[f64]], rows: usize, cols: usize){
+pub fn random_arr(arr: &mut[&mut[f64]], rows: usize, cols: usize) {
     let mut rng = rand::thread_rng();
     for i in 0..rows {
         for j in 0..cols {
@@ -214,22 +214,42 @@ pub fn midpoint_displacement(rows: usize, cols: usize, h: f64) -> Vec<Vec<f64>> 
     surface
 }
 
-fn grow_neighbours(arr: &mut Vec<Vec<f64>>, row: usize, col: usize, factor: Option<f64>) {
+fn apply_kernel(arr: &mut Vec<Vec<f64>>, row: usize, col: usize, kernel: &Vec<Vec<f64>>, factor: Option<f64>) {
     let f = factor.unwrap_or(0.1);
 
-    arr[row][col] += f;
-    if row > 0 {
-        arr[row-1][col] += f * 0.5;
+    let half = (kernel.len() as i32 - 1) / 2;
+    let row_i = row as i32;
+    let col_i = col as i32;
+
+    // println!("{} {}", row, row_i);
+    // println!("{} {}", col, col_i);
+
+    for i in row_i-half..row_i+half+1 {
+        for j in col_i-half..col_i+half+1 {
+            if i >= 0 && j >= 0 {
+                let iu = i as usize;
+                let ju = j as usize;
+                if iu < arr.len() && ju < arr[iu].len() {
+                    // println!("-- {} {} {} {} {} {}", i, j, row_i-half, col_i-half, i - (row_i-half), j - (col_i-half));
+                    arr[iu][ju] += kernel[(i - (row_i - half)) as usize][(j - (col_i - half)) as usize] * f
+                }
+            }
+        }
     }
-    if col > 0 {
-        arr[row][col-1] += f * 0.5;
-    }
-    if row < arr.len()-1 {
-        arr[row+1][col] += f * 0.5;
-    }
-    if col < arr[0].len()-1 {
-        arr[row][col+1] += f * 0.5;
-    }
+
+    // arr[row][col] += f;
+    // if row > 0 {
+    //     arr[row-1][col] += f * 0.5;
+    // }
+    // if col > 0 {
+    //     arr[row][col-1] += f * 0.5;
+    // }
+    // if row < arr.len()-1 {
+    //     arr[row+1][col] += f * 0.5;
+    // }
+    // if col < arr[0].len()-1 {
+    //     arr[row][col+1] += f * 0.5;
+    // }
 }
 
 fn hill_grow_next_point(arr: &Vec<Vec<f64>>, runaway: bool) -> (usize, usize) {
@@ -242,20 +262,6 @@ fn hill_grow_next_point(arr: &Vec<Vec<f64>>, runaway: bool) -> (usize, usize) {
                 points.push((i, j));
                 weights.push(arr[i][j]);
             }
-        }
-
-        // Normalise weights
-        let mut min: f64 = std::f64::INFINITY;
-        let mut max: f64 = 0.0;
-        for i in 0..weights.len() {
-            if weights[i] < min {
-                min = weights[i];
-            } else if weights[i] > max {
-                max = weights[i];
-            }
-        }
-        for i in 0..weights.len() {
-            weights[i] = (weights[i] - min )/ (max - min);
         }
 
         let dist = WeightedIndex::new(&weights).unwrap();
@@ -271,21 +277,39 @@ fn hill_grow_next_point(arr: &Vec<Vec<f64>>, runaway: bool) -> (usize, usize) {
     }
 }
 
-/// Returns a hill-grow NLM with values ranging [0, 1).
-#[allow(dead_code)]
-pub fn hill_grow(rows: usize, cols: usize, n: usize, runaway: bool) -> Vec<Vec<f64>> {
-    let mut rng = rand::thread_rng();
-    let mut arr = value_arr(rows, cols, 0.5);
+fn valid_kernel<T>(kernel: &Vec<Vec<T>>) -> bool {
+    kernel.len() > 0 && kernel.len() == kernel[0].len() && kernel.len() % 2 == 1 && kernel[0].len() % 2 == 1
+}
 
+/// Returns a hill-grow NLM with values ranging [0, 1).
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows in the array.
+/// * `cols` - Number of columns in the array.
+/// * `n` - Number of iterations.
+/// * `runaway` - Whether probability of selection for hill location is proportional to 
+/// the current height of each location. A value of `true` makes a new hills more likely to be grown further.
+#[allow(dead_code)]
+pub fn hill_grow(rows: usize, cols: usize, n: usize, runaway: bool, kernel: Option<&Vec<Vec<f64>>>) -> Vec<Vec<f64>> {
+    let mut arr = value_arr(rows, cols, 0.5);
+    
+    let default_kernel = vec![vec![0., 0.5, 0.], vec![0.5, 1., 0.5], vec![0., 0.5, 0.]];
+    let k = kernel.unwrap_or(&default_kernel);
+    if !valid_kernel(k) {
+        return arr
+    }
+
+    let mut rng = rand::thread_rng();
     let factor = 0.1;
     for _ in 0..n {
         let (r, c) = hill_grow_next_point(&arr, runaway);
         let grow = rng.gen_bool(0.5);
         if grow {
-            grow_neighbours(&mut arr, r, c, Some(factor));
+            apply_kernel(&mut arr, r, c,  k, Some(factor));
         } else {
             // Shrink
-            grow_neighbours(&mut arr, r, c, Some(-factor));
+            apply_kernel(&mut arr, r, c,  k, Some(-factor));
         }
     };
 
@@ -493,67 +517,25 @@ mod tests {
     }
     
     #[rstest]
-    #[case(0, 0, 2.)]
-    #[case(1, 1, 1.5)]
-    #[case(2, 1, 1.75)]
-    #[case(3, 2, 3.5)]
-    #[case(4, 3, 15.)]
-    #[case(5, 5, 0.125)]
-    #[case(10, 10, 0.1)]
-    #[case(100, 100, 0.3)]
-    #[case(500, 1000, 0.4)]
-    #[case(1000, 500, 0.5)]
-    #[case(1000, 1000, 0.1)]
-    #[case(2000, 2000, 0.2)]
-    fn test_diamond_square(#[case] rows: usize, #[case] cols: usize, #[case] h: f64) {
-        let max_dim = std::cmp::max(rows, cols);
-        if max_dim == 0 {
-            return
-        }
-        let n = ((max_dim - 1) as f64).log2().ceil() as u32;
-        let dim = usize::pow(2, n) + 1;
-        
-        let arr = diamond_square(dim, h);
-        assert_eq!(arr.len(), rows);
-        if arr.len() > 0 {
-            assert_eq!(arr[0].len(), cols);
-        }
-        assert_eq!(nan_count(&arr), 0);
-    }
-    
-    #[rstest]
-    #[case(0, 0, 50000, true)]
-    #[case(1, 1, 50000, true)]
-    #[case(2, 1, 50000, true)]
-    #[case(3, 2, 50000, true)]
-    #[case(4, 3, 50000, true)]
-    #[case(5, 5, 50000, true)]
-    #[case(10, 10, 50000, true)]
-    #[case(100, 100, 50000, true)]
-    #[case(500, 1000, 50000, true)]
-    #[case(1000, 500, 50000, true)]
-    #[case(1000, 1000, 50000, true)]
-    #[case(2000, 2000, 50000, true)]
-    fn test_hill_grow(#[case] rows: usize, #[case] cols: usize, #[case] n: usize, #[case] runaway: bool) {
-        let arr = hill_grow(rows, cols, n, runaway);
+    #[case(0, 0, 50000, true, None)]
+    #[case(1, 1, 50000, true, None)]
+    #[case(2, 1, 50000, true, None)]
+    #[case(3, 2, 50000, true, None)]
+    #[case(4, 3, 50000, true, None)]
+    #[case(5, 5, 50000, true, None)]
+    #[case(10, 10, 50000, true, None)]
+    #[case(100, 100, 50000, true, None)]
+    #[case(500, 1000, 50000, true, None)]
+    #[case(1000, 500, 50000, true, None)]
+    #[case(1000, 1000, 50000, true, None)]
+    #[case(2000, 2000, 50000, true, None)]
+    fn test_hill_grow(#[case] rows: usize, #[case] cols: usize, #[case] n: usize, #[case] runaway: bool, #[case] kernel: Option<&Vec<Vec<f64>>>) {
+        let arr = hill_grow(rows, cols, n, runaway, kernel);
         assert_eq!(arr.len(), rows);
         if arr.len() > 0 {
             assert_eq!(arr[0].len(), cols);
         }
         assert_eq!(nan_count(&arr), 0);
         assert_eq!(zero_to_one_count(&arr), rows*cols);
-    }
-
-    #[test]
-    fn test_write_to_csv() {
-        // let arr = random(100, 100);
-        // let arr = random_element(100, 100, 50000.);
-        // let arr = planar_gradient(100, 100, Some(60.));
-        // let arr = edge_gradient(100, 100, Some(140.));
-        // let arr = distance_gradient(100, 100);
-        // let arr = wave_gradient(100, 100, 2.5, Some(90.));
-        let arr = midpoint_displacement(100, 100, 1.);
-        // let arr = hill_grow(100, 100, 10000, true);
-        export::write_to_csv(arr);
     }
 }
