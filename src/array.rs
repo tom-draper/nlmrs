@@ -2,32 +2,17 @@ use rand::prelude::*;
 
 /// Returns a 2D array of size (rows x cols) containing zeros.
 pub fn zeros_arr(rows: usize, cols: usize) -> Vec<Vec<f64>> {
-    let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
-    for _ in 0..rows {
-        let row = vec![0f64; cols];
-        arr.push(row);
-    }
-    arr
+    vec![vec![0f64; cols]; rows]
 }
 
 /// Returns a 2D array of size (rows x cols) containing ones.
 pub fn ones_arr(rows: usize, cols: usize) -> Vec<Vec<f64>> {
-    let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
-    for _ in 0..rows {
-        let row = vec![1f64; cols];
-        arr.push(row);
-    }
-    arr
+    vec![vec![1f64; cols]; rows]
 }
 
 /// Returns a 2D array of size (rows x cols) containing a given value.
 pub fn value_arr(rows: usize, cols: usize, value: f64) -> Vec<Vec<f64>> {
-    let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
-    for _ in 0..rows {
-        let row = vec![value; cols];
-        arr.push(row);
-    }
-    arr
+    vec![vec![value; cols]; rows]
 }
 
 /// Returns a 2D array of size (rows x cols) containing zeros.
@@ -35,11 +20,7 @@ pub fn binary_rand_arr(rows: usize, cols: usize) -> Vec<Vec<f64>> {
     let mut rng = rand::thread_rng();
     let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
     for _ in 0..rows {
-        let mut row = Vec::with_capacity(cols);
-        for _ in 0..cols {
-            let value = f64::from(rng.gen_bool(0.5) as i32);
-            row.push(value);
-        }
+        let row = (0..cols).map(|_| rng.gen_range(0..1) as f64).collect::<Vec<_>>();
         arr.push(row);
     }
     arr
@@ -50,10 +31,7 @@ pub fn rand_arr(rows: usize, cols: usize) -> Vec<Vec<f64>> {
     let mut rng = rand::thread_rng();
     let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
     for _ in 0..rows {
-        let mut row = Vec::with_capacity(cols);
-        for _ in 0..cols {
-            row.push(rng.gen());
-        }
+        let row = (0..cols).map(|_| rng.gen()).collect();
         arr.push(row);
     }
     arr
@@ -154,8 +132,7 @@ pub fn diamond_square(dim: usize, h: f64) -> Vec<Vec<f64>> {
     let mut surface = rand_arr(dim, dim);
     for i in 0..dim {
         for j in 0..dim {
-            surface[i][j] *= disheight;
-            surface[i][j] -= 0.5 * disheight;
+            surface[i][j] = surface[i][j] * disheight - 0.5 * disheight;
         }
     }
 
@@ -201,15 +178,21 @@ pub fn diamond_square(dim: usize, h: f64) -> Vec<Vec<f64>> {
 /// Selects a random subarray of size( rows x cols) from the arr.
 pub fn rand_sub_arr(arr: Vec<Vec<f64>>, rows: usize, cols: usize) -> Vec<Vec<f64>> {
     // If original array larger than target size, return original
-    if rows >= arr.len() || (arr.len() > 0 && cols >= arr[0].len()) {
+    if rows >= arr.len() && arr.len() > 0 && cols >= arr[0].len() {
         return arr;
     }
 
     let mut rng = rand::thread_rng();
-    let row_start = rng.gen_range(0..(arr.len() - rows));
-    let col_start = rng.gen_range(0..(arr[0].len() - cols));
+    let mut row_start = 0;
+    if arr.len() != rows {
+        row_start = rng.gen_range(0..(arr.len() - rows));
+    }
+    let mut col_start = 0;
+    if arr[0].len() != cols {
+        col_start = rng.gen_range(0..(arr[0].len() - cols));
+    }
 
-    let mut sub_arr = vec![vec![0f64; cols]; rows];
+    let mut sub_arr = zeros_arr(rows, cols);
     for i in 0..rows {
         for j in 0..cols {
             sub_arr[i][j] = arr[row_start + i][col_start + j];

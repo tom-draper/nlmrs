@@ -1,7 +1,7 @@
 use rand::Rng;
 
 pub fn max(arr: &Vec<Vec<f64>>) -> f64 {
-    let mut max: f64 = 0.0;
+    let mut max: f64 = std::f64::NEG_INFINITY;
     for row in arr.iter() {
         for val in row.iter() {
             if *val > max {
@@ -26,12 +26,13 @@ pub fn min(arr: &Vec<Vec<f64>>) -> f64 {
 
 pub fn min_and_max(arr: &Vec<Vec<f64>>) -> (f64, f64) {
     let mut min: f64 = std::f64::INFINITY;
-    let mut max: f64 = 0.0;
+    let mut max: f64 = std::f64::NEG_INFINITY;
     for row in arr.iter() {
         for val in row.iter() {
             if *val < min {
                 min = *val;
-            } else if *val > max {
+            }
+            if *val > max {
                 max = *val;
             }
         }
@@ -120,6 +121,14 @@ pub fn invert(arr: &mut Vec<Vec<f64>>) {
     }
 }
 
+pub fn multiply(arr: &mut Vec<Vec<f64>>, arr2: Vec<Vec<f64>>) {
+    for i in 0..arr.len() {
+        for (val, val2) in arr[i].iter_mut().zip(&arr2[i]) {
+            *val *= val2
+        }
+    }
+}
+
 pub fn multiply_value(arr: &mut Vec<Vec<f64>>, value: f64) {
     for i in 0..arr.len() {
         for j in 0..arr[i].len() {
@@ -128,18 +137,10 @@ pub fn multiply_value(arr: &mut Vec<Vec<f64>>, value: f64) {
     }
 }
 
-pub fn multiply(arr: &mut Vec<Vec<f64>>, arr2: Vec<Vec<f64>>) {
-    for i in 0..arr.len() {
-        for j in 0..arr[i].len() {
-            arr[i][j] *= arr2[i][j];
-        }
-    }
-}
-
 pub fn add(arr: &mut Vec<Vec<f64>>, arr2: Vec<Vec<f64>>) {
     for i in 0..arr.len() {
-        for j in 0..arr[i].len() {
-            arr[i][j] += arr2[i][j];
+        for (val, val2) in arr[i].iter_mut().zip(&arr2[i]) {
+            *val += val2
         }
     }
 }
