@@ -2,7 +2,7 @@ mod array;
 pub mod export;
 mod operation;
 use crate::array::{
-    diamond_square, indices_arr, ones_arr, rand_arr, rand_sub_arr, value_mask, zeros_arr, flatten
+    diamond_square, indices_arr, ones_arr, rand_arr, rand_sub_arr, value_mask, zeros_arr
 };
 use crate::operation::{euclidean_distance_transform, interpolate, invert, max, scale};
 use array::{binary_rand_arr, value_arr};
@@ -559,7 +559,7 @@ mod tests {
         #[case] cols: usize,
         #[case] n: usize,
         #[case] runaway: bool,
-        #[case] kernel: Option<&Vec<Vec<f64>>>,
+        #[case] kernel: Option<Vec<Vec<f64>>>,
     ) {
         let arr = hill_grow(rows, cols, n, runaway, kernel, Some(false));
         assert_eq!(arr.len(), rows);
