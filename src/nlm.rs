@@ -2,7 +2,7 @@ mod array;
 pub mod export;
 mod operation;
 use crate::array::{
-    diamond_square, indices_arr, ones_arr, rand_arr, rand_sub_arr, value_mask, zeros_arr,
+    diamond_square, indices_arr, ones_arr, rand_arr, rand_sub_arr, value_mask, zeros_arr, flatten
 };
 use crate::operation::{euclidean_distance_transform, interpolate, invert, max, scale};
 use array::{binary_rand_arr, value_arr};
@@ -240,8 +240,7 @@ fn apply_kernel(
                 let iu = i as usize;
                 let ju = j as usize;
                 if iu < arr.len() && ju < arr[iu].len() {
-                    arr[iu][ju] +=
-                        kernel[(i - (row_i - half)) as usize][(j - (col_i - half)) as usize] * f;
+                    arr[iu][ju] += kernel[(i - (row_i - half)) as usize][(j - (col_i - half)) as usize] * f;
                     arr[iu][ju] = arr[iu][ju].max(0.);  // Avoid going negative
                 }
             }
@@ -249,30 +248,36 @@ fn apply_kernel(
     }
 }
 
-fn hill_grow_next_point(arr: &Vec<Vec<f64>>, runaway: bool) -> (usize, usize) {
-    let mut rng = rand::thread_rng();
+fn hill_grow_next_point(arr: &Vec<Vec<f64>>, runaway: bool, rng: &mut ThreadRng) -> (usize, usize) {
     if runaway {
-        let mut points = Vec::new();
-        let mut weights = Vec::new();
+        // Select random point weighted by current cell value
+        let capacity = arr.len() * arr[0].len();
+        let mut points = Vec::with_capacity(capacity);
+        let mut weights = Vec::with_capacity(capacity);
+        let mut all_zero = true;
         for i in 0..arr.len() {
             for j in 0..arr[i].len() {
                 points.push((i, j));
                 weights.push(arr[i][j]);
+                if arr[i][j] > 0. {
+                    all_zero = false;
+                }
             }
         }
-        if weights.iter().all(|&i| i == 0.) {
-            weights.fill(1.);
+        if all_zero {
+            // Consider all points equally
+            weights = vec![1f64; capacity];
         }
         let dist = WeightedIndex::new(&weights).unwrap();
-        dist.sample(&mut rng);
-        return points[dist.sample(&mut rng)];
+        return points[dist.sample(rng)];
     } else {
-        let r = rng.gen_range(0..arr.len());
-        let mut c = 0;
+        // Select random point
+        let row = rng.gen_range(0..arr.len());
+        let mut col = 0;
         if arr.len() > 0 {
-            c = rng.gen_range(0..arr[0].len());
+            col = rng.gen_range(0..arr[0].len());
         }
-        return (r, c);
+        return (row, col);
     }
 }
 
@@ -298,30 +303,40 @@ pub fn hill_grow(
     cols: usize,
     n: usize,
     runaway: bool,
-    kernel: Option<&Vec<Vec<f64>>>,
+    kernel: Option<Vec<Vec<f64>>>,
+    only_grow: Option<bool>
 ) -> Vec<Vec<f64>> {
     if rows == 0 || cols == 0 {
         return vec![];
     }
 
-    let mut arr = value_arr(rows, cols, 0.5);
+    let always_grow = only_grow.unwrap_or(false);
+    let mut arr;
+    if always_grow {
+        arr = zeros_arr(rows, cols);
+    } else {
+        arr = value_arr(rows, cols, 0.5);
+    }
 
     let default_kernel = vec![vec![0., 0.5, 0.], vec![0.5, 1., 0.5], vec![0., 0.5, 0.]];
-    let k = kernel.unwrap_or(&default_kernel);
+    let k = &kernel.unwrap_or(default_kernel);
     if !valid_kernel(k) {
         return arr;
     }
 
     let mut rng = rand::thread_rng();
     let factor = 0.1;
+    let mut grow = false;
     for _ in 0..n {
-        let (r, c) = hill_grow_next_point(&arr, runaway);
-        let grow = rng.gen_bool(0.5);
-        if grow {
-            apply_kernel(&mut arr, r, c, k, Some(factor));
+        let (row, col) = hill_grow_next_point(&arr, runaway, &mut rng);
+        if !always_grow {
+            grow = rng.gen_bool(0.5);  // Grow or shrink
+        }
+        if always_grow || grow {
+            apply_kernel(&mut arr, row, col, k, Some(factor));
         } else {
             // Shrink
-            apply_kernel(&mut arr, r, c, k, Some(-factor));
+            apply_kernel(&mut arr, row, col, k, Some(-factor));
         }
     }
 
@@ -546,7 +561,7 @@ mod tests {
         #[case] runaway: bool,
         #[case] kernel: Option<&Vec<Vec<f64>>>,
     ) {
-        let arr = hill_grow(rows, cols, n, runaway, kernel);
+        let arr = hill_grow(rows, cols, n, runaway, kernel, Some(false));
         assert_eq!(arr.len(), rows);
         if arr.len() > 0 {
             assert_eq!(arr[0].len(), cols);

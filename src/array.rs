@@ -62,6 +62,10 @@ pub fn value_mask(arr: &Vec<Vec<f64>>, value: f64) -> Vec<Vec<bool>> {
     mask
 }
 
+pub fn flatten<T>(arr: Vec<Vec<T>>) -> Vec<T> {
+    arr.into_iter().flatten().collect()
+}
+
 /// Returns two 2D indices arrays of size (rows x cols).
 ///
 /// # Examples
