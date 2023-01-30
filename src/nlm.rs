@@ -37,19 +37,6 @@ pub fn random_arr(arr: &mut [&mut [f64]], rows: usize, cols: usize) {
     }
 }
 
-/// Returns a random cluster nearest-neighbour NLM with values ranging [0, 1).
-///
-/// # Arguments
-///
-/// * `rows` - Number of rows in the array.
-/// * `cols` - Number of columns in the array.
-#[allow(dead_code)]
-pub fn random_cluster(rows: usize, cols: usize) -> Vec<Vec<f64>> {
-    let arr = rand_arr(rows, cols);
-    // TODO
-    arr
-}
-
 /// Returns a random element nearest-neighbour NLM with values ranging [0, 1).
 ///
 /// # Arguments
@@ -287,6 +274,7 @@ fn valid_kernel<T>(kernel: &Vec<Vec<T>>) -> bool {
         && kernel.len() % 2 == 1
         && kernel[0].len() % 2 == 1
 }
+
 
 /// Returns a hill-grow NLM with values ranging [0, 1).
 ///
