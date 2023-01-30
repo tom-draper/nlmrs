@@ -86,7 +86,7 @@ Running `script/viz.py` will read any contents of `data/data.csv` and render the
 
 ### Hill Grow
 
-`hill_grow(100, 100, 10000, true)`
+`hill_grow(100, 100, 10000, true, None, false)`
 
 <img src="https://user-images.githubusercontent.com/41476809/211400491-79c4767e-3caf-44ca-a58f-859fbbf2a8c7.png" alt="" width=300 />
 
