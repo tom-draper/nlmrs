@@ -44,7 +44,7 @@ Running `scripts/visualize.py` will read any contents of `data/data.csv` and ren
 
 ### Random
 
-`random(100, 100)`
+`random(rows: 100, cols: 100)`
 
 <img src="https://user-images.githubusercontent.com/41476809/211366758-60cd60fa-bc7d-4bfb-b514-1aca1870dfa8.png" alt="" width=300 />
 
