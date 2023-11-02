@@ -38,7 +38,7 @@ fn main() {
 
 ### Visualization
 
-Running `script/viz.py` will read any contents of `data/data.csv` and render them as a matplotlib plot.
+Running `scripts/visualize.py` will read any contents of `data/data.csv` and render them as a matplotlib plot.
 
 ## Algorithms
 
