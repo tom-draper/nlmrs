@@ -18,23 +18,17 @@ pub fn value_arr(rows: usize, cols: usize, value: f64) -> Vec<Vec<f64>> {
 /// Returns a 2D array of size (rows x cols) containing zeros.
 pub fn binary_rand_arr(rows: usize, cols: usize) -> Vec<Vec<f64>> {
     let mut rng = rand::thread_rng();
-    let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
-    for _ in 0..rows {
-        let row = (0..cols).map(|_| rng.gen_range(0..1) as f64).collect::<Vec<_>>();
-        arr.push(row);
-    }
-    arr
+    (0..rows)
+        .map(|_| (0..cols).map(|_| rng.gen_range(0.0..1.0)).collect())
+        .collect()
 }
 
 /// Returns a 2D array of size (rows x cols) containing uniform random [0, 1) values.
 pub fn rand_arr(rows: usize, cols: usize) -> Vec<Vec<f64>> {
     let mut rng = rand::thread_rng();
-    let mut arr: Vec<Vec<f64>> = Vec::with_capacity(rows);
-    for _ in 0..rows {
-        let row = (0..cols).map(|_| rng.gen()).collect();
-        arr.push(row);
-    }
-    arr
+    (0..rows)
+        .map(|_| (0..cols).map(|_| rng.gen()).collect())
+        .collect()
 }
 
 /// Returns a 2D array of size (rows x cols) containing uniform random [0, 1) values.
@@ -49,17 +43,9 @@ pub fn fill_rand(arr: &mut Vec<Vec<f64>>) {
 
 /// Returns a 2D array of size (rows x cols) containing uniform random [0, 1) values.
 pub fn value_mask(arr: &Vec<Vec<f64>>, value: f64) -> Vec<Vec<bool>> {
-    let rows = arr.len();
-    let mut mask: Vec<Vec<bool>> = Vec::with_capacity(rows);
-    for i in 0..rows {
-        let cols = arr[i].len();
-        let mut row: Vec<bool> = Vec::with_capacity(cols);
-        for j in 0..cols {
-            row.push(arr[i][j] == value);
-        }
-        mask.push(row);
-    }
-    mask
+    arr.iter()
+        .map(|row| row.iter().map(|x| *x == value).collect())
+        .collect()
 }
 
 pub fn flatten<T>(arr: Vec<Vec<T>>) -> Vec<T> {
@@ -93,46 +79,58 @@ fn random_displace(disheight: f64, r: f64) -> f64 {
 
 fn displace_vals(arr: &mut Vec<f64>, disheight: f64, r: (f64, f64)) -> Option<f64> {
     if arr.len() == 4 {
-        let sum: f64 = arr.iter().sum();
+        let sum = arr.iter().sum::<f64>();
         return Some(sum * 0.25 + random_displace(disheight, r.0));
     } else if arr.len() == 3 {
-        let sum: f64 = arr.iter().sum();
+        let sum = arr.iter().sum::<f64>();
         return Some(sum / 3. + random_displace(disheight, r.1));
     }
-    return None
+    return None;
 }
 
 fn check_diamond_coords(diax: i32, diay: i32, dim: i32, i2: i32) -> Vec<(i32, i32)> {
     if diax < 0 || diax > dim || diay < 0 || diay > dim {
-        return vec![]
+        return vec![];
     } else if diax - i2 < 0 {
-        return vec![(diax+i2, diay), (diax, diay-i2), (diax, diay+i2)]
+        return vec![(diax + i2, diay), (diax, diay - i2), (diax, diay + i2)];
     } else if diax + i2 >= dim {
-        return vec![(diax-i2, diay), (diax, diay-i2), (diax, diay+i2)]
+        return vec![(diax - i2, diay), (diax, diay - i2), (diax, diay + i2)];
     } else if diay - i2 < 0 {
-        return vec![(diax+i2, diay), (diax-i2, diay), (diax, diay+i2)]
+        return vec![(diax + i2, diay), (diax - i2, diay), (diax, diay + i2)];
     } else if diay + i2 >= dim {
-        return vec![(diax+i2, diay), (diax-i2, diay), (diax, diay-i2)]
+        return vec![(diax + i2, diay), (diax - i2, diay), (diax, diay - i2)];
     }
-    return vec![(diax+i2, diay), (diax-i2, diay), (diax, diay-i2), (diax, diay+i2)]
+    return vec![
+        (diax + i2, diay),
+        (diax - i2, diay),
+        (diax, diay - i2),
+        (diax, diay + i2),
+    ];
 }
 
-fn diamond_step(surface: &mut Vec<Vec<f64>>, disheight: f64, mid: usize, dim: usize, rng: &mut ThreadRng, diax: usize, diay: usize) {
+fn diamond_step(
+    surface: &mut Vec<Vec<f64>>,
+    disheight: f64,
+    mid: usize,
+    dim: usize,
+    rng: &mut ThreadRng,
+    diax: usize,
+    diay: usize,
+) {
     let diaco = check_diamond_coords(diax as i32, diay as i32, dim as i32, mid as i32);
-    let mut diavals = vec![0f64; diaco.len()];
-    for c in 0..diavals.len() {
-        diavals[c] = surface[diaco[c].0 as usize][diaco[c].1 as usize];
-    }
+    let mut diavals = diaco
+        .iter()
+        .map(|x| surface[x.0 as usize][x.1 as usize])
+        .collect();
     let r = rng.gen();
     surface[diax][diay] = displace_vals(&mut diavals, disheight, r).unwrap();
-
 }
 
 /// Returns two 2D indices arrays of size (dim x dim).
 ///
 /// Implementation ported from NLMpy.
 pub fn diamond_square(dim: usize, h: f64) -> Vec<Vec<f64>> {
-    let mut disheight: f64 = 2.;
+    let mut disheight = 2.;
     let mut surface = rand_arr(dim, dim);
     for i in 0..dim {
         for j in 0..dim {
@@ -143,32 +141,48 @@ pub fn diamond_square(dim: usize, h: f64) -> Vec<Vec<f64>> {
     let mut inc = dim - 1;
     let mut rng = rand::thread_rng();
     while inc > 1 {
-        let mid = inc/2;  // Centre point
-        
+        let mid = inc / 2; // Centre point
+
         // Square
-        for i in (0..dim-1).step_by(inc) {
-            for j in (0..dim-1).step_by(inc) {
+        for i in (0..dim - 1).step_by(inc) {
+            for j in (0..dim - 1).step_by(inc) {
                 let mut arr = vec![surface[i][j]];
                 if i + inc < dim {
-                    arr.push(surface[i+inc][j]);
+                    arr.push(surface[i + inc][j]);
                     if j + inc < dim {
-                        arr.push(surface[i+inc][j+inc]);
+                        arr.push(surface[i + inc][j + inc]);
                     }
                 } else if j + inc < dim {
-                    arr.push(surface[i+inc][j+inc]);
+                    arr.push(surface[i + inc][j + inc]);
                 }
                 let r = rng.gen();
-                surface[i+mid][j+mid] = displace_vals(&mut arr, disheight, r).unwrap();
+                surface[i + mid][j + mid] = displace_vals(&mut arr, disheight, r).unwrap();
             }
         }
 
         // Diamond
-        for i in (0..dim-1).step_by(inc) {
-            for j in (0..dim-1).step_by(inc) {
-                diamond_step(&mut surface, disheight, mid, dim, &mut rng, i+mid, j);
-                diamond_step(&mut surface, disheight, mid, dim, &mut rng, i, j+mid);
-                diamond_step(&mut surface, disheight, mid, dim, &mut rng, i+inc, j+mid);
-                diamond_step(&mut surface, disheight, mid, dim, &mut rng, i+mid, j+inc);
+        for i in (0..dim - 1).step_by(inc) {
+            for j in (0..dim - 1).step_by(inc) {
+                diamond_step(&mut surface, disheight, mid, dim, &mut rng, i + mid, j);
+                diamond_step(&mut surface, disheight, mid, dim, &mut rng, i, j + mid);
+                diamond_step(
+                    &mut surface,
+                    disheight,
+                    mid,
+                    dim,
+                    &mut rng,
+                    i + inc,
+                    j + mid,
+                );
+                diamond_step(
+                    &mut surface,
+                    disheight,
+                    mid,
+                    dim,
+                    &mut rng,
+                    i + mid,
+                    j + inc,
+                );
             }
         }
 
@@ -177,7 +191,6 @@ pub fn diamond_square(dim: usize, h: f64) -> Vec<Vec<f64>> {
     }
     surface
 }
-
 
 /// Selects a random subarray of size( rows x cols) from the arr.
 pub fn rand_sub_arr(arr: Vec<Vec<f64>>, rows: usize, cols: usize) -> Vec<Vec<f64>> {
