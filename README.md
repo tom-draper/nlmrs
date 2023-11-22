@@ -33,7 +33,6 @@ use nlmrs::{distance_gradient, export};
 fn main() {
     let arr: Vec<Vec<f64>> = distance_gradient(50, 50);
     export::write_to_csv(arr, "./data/data.csv");
-    export::write_to_json(arr, "./data/data.json");
 }
 ```
 
