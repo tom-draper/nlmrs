@@ -38,3 +38,30 @@ fn test_write_to_png_grayscale() {
     let arr = nlmrs::fbm_noise(200, 200, 4.0, 6, 0.5, 2.0, Some(42));
     nlmrs::export::write_to_png_grayscale(&arr, "examples/example_grayscale.png").unwrap();
 }
+
+#[test]
+fn test_write_to_tiff() {
+    ensure_examples_dir();
+    let arr = nlmrs::midpoint_displacement(200, 200, 0.8, Some(42));
+    nlmrs::export::write_to_tiff(&arr, "examples/example.tif").unwrap();
+}
+
+#[test]
+fn test_write_to_ascii_grid() {
+    ensure_examples_dir();
+    let arr = nlmrs::midpoint_displacement(200, 200, 0.8, Some(42));
+    nlmrs::export::write_to_ascii_grid(&arr, "examples/example.asc").unwrap();
+
+    // Verify the header is well-formed
+    let content = std::fs::read_to_string("examples/example.asc").unwrap();
+    let mut lines = content.lines();
+    assert!(lines.next().unwrap().starts_with("ncols"));
+    assert!(lines.next().unwrap().starts_with("nrows"));
+    assert!(lines.next().unwrap().starts_with("xllcorner"));
+    assert!(lines.next().unwrap().starts_with("yllcorner"));
+    assert!(lines.next().unwrap().starts_with("cellsize"));
+    assert!(lines.next().unwrap().starts_with("NODATA_value"));
+    // First data row has 200 space-separated values
+    let data_row = lines.next().unwrap();
+    assert_eq!(data_row.split_whitespace().count(), 200);
+}

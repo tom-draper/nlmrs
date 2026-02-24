@@ -80,3 +80,49 @@ pub fn write_to_png_grayscale(grid: &Grid, path: &str) -> Result<()> {
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     Ok(())
 }
+
+/// Writes the grid as a 16-bit grayscale TIFF.
+///
+/// Each cell value [0, 1] is mapped to the full u16 range [0, 65535], preserving
+/// far more precision than an 8-bit PNG.
+pub fn write_to_tiff(grid: &Grid, path: &str) -> Result<()> {
+    use image::{ImageBuffer, Luma};
+    let buf: Vec<u16> = grid
+        .data
+        .iter()
+        .map(|&v| (v.clamp(0.0, 1.0) * 65535.0).round() as u16)
+        .collect();
+    let img: ImageBuffer<Luma<u16>, Vec<u16>> =
+        ImageBuffer::from_raw(grid.cols as u32, grid.rows as u32, buf)
+            .expect("buffer size mismatch");
+    img.save(path)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+    Ok(())
+}
+
+/// Writes the grid as an ESRI ASCII Grid (`.asc`).
+///
+/// The format is widely supported by GIS and ecology software (R `terra`/`raster`,
+/// QGIS, ArcGIS). No spatial reference is set — `xllcorner`, `yllcorner` default
+/// to 0.0 and `cellsize` to 1.0.
+pub fn write_to_ascii_grid(grid: &Grid, path: &str) -> Result<()> {
+    let file = File::create(path)?;
+    let mut w = BufWriter::new(file);
+    writeln!(w, "ncols         {}", grid.cols)?;
+    writeln!(w, "nrows         {}", grid.rows)?;
+    writeln!(w, "xllcorner     0.0")?;
+    writeln!(w, "yllcorner     0.0")?;
+    writeln!(w, "cellsize      1.0")?;
+    writeln!(w, "NODATA_value  -9999")?;
+    for i in 0..grid.rows {
+        let row = &grid[i];
+        for (j, &v) in row.iter().enumerate() {
+            if j > 0 {
+                w.write_all(b" ")?;
+            }
+            write!(w, "{:.6}", v)?;
+        }
+        w.write_all(b"\n")?;
+    }
+    w.flush()
+}

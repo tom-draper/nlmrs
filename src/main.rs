@@ -157,6 +157,8 @@ fn main() {
     let result = match ext {
         "csv" => export::write_to_csv(&grid, path),
         "json" => export::write_to_json(&grid, path),
+        "asc" => export::write_to_ascii_grid(&grid, path),
+        "tif" | "tiff" => export::write_to_tiff(&grid, path),
         "png" if cli.grayscale => export::write_to_png_grayscale(&grid, path),
         "png" | _ => export::write_to_png(&grid, path),
     };
