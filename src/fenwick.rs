@@ -8,6 +8,8 @@ pub struct WeightedSampler {
     /// 1-indexed internal tree of prefix sums.
     tree: Vec<f64>,
     n: usize,
+    /// Cached sum of all weights — kept in sync by `new` and `update`.
+    sum: f64,
 }
 
 impl WeightedSampler {
@@ -15,18 +17,21 @@ impl WeightedSampler {
     pub fn new(weights: &[f64]) -> Self {
         let n = weights.len();
         let mut tree = vec![0.0f64; n + 1];
+        let mut sum = 0.0f64;
         for (i, &w) in weights.iter().enumerate() {
+            sum += w;
             let mut j = i + 1;
             while j <= n {
                 tree[j] += w;
                 j += j & j.wrapping_neg();
             }
         }
-        WeightedSampler { tree, n }
+        WeightedSampler { tree, n, sum }
     }
 
     /// Adds `delta` to the weight at 0-indexed position `i` in O(log n).
     pub fn update(&mut self, i: usize, delta: f64) {
+        self.sum += delta;
         let mut j = i + 1;
         while j <= self.n {
             self.tree[j] += delta;
@@ -34,23 +39,16 @@ impl WeightedSampler {
         }
     }
 
-    /// Returns the sum of all weights.
+    /// Returns the sum of all weights in O(1).
     pub fn total(&self) -> f64 {
-        // prefix_sum over all n elements
-        let mut sum = 0.0;
-        let mut j = self.n;
-        while j > 0 {
-            sum += self.tree[j];
-            j -= j & j.wrapping_neg();
-        }
-        sum
+        self.sum
     }
 
     /// Samples a 0-indexed element with probability proportional to its weight in O(log n).
     ///
     /// Panics if the total weight is zero or negative.
     pub fn sample(&self, rng: &mut impl Rng) -> usize {
-        let total = self.total();
+        let total = self.sum;
         debug_assert!(total > 0.0, "Cannot sample from zero-weight distribution");
         let mut target = rng.gen::<f64>() * total;
 

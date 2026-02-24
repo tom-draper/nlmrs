@@ -1,8 +1,10 @@
+use std::fmt;
 use std::ops::{Index, IndexMut};
 
 /// A 2D grid backed by a flat `Vec<f64>` for cache-friendly storage.
 ///
 /// Indexing with `grid[row][col]` works naturally via `Index<usize>`.
+#[derive(Clone, Debug, PartialEq)]
 pub struct Grid {
     pub data: Vec<f64>,
     pub rows: usize,
@@ -56,5 +58,21 @@ impl Index<usize> for Grid {
 impl IndexMut<usize> for Grid {
     fn index_mut(&mut self, row: usize) -> &mut [f64] {
         &mut self.data[row * self.cols..(row + 1) * self.cols]
+    }
+}
+
+impl fmt::Display for Grid {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for i in 0..self.rows {
+            write!(f, "[")?;
+            for (j, v) in self[i].iter().enumerate() {
+                if j > 0 {
+                    write!(f, ", ")?;
+                }
+                write!(f, "{v:.4}")?;
+            }
+            writeln!(f, "]")?;
+        }
+        Ok(())
     }
 }

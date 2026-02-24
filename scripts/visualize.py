@@ -1,9 +1,17 @@
+# /// script
+# requires-python = ">=3.8"
+# dependencies = [
+#   "matplotlib",
+#   "numpy",
+# ]
+# ///
+
 import csv
+import json
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
-import json
 
 
 def heatmap(data: list[list[float]]):

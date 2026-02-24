@@ -5,12 +5,6 @@ use csv::Writer;
 
 use crate::grid::Grid;
 
-pub fn display(grid: &Grid) {
-    for i in 0..grid.rows {
-        println!("{:?}", &grid[i]);
-    }
-}
-
 pub fn write_to_csv(grid: &Grid, path: &str) -> Result<()> {
     let mut wtr = Writer::from_path(path)?;
     for i in 0..grid.rows {
@@ -63,13 +57,10 @@ fn terrain_color(t: f64) -> [u8; 3] {
 
 /// Writes the grid as a PNG using a terrain colormap (water → sand → grass → rock → snow).
 pub fn write_to_png(grid: &Grid, path: &str) -> Result<()> {
-    use image::{Rgb, RgbImage};
-    let mut img = RgbImage::new(grid.cols as u32, grid.rows as u32);
-    for i in 0..grid.rows {
-        for j in 0..grid.cols {
-            img.put_pixel(j as u32, i as u32, Rgb(terrain_color(grid[i][j])));
-        }
-    }
+    use image::RgbImage;
+    let buf: Vec<u8> = grid.data.iter().flat_map(|&v| terrain_color(v)).collect();
+    let img = RgbImage::from_raw(grid.cols as u32, grid.rows as u32, buf)
+        .expect("buffer size mismatch");
     img.save(path)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     Ok(())
@@ -77,14 +68,14 @@ pub fn write_to_png(grid: &Grid, path: &str) -> Result<()> {
 
 /// Writes the grid as a grayscale PNG.
 pub fn write_to_png_grayscale(grid: &Grid, path: &str) -> Result<()> {
-    use image::{GrayImage, Luma};
-    let mut img = GrayImage::new(grid.cols as u32, grid.rows as u32);
-    for i in 0..grid.rows {
-        for j in 0..grid.cols {
-            let v = (grid[i][j].clamp(0.0, 1.0) * 255.0).round() as u8;
-            img.put_pixel(j as u32, i as u32, Luma([v]));
-        }
-    }
+    use image::GrayImage;
+    let buf: Vec<u8> = grid
+        .data
+        .iter()
+        .map(|&v| (v.clamp(0.0, 1.0) * 255.0).round() as u8)
+        .collect();
+    let img = GrayImage::from_raw(grid.cols as u32, grid.rows as u32, buf)
+        .expect("buffer size mismatch");
     img.save(path)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     Ok(())

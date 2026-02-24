@@ -1,58 +1,42 @@
 use rand::Rng;
+#[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
 use crate::grid::Grid;
 
 pub fn max(grid: &Grid) -> f64 {
-    grid.iter()
-        .copied()
-        .fold(f64::NEG_INFINITY, f64::max)
+    min_and_max(grid).1
 }
 
 pub fn min(grid: &Grid) -> f64 {
-    grid.iter()
-        .copied()
-        .fold(f64::INFINITY, f64::min)
+    min_and_max(grid).0
 }
 
 pub fn min_and_max(grid: &Grid) -> (f64, f64) {
     grid.data
-        .par_iter()
+        .iter()
         .copied()
         .fold(
-            || (f64::INFINITY, f64::NEG_INFINITY),
+            (f64::INFINITY, f64::NEG_INFINITY),
             |(mn, mx), v| (mn.min(v), mx.max(v)),
-        )
-        .reduce(
-            || (f64::INFINITY, f64::NEG_INFINITY),
-            |(mn1, mx1), (mn2, mx2)| (mn1.min(mn2), mx1.max(mx2)),
         )
 }
 
 /// Returns the value of a randomly chosen neighbour of (row, col).
 fn nearest_neighbour(grid: &Grid, row: usize, col: usize, rng: &mut impl Rng) -> f64 {
-    let mut options: Vec<f64> = Vec::new();
-    if row + 1 < grid.rows {
-        options.push(grid[row + 1][col]);
-    }
-    if row > 0 {
-        options.push(grid[row - 1][col]);
-    }
-    if col + 1 < grid.cols {
-        options.push(grid[row][col + 1]);
-    }
-    if col > 0 {
-        options.push(grid[row][col - 1]);
-    }
-    options[rng.gen_range(0..options.len())]
+    let mut options = [0.0f64; 4];
+    let mut count = 0usize;
+    if row + 1 < grid.rows { options[count] = grid[row + 1][col]; count += 1; }
+    if row > 0             { options[count] = grid[row - 1][col]; count += 1; }
+    if col + 1 < grid.cols { options[count] = grid[row][col + 1]; count += 1; }
+    if col > 0             { options[count] = grid[row][col - 1]; count += 1; }
+    options[rng.gen_range(0..count)]
 }
 
-pub fn interpolate(grid: &mut Grid, mask: Vec<bool>, rng: &mut impl Rng) {
+pub fn interpolate(grid: &mut Grid, mask: &[usize], rng: &mut impl Rng) {
     let replacements: Vec<(usize, usize, f64)> = mask
         .iter()
-        .enumerate()
-        .filter(|(_, &masked)| masked)
-        .map(|(idx, _)| {
+        .map(|&idx| {
             let row = idx / grid.cols;
             let col = idx % grid.cols;
             (row, col, nearest_neighbour(grid, row, col, rng))
@@ -66,20 +50,20 @@ pub fn interpolate(grid: &mut Grid, mask: Vec<bool>, rng: &mut impl Rng) {
 pub fn scale(grid: &mut Grid) {
     let (min, max) = min_and_max(grid);
     let range = max - min;
-    grid.data.par_iter_mut().for_each(|v| {
-        *v = if range == 0.0 {
-            0.5
-        } else {
-            (*v - min) / range
-        };
-    });
+    let scale_v = |v: &mut f64| {
+        *v = if range == 0.0 { 0.5 } else { (*v - min) / range };
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_iter_mut().for_each(scale_v);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.iter_mut().for_each(scale_v);
 }
 
 /// Euclidean distance transform using the separable Meijster algorithm — O(rows*cols).
 ///
 /// Phase 1 (column passes) is sequential — column-major access into a row-major array
 /// is non-contiguous and not easily parallelised without transposition overhead.
-/// Phase 2 (row passes) is fully parallel via rayon.
+/// Phase 2 (row passes) is parallelised via rayon when the `parallel` feature is enabled.
 pub fn euclidean_distance_transform(grid: &mut Grid) {
     let rows = grid.rows;
     let cols = grid.cols;
@@ -117,10 +101,11 @@ pub fn euclidean_distance_transform(grid: &mut Grid) {
 
     // Phase 2: per-row parabola DT — rows are fully independent, parallelise with rayon.
     // Each row needs its own v/z scratch buffers.
-    grid.data
-        .par_chunks_mut(cols)
-        .enumerate()
-        .for_each(|(i, row_data)| {
+    #[cfg(feature = "parallel")]
+    let chunks = grid.data.par_chunks_mut(cols);
+    #[cfg(not(feature = "parallel"))]
+    let chunks = grid.data.chunks_mut(cols);
+    chunks.enumerate().for_each(|(i, row_data)| {
             let row_g: &[f64] = &g[i * cols..(i + 1) * cols];
 
             let mut v = vec![0usize; cols];
@@ -168,31 +153,43 @@ pub fn euclidean_distance_transform(grid: &mut Grid) {
 }
 
 pub fn invert(grid: &mut Grid) {
+    #[cfg(feature = "parallel")]
     grid.data.par_iter_mut().for_each(|v| *v = 1.0 - *v);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.iter_mut().for_each(|v| *v = 1.0 - *v);
 }
 
 pub fn multiply(grid: &mut Grid, other: &Grid) {
-    grid.data
-        .par_iter_mut()
-        .zip(other.data.par_iter())
-        .for_each(|(v, &o)| *v *= o);
+    #[cfg(feature = "parallel")]
+    grid.data.par_iter_mut().zip(other.data.par_iter()).for_each(|(v, &o)| *v *= o);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.iter_mut().zip(other.data.iter()).for_each(|(v, &o)| *v *= o);
 }
 
 pub fn multiply_value(grid: &mut Grid, value: f64) {
+    #[cfg(feature = "parallel")]
     grid.data.par_iter_mut().for_each(|v| *v *= value);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.iter_mut().for_each(|v| *v *= value);
 }
 
 pub fn add(grid: &mut Grid, other: &Grid) {
-    grid.data
-        .par_iter_mut()
-        .zip(other.data.par_iter())
-        .for_each(|(v, &o)| *v += o);
+    #[cfg(feature = "parallel")]
+    grid.data.par_iter_mut().zip(other.data.par_iter()).for_each(|(v, &o)| *v += o);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.iter_mut().zip(other.data.iter()).for_each(|(v, &o)| *v += o);
 }
 
 pub fn add_value(grid: &mut Grid, value: f64) {
+    #[cfg(feature = "parallel")]
     grid.data.par_iter_mut().for_each(|v| *v += value);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.iter_mut().for_each(|v| *v += value);
 }
 
 pub fn abs(grid: &mut Grid) {
+    #[cfg(feature = "parallel")]
     grid.data.par_iter_mut().for_each(|v| *v = v.abs());
+    #[cfg(not(feature = "parallel"))]
+    grid.data.iter_mut().for_each(|v| *v = v.abs());
 }

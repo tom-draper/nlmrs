@@ -1,0 +1,17 @@
+TARGET_DIR = $(CURDIR)/rust/target
+LIBDIR     = $(TARGET_DIR)/release
+STATLIB    = $(LIBDIR)/libnlmrs_r.a
+
+PKG_LIBS = -L$(LIBDIR) -lnlmrs_r -lm
+
+all: $(SHLIB)
+
+$(SHLIB): $(STATLIB)
+
+$(STATLIB):
+	cargo build --lib --release \
+	    --manifest-path=$(CURDIR)/rust/Cargo.toml \
+	    --target-dir=$(TARGET_DIR)
+
+clean:
+	rm -Rf $(SHLIB) $(STATLIB) $(TARGET_DIR)

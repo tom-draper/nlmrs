@@ -2,38 +2,18 @@ use rand::Rng;
 
 use crate::grid::Grid;
 
-/// Returns a grid of size (rows x cols) containing zeros.
-pub fn zeros(rows: usize, cols: usize) -> Grid {
-    Grid::new(rows, cols)
-}
-
-/// Returns a grid of size (rows x cols) containing ones.
-pub fn ones(rows: usize, cols: usize) -> Grid {
-    Grid::filled(rows, cols, 1.0)
-}
-
-/// Returns a grid of size (rows x cols) containing a given value.
-pub fn filled(rows: usize, cols: usize, value: f64) -> Grid {
-    Grid::filled(rows, cols, value)
-}
-
 /// Returns a grid of size (rows x cols) containing uniform random [0, 1) values.
 pub fn rand_grid(rows: usize, cols: usize, rng: &mut impl Rng) -> Grid {
     let data = (0..rows * cols).map(|_| rng.gen()).collect();
     Grid { data, rows, cols }
 }
 
-/// Returns a grid of size (rows x cols) containing uniform random binary [0, 1) values.
-pub fn binary_rand_grid(rows: usize, cols: usize, rng: &mut impl Rng) -> Grid {
-    let data = (0..rows * cols)
-        .map(|_| rng.gen_range(0.0..1.0))
-        .collect();
-    Grid { data, rows, cols }
-}
-
-/// Returns a flat boolean mask where `true` marks cells equal to `value`.
-pub fn value_mask(grid: &Grid, value: f64) -> Vec<bool> {
-    grid.iter().map(|&x| x == value).collect()
+/// Returns the flat indices of all cells equal to `value`.
+pub fn value_mask(grid: &Grid, value: f64) -> Vec<usize> {
+    grid.iter()
+        .enumerate()
+        .filter_map(|(i, &x)| if x == value { Some(i) } else { None })
+        .collect()
 }
 
 
@@ -53,24 +33,36 @@ fn displace_vals(vals: &[f64], disheight: f64, r: (f64, f64)) -> Option<f64> {
     }
 }
 
-fn check_diamond_coords(diax: i32, diay: i32, dim: i32, i2: i32) -> Vec<(i32, i32)> {
+fn check_diamond_coords(diax: i32, diay: i32, dim: i32, i2: i32) -> ([(i32, i32); 4], usize) {
+    let mut coords = [(0i32, 0i32); 4];
     if diax < 0 || diax > dim || diay < 0 || diay > dim {
-        return vec![];
+        return (coords, 0);
     } else if diax - i2 < 0 {
-        return vec![(diax + i2, diay), (diax, diay - i2), (diax, diay + i2)];
+        coords[0] = (diax + i2, diay);
+        coords[1] = (diax, diay - i2);
+        coords[2] = (diax, diay + i2);
+        return (coords, 3);
     } else if diax + i2 >= dim {
-        return vec![(diax - i2, diay), (diax, diay - i2), (diax, diay + i2)];
+        coords[0] = (diax - i2, diay);
+        coords[1] = (diax, diay - i2);
+        coords[2] = (diax, diay + i2);
+        return (coords, 3);
     } else if diay - i2 < 0 {
-        return vec![(diax + i2, diay), (diax - i2, diay), (diax, diay + i2)];
+        coords[0] = (diax + i2, diay);
+        coords[1] = (diax - i2, diay);
+        coords[2] = (diax, diay + i2);
+        return (coords, 3);
     } else if diay + i2 >= dim {
-        return vec![(diax + i2, diay), (diax - i2, diay), (diax, diay - i2)];
+        coords[0] = (diax + i2, diay);
+        coords[1] = (diax - i2, diay);
+        coords[2] = (diax, diay - i2);
+        return (coords, 3);
     }
-    vec![
-        (diax + i2, diay),
-        (diax - i2, diay),
-        (diax, diay - i2),
-        (diax, diay + i2),
-    ]
+    coords[0] = (diax + i2, diay);
+    coords[1] = (diax - i2, diay);
+    coords[2] = (diax, diay - i2);
+    coords[3] = (diax, diay + i2);
+    (coords, 4)
 }
 
 fn diamond_step(
@@ -82,13 +74,14 @@ fn diamond_step(
     diax: usize,
     diay: usize,
 ) {
-    let diaco = check_diamond_coords(diax as i32, diay as i32, dim as i32, mid as i32);
-    let diavals: Vec<f64> = diaco
-        .iter()
-        .map(|&(x, y)| surface[x as usize][y as usize])
-        .collect();
+    let (diaco, n) = check_diamond_coords(diax as i32, diay as i32, dim as i32, mid as i32);
+    let mut diavals = [0.0f64; 4];
+    for k in 0..n {
+        let (x, y) = diaco[k];
+        diavals[k] = surface[x as usize][y as usize];
+    }
     let r = rng.gen();
-    surface[diax][diay] = displace_vals(&diavals, disheight, r).unwrap();
+    surface[diax][diay] = displace_vals(&diavals[..n], disheight, r).unwrap();
 }
 
 /// Returns a diamond-square fractal surface of size (dim x dim).
@@ -108,17 +101,21 @@ pub fn diamond_square(dim: usize, h: f64, rng: &mut impl Rng) -> Grid {
         // Square step
         for i in (0..dim - 1).step_by(inc) {
             for j in (0..dim - 1).step_by(inc) {
-                let mut arr = vec![surface[i][j]];
+                let mut arr = [surface[i][j], 0.0, 0.0, 0.0];
+                let mut arr_n = 1usize;
                 if i + inc < dim {
-                    arr.push(surface[i + inc][j]);
+                    arr[arr_n] = surface[i + inc][j];
+                    arr_n += 1;
                     if j + inc < dim {
-                        arr.push(surface[i + inc][j + inc]);
+                        arr[arr_n] = surface[i + inc][j + inc];
+                        arr_n += 1;
                     }
                 } else if j + inc < dim {
-                    arr.push(surface[i][j + inc]);
+                    arr[arr_n] = surface[i][j + inc];
+                    arr_n += 1;
                 }
                 let r = rng.gen();
-                surface[i + mid][j + mid] = displace_vals(&arr, disheight, r).unwrap();
+                surface[i + mid][j + mid] = displace_vals(&arr[..arr_n], disheight, r).unwrap();
             }
         }
 
@@ -157,9 +154,8 @@ pub fn rand_sub_grid(grid: Grid, rows: usize, cols: usize, rng: &mut impl Rng) -
 
     let mut sub = Grid::new(rows, cols);
     for i in 0..rows {
-        for j in 0..cols {
-            sub[i][j] = grid[row_start + i][col_start + j];
-        }
+        let src_start = (row_start + i) * grid.cols + col_start;
+        sub.data[i * cols..(i + 1) * cols].copy_from_slice(&grid.data[src_start..src_start + cols]);
     }
     sub
 }

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["maturin>=1,<2"]
+build-backend = "maturin"
+
+[project]
+name = "nlmrs"
+description = "Neutral Landscape Models — fast native implementation with Python bindings"
+readme = "README.md"
+requires-python = ">=3.8"
+dynamic = ["version"]
+license = { text = "MIT" }
+keywords = ["landscape", "ecology", "nlm", "spatial", "terrain", "procedural"]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = ["numpy"]
+
+[tool.maturin]
+# Rust feature to enable when building the Python extension.
+features = ["python"]
+# The compiled module name imported in Python: import nlmrs
+module-name = "nlmrs"

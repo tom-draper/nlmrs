@@ -1,0 +1,10 @@
+Package: nlmrs
+Title: Neutral Landscape Models via Rust
+Version: 0.1.0
+Authors@R: person("Tom", "Draper", role = c("aut", "cre"))
+Description: Fast Neutral Landscape Model generation backed by native Rust.
+License: MIT
+Encoding: UTF-8
+Depends: R (>= 4.0)
+SystemRequirements: Cargo (rustc package manager), rustc >= 1.70
+Config/rextendr/version: 0.3.1
