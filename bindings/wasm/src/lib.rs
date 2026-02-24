@@ -223,3 +223,130 @@ pub fn fbm_noise(
     );
     grid_to_wasm(grid)
 }
+
+/// Ridged multifractal noise. Values in \[0, 1\).
+///
+/// @param rows        - Number of rows.
+/// @param cols        - Number of columns.
+/// @param scale_factor - Base noise frequency (default 4.0).
+/// @param octaves     - Number of noise layers (default 6).
+/// @param persistence - Amplitude scaling per octave (default 0.5).
+/// @param lacunarity  - Frequency scaling per octave (default 2.0).
+/// @param seed        - Optional integer seed.
+#[wasm_bindgen]
+pub fn ridged_noise(
+    rows: u32,
+    cols: u32,
+    scale_factor: f64,
+    octaves: u32,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Option<u32>,
+) -> WasmGrid {
+    let grid = nlmrs::ridged_noise(
+        rows as usize,
+        cols as usize,
+        scale_factor,
+        octaves as usize,
+        persistence,
+        lacunarity,
+        seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
+/// Billow noise — rounded cloud- and hill-like patterns. Values in \[0, 1\).
+///
+/// @param rows        - Number of rows.
+/// @param cols        - Number of columns.
+/// @param scale_factor - Base noise frequency (default 4.0).
+/// @param octaves     - Number of noise layers (default 6).
+/// @param persistence - Amplitude scaling per octave (default 0.5).
+/// @param lacunarity  - Frequency scaling per octave (default 2.0).
+/// @param seed        - Optional integer seed.
+#[wasm_bindgen]
+pub fn billow_noise(
+    rows: u32,
+    cols: u32,
+    scale_factor: f64,
+    octaves: u32,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Option<u32>,
+) -> WasmGrid {
+    let grid = nlmrs::billow_noise(
+        rows as usize,
+        cols as usize,
+        scale_factor,
+        octaves as usize,
+        persistence,
+        lacunarity,
+        seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
+/// Worley (cellular) noise — territory / patch patterns. Values in \[0, 1\).
+///
+/// @param rows         - Number of rows.
+/// @param cols         - Number of columns.
+/// @param scale_factor - Seed-point frequency; higher = smaller cells (default 4.0).
+/// @param seed         - Optional integer seed.
+#[wasm_bindgen]
+pub fn worley_noise(rows: u32, cols: u32, scale_factor: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::worley_noise(rows as usize, cols as usize, scale_factor, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Gaussian random field — spatially correlated noise. Values in \[0, 1\).
+///
+/// @param rows  - Number of rows.
+/// @param cols  - Number of columns.
+/// @param sigma - Gaussian kernel standard deviation in cells (default 10.0).
+/// @param seed  - Optional integer seed.
+#[wasm_bindgen]
+pub fn gaussian_field(rows: u32, cols: u32, sigma: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::gaussian_field(rows as usize, cols as usize, sigma, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Random cluster NLM via fault-line cuts. Values in \[0, 1\).
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param n    - Number of fault-line cuts (default 200).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn random_cluster(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::random_cluster(rows as usize, cols as usize, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+// ── Post-processing ───────────────────────────────────────────────────────────
+
+/// Quantise a grid into `n` equal-width classes.
+///
+/// Class `k` (0-indexed) is assigned output value `k / (n - 1)`,
+/// evenly spacing the classes across \[0, 1\].
+///
+/// @param grid - A grid returned by a generator function.
+/// @param n    - Number of classes (>= 1).
+#[wasm_bindgen]
+pub fn classify(grid: WasmGrid, n: u32) -> WasmGrid {
+    let mut g = Grid { data: grid.data, rows: grid.rows as usize, cols: grid.cols as usize };
+    nlmrs::classify(&mut g, n as usize);
+    WasmGrid { rows: g.rows as u32, cols: g.cols as u32, data: g.data }
+}
+
+/// Apply a binary threshold to a grid.
+///
+/// Values strictly below `t` become 0.0; values at or above become 1.0.
+///
+/// @param grid - A grid returned by a generator function.
+/// @param t    - Threshold value in \[0, 1\].
+#[wasm_bindgen]
+pub fn threshold(grid: WasmGrid, t: f64) -> WasmGrid {
+    let mut g = Grid { data: grid.data, rows: grid.rows as usize, cols: grid.cols as usize };
+    nlmrs::threshold(&mut g, t);
+    WasmGrid { rows: g.rows as u32, cols: g.cols as u32, data: g.data }
+}

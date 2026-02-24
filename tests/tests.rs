@@ -65,3 +65,32 @@ fn test_write_to_ascii_grid() {
     let data_row = lines.next().unwrap();
     assert_eq!(data_row.split_whitespace().count(), 200);
 }
+
+#[test]
+fn test_csv_round_trip() {
+    ensure_examples_dir();
+    let original = nlmrs::midpoint_displacement(50, 80, 0.8, Some(42));
+    nlmrs::export::write_to_csv(&original, "examples/roundtrip.csv").unwrap();
+    let loaded = nlmrs::export::read_from_csv("examples/roundtrip.csv").unwrap();
+
+    assert_eq!(loaded.rows, original.rows);
+    assert_eq!(loaded.cols, original.cols);
+    for (a, b) in original.data.iter().zip(loaded.data.iter()) {
+        assert!((a - b).abs() < 1e-9, "value mismatch: {a} vs {b}");
+    }
+}
+
+#[test]
+fn test_ascii_grid_round_trip() {
+    ensure_examples_dir();
+    let original = nlmrs::fbm_noise(60, 70, 4.0, 6, 0.5, 2.0, Some(7));
+    nlmrs::export::write_to_ascii_grid(&original, "examples/roundtrip.asc").unwrap();
+    let loaded = nlmrs::export::read_from_ascii_grid("examples/roundtrip.asc").unwrap();
+
+    assert_eq!(loaded.rows, original.rows);
+    assert_eq!(loaded.cols, original.cols);
+    // ASCII grid is written with 6 decimal places so tolerance is 1e-6.
+    for (a, b) in original.data.iter().zip(loaded.data.iter()) {
+        assert!((a - b).abs() < 1e-5, "value mismatch: {a} vs {b}");
+    }
+}

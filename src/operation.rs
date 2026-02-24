@@ -1,4 +1,3 @@
-use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -22,28 +21,61 @@ pub fn min_and_max(grid: &Grid) -> (f64, f64) {
         )
 }
 
-/// Returns the value of a randomly chosen neighbour of (row, col).
-fn nearest_neighbour(grid: &Grid, row: usize, col: usize, rng: &mut impl Rng) -> f64 {
-    let mut options = [0.0f64; 4];
-    let mut count = 0usize;
-    if row + 1 < grid.rows { options[count] = grid[row + 1][col]; count += 1; }
-    if row > 0             { options[count] = grid[row - 1][col]; count += 1; }
-    if col + 1 < grid.cols { options[count] = grid[row][col + 1]; count += 1; }
-    if col > 0             { options[count] = grid[row][col - 1]; count += 1; }
-    options[rng.gen_range(0..count)]
-}
+/// Multi-source BFS nearest-neighbour fill (Manhattan-metric Voronoi).
+///
+/// Every cell with a non-zero value is treated as a labelled seed; all zero
+/// cells are flooded in BFS order so each inherits the label of the nearest
+/// seed.  Running time is O(rows × cols).
+pub fn interpolate(grid: &mut Grid) {
+    use std::collections::VecDeque;
+    let cols = grid.cols;
+    let rows = grid.rows;
 
-pub fn interpolate(grid: &mut Grid, mask: &[usize], rng: &mut impl Rng) {
-    let replacements: Vec<(usize, usize, f64)> = mask
+    // Seed the queue with every labelled cell.
+    let mut queue: VecDeque<usize> = grid
+        .data
         .iter()
-        .map(|&idx| {
-            let row = idx / grid.cols;
-            let col = idx % grid.cols;
-            (row, col, nearest_neighbour(grid, row, col, rng))
-        })
+        .enumerate()
+        .filter_map(|(i, &v)| if v != 0.0 { Some(i) } else { None })
         .collect();
-    for (row, col, val) in replacements {
-        grid[row][col] = val;
+
+    while let Some(idx) = queue.pop_front() {
+        let val = grid.data[idx];
+        let row = idx / cols;
+        let col = idx % cols;
+
+        // Up
+        if row > 0 {
+            let ni = idx - cols;
+            if grid.data[ni] == 0.0 {
+                grid.data[ni] = val;
+                queue.push_back(ni);
+            }
+        }
+        // Down
+        if row + 1 < rows {
+            let ni = idx + cols;
+            if grid.data[ni] == 0.0 {
+                grid.data[ni] = val;
+                queue.push_back(ni);
+            }
+        }
+        // Left
+        if col > 0 {
+            let ni = idx - 1;
+            if grid.data[ni] == 0.0 {
+                grid.data[ni] = val;
+                queue.push_back(ni);
+            }
+        }
+        // Right
+        if col + 1 < cols {
+            let ni = idx + 1;
+            if grid.data[ni] == 0.0 {
+                grid.data[ni] = val;
+                queue.push_back(ni);
+            }
+        }
     }
 }
 
@@ -192,4 +224,33 @@ pub fn abs(grid: &mut Grid) {
     grid.data.par_iter_mut().for_each(|v| *v = v.abs());
     #[cfg(not(feature = "parallel"))]
     grid.data.iter_mut().for_each(|v| *v = v.abs());
+}
+
+/// Quantises each cell into one of `n` equal-width classes over [0, 1].
+///
+/// Class `k` (0-indexed) is assigned the output value `k / (n − 1)`,
+/// evenly spacing the `n` classes across [0, 1]. Panics if `n == 0`.
+pub fn classify(grid: &mut Grid, n: usize) {
+    assert!(n >= 1, "n must be at least 1");
+    let n_f = n as f64;
+    let max_class = (n - 1) as f64;
+    let op = |v: &mut f64| {
+        let class = (*v * n_f).floor().min(max_class);
+        *v = if n == 1 { 0.0 } else { class / max_class };
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_iter_mut().for_each(op);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.iter_mut().for_each(op);
+}
+
+/// Maps every cell to `0.0` if its value is strictly below `t`, or `1.0` otherwise.
+pub fn threshold(grid: &mut Grid, t: f64) {
+    let op = |v: &mut f64| {
+        *v = if *v < t { 0.0 } else { 1.0 };
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_iter_mut().for_each(op);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.iter_mut().for_each(op);
 }

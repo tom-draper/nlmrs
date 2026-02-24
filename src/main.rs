@@ -22,6 +22,14 @@ struct Cli {
     /// Use grayscale instead of terrain colormap (PNG only)
     #[arg(long, global = true)]
     grayscale: bool,
+
+    /// Classify output into N equal-width classes
+    #[arg(long, global = true)]
+    classify: Option<usize>,
+
+    /// Threshold output at T: values below T → 0.0, at or above → 1.0
+    #[arg(long, global = true)]
+    threshold: Option<f64>,
 }
 
 #[derive(Subcommand)]
@@ -120,6 +128,64 @@ enum Commands {
         #[arg(long, default_value = "2.0")]
         lacunarity: f64,
     },
+    /// Ridged multifractal noise — sharp ridges and mountain-like terrain
+    Ridged {
+        rows: usize,
+        cols: usize,
+        /// Base noise frequency
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+        /// Number of octaves
+        #[arg(long, default_value = "6")]
+        octaves: usize,
+        /// Amplitude scaling per octave
+        #[arg(long, default_value = "0.5")]
+        persistence: f64,
+        /// Frequency scaling per octave
+        #[arg(long, default_value = "2.0")]
+        lacunarity: f64,
+    },
+    /// Billow noise — rounded cloud- and hill-like patterns
+    Billow {
+        rows: usize,
+        cols: usize,
+        /// Base noise frequency
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+        /// Number of octaves
+        #[arg(long, default_value = "6")]
+        octaves: usize,
+        /// Amplitude scaling per octave
+        #[arg(long, default_value = "0.5")]
+        persistence: f64,
+        /// Frequency scaling per octave
+        #[arg(long, default_value = "2.0")]
+        lacunarity: f64,
+    },
+    /// Worley (cellular) noise — territory / patch patterns
+    Worley {
+        rows: usize,
+        cols: usize,
+        /// Seed-point frequency (higher = smaller cells)
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+    },
+    /// Gaussian random field — spatially correlated noise
+    GaussianField {
+        rows: usize,
+        cols: usize,
+        /// Gaussian kernel standard deviation in cells (correlation length)
+        #[arg(long, default_value = "10.0")]
+        sigma: f64,
+    },
+    /// Random cluster via fault-line cuts
+    RandomCluster {
+        rows: usize,
+        cols: usize,
+        /// Number of fault-line cuts
+        #[arg(long, default_value = "200")]
+        n: usize,
+    },
 }
 
 fn main() {
@@ -149,7 +215,26 @@ fn main() {
         Commands::Fbm { rows, cols, scale, octaves, persistence, lacunarity } => {
             nlmrs::fbm_noise(rows, cols, scale, octaves, persistence, lacunarity, seed)
         }
+        Commands::Ridged { rows, cols, scale, octaves, persistence, lacunarity } => {
+            nlmrs::ridged_noise(rows, cols, scale, octaves, persistence, lacunarity, seed)
+        }
+        Commands::Billow { rows, cols, scale, octaves, persistence, lacunarity } => {
+            nlmrs::billow_noise(rows, cols, scale, octaves, persistence, lacunarity, seed)
+        }
+        Commands::Worley { rows, cols, scale } => nlmrs::worley_noise(rows, cols, scale, seed),
+        Commands::GaussianField { rows, cols, sigma } => {
+            nlmrs::gaussian_field(rows, cols, sigma, seed)
+        }
+        Commands::RandomCluster { rows, cols, n } => nlmrs::random_cluster(rows, cols, n, seed),
     };
+
+    let mut grid = grid;
+    if let Some(n) = cli.classify {
+        nlmrs::classify(&mut grid, n);
+    }
+    if let Some(t) = cli.threshold {
+        nlmrs::threshold(&mut grid, t);
+    }
 
     let path = &cli.output;
     let ext = path.rsplit('.').next().unwrap_or("png");

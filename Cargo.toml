@@ -28,6 +28,11 @@ parallel = ["dep:rayon"]
 
 [dev-dependencies]
 rstest = "0.16.0"
+criterion = "0.5"
+
+[[bench]]
+name = "algorithms"
+harness = false
 
 [dependencies]
 rand = "0.8.5"

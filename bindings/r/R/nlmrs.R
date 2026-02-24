@@ -251,3 +251,175 @@ nlm_fbm_noise <- function(rows, cols, scale_factor = 4.0, octaves = 6L,
               as.double(lacunarity),
               if (is.null(seed)) NULL else as.double(seed))
 }
+
+# ── Ridged noise ──────────────────────────────────────────────────────────────
+
+#' Ridged multifractal NLM
+#'
+#' Produces sharp ridges and peak-like terrain. Similar to fBm but each
+#' octave's noise value is folded, accumulating into pronounced ridges.
+#'
+#' @param rows        Number of rows.
+#' @param cols        Number of columns.
+#' @param scale_factor Base noise frequency (default 4.0).
+#' @param octaves     Number of noise layers (default 6).
+#' @param persistence Amplitude scaling per octave (default 0.5).
+#' @param lacunarity  Frequency scaling per octave (default 2.0).
+#' @param seed        Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_ridged_noise(50, 50, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_ridged_noise <- function(rows, cols, scale_factor = 4.0, octaves = 6L,
+                             persistence = 0.5, lacunarity = 2.0, seed = NULL) {
+  r_ridged_noise(as.integer(rows), as.integer(cols),
+                 as.double(scale_factor), as.integer(octaves),
+                 as.double(persistence), as.double(lacunarity),
+                 if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Billow noise ───────────────────────────────────────────────────────────────
+
+#' Billow NLM
+#'
+#' Billow noise applies an absolute-value fold to each octave of Perlin noise,
+#' producing rounded, cloud- and hill-like patterns.
+#'
+#' @param rows        Number of rows.
+#' @param cols        Number of columns.
+#' @param scale_factor Base noise frequency (default 4.0).
+#' @param octaves     Number of noise layers (default 6).
+#' @param persistence Amplitude scaling per octave (default 0.5).
+#' @param lacunarity  Frequency scaling per octave (default 2.0).
+#' @param seed        Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_billow_noise(50, 50, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_billow_noise <- function(rows, cols, scale_factor = 4.0, octaves = 6L,
+                             persistence = 0.5, lacunarity = 2.0, seed = NULL) {
+  r_billow_noise(as.integer(rows), as.integer(cols),
+                 as.double(scale_factor), as.integer(octaves),
+                 as.double(persistence), as.double(lacunarity),
+                 if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Worley noise ───────────────────────────────────────────────────────────────
+
+#' Worley (cellular) noise NLM
+#'
+#' Each cell value is proportional to its distance to the nearest randomly
+#' scattered Voronoi seed point, producing cellular / territory-like patches.
+#'
+#' @param rows        Number of rows.
+#' @param cols        Number of columns.
+#' @param scale_factor Seed-point frequency; higher values produce smaller
+#'   cells (default 4.0).
+#' @param seed        Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_worley_noise(50, 50, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_worley_noise <- function(rows, cols, scale_factor = 4.0, seed = NULL) {
+  r_worley_noise(as.integer(rows), as.integer(cols),
+                 as.double(scale_factor),
+                 if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Gaussian field ─────────────────────────────────────────────────────────────
+
+#' Gaussian random field NLM
+#'
+#' Generates white noise then applies a separable Gaussian blur, producing
+#' spatially correlated surfaces where \code{sigma} directly controls the
+#' ecological correlation length in cells.
+#'
+#' @param rows  Number of rows.
+#' @param cols  Number of columns.
+#' @param sigma Gaussian kernel standard deviation in cells (default 10.0).
+#'   Higher values produce larger, smoother patches.
+#' @param seed  Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_gaussian_field(50, 50, sigma = 5, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_gaussian_field <- function(rows, cols, sigma = 10.0, seed = NULL) {
+  r_gaussian_field(as.integer(rows), as.integer(cols),
+                   as.double(sigma),
+                   if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Random cluster ─────────────────────────────────────────────────────────────
+
+#' Random cluster NLM
+#'
+#' Applies \code{n} random fault-line cuts; each cut adds +1 to cells on one
+#' side and \eqn{-1} on the other. The accumulated field is scaled to
+#' \eqn{[0, 1]}, producing clustered landscapes with linear structural elements.
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param n    Number of fault-line cuts (default 200). Higher values produce
+#'   finer-grained clustering.
+#' @param seed Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_random_cluster(50, 50, n = 100L, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_random_cluster <- function(rows, cols, n = 200L, seed = NULL) {
+  r_random_cluster(as.integer(rows), as.integer(cols),
+                   as.integer(n),
+                   if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Post-processing ───────────────────────────────────────────────────────────
+
+#' Classify a landscape matrix into discrete classes
+#'
+#' Quantises each cell into one of \code{n} equal-width classes.
+#' Class \eqn{k} (0-indexed) is assigned output value \eqn{k / (n - 1)},
+#' evenly spacing the classes across \eqn{[0, 1]}.
+#'
+#' @param m A numeric matrix with values in \eqn{[0, 1]}, as returned by any
+#'   \code{nlm_*} function.
+#' @param n Number of equal-width classes (positive integer).
+#'
+#' @return A numeric matrix of the same dimensions with values at
+#'   \code{n} discrete levels evenly spaced in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_midpoint_displacement(50, 50, seed = 1L)
+#' cl <- nlm_classify(m, 4L)
+#' stopifnot(length(unique(as.vector(cl))) <= 4L)
+nlm_classify <- function(m, n) {
+  r_classify(m, as.integer(n))
+}
+
+#' Threshold a landscape matrix to a binary habitat map
+#'
+#' Maps every cell to \code{0.0} if its value is strictly below \code{t},
+#' or \code{1.0} otherwise. Useful for producing binary habitat/non-habitat maps.
+#'
+#' @param m A numeric matrix with values in \eqn{[0, 1]}.
+#' @param t Threshold value. Cells below \code{t} become \code{0}; cells at or
+#'   above become \code{1}.
+#'
+#' @return A binary numeric matrix with values \code{0} or \code{1}.
+#' @export
+#' @examples
+#' m <- nlm_midpoint_displacement(50, 50, seed = 1L)
+#' binary <- nlm_threshold(m, 0.5)
+#' stopifnot(all(binary \%in\% c(0, 1)))
+nlm_threshold <- function(m, t) {
+  r_threshold(m, as.double(t))
+}

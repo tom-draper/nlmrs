@@ -8,15 +8,6 @@ pub fn rand_grid(rows: usize, cols: usize, rng: &mut impl Rng) -> Grid {
     Grid { data, rows, cols }
 }
 
-/// Returns the flat indices of all cells equal to `value`.
-pub fn value_mask(grid: &Grid, value: f64) -> Vec<usize> {
-    grid.iter()
-        .enumerate()
-        .filter_map(|(i, &x)| if x == value { Some(i) } else { None })
-        .collect()
-}
-
-
 fn random_displace(disheight: f64, r: f64) -> f64 {
     r * disheight - 0.5 * disheight
 }

@@ -211,6 +211,171 @@ fn fbm_noise(
     to_numpy(py, grid)
 }
 
+/// Ridged multifractal noise. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Base noise frequency.
+/// octaves : int
+///     Number of noise layers to combine.
+/// persistence : float
+///     Amplitude scaling per octave.
+/// lacunarity : float
+///     Frequency scaling per octave.
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, octaves=6, persistence=0.5, lacunarity=2.0, seed=None))]
+fn ridged_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    octaves: usize,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid =
+        py.allow_threads(|| crate::ridged_noise(rows, cols, scale, octaves, persistence, lacunarity, seed));
+    to_numpy(py, grid)
+}
+
+/// Billow noise — rounded cloud- and hill-like patterns. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Base noise frequency.
+/// octaves : int
+///     Number of noise layers to combine.
+/// persistence : float
+///     Amplitude scaling per octave.
+/// lacunarity : float
+///     Frequency scaling per octave.
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, octaves=6, persistence=0.5, lacunarity=2.0, seed=None))]
+fn billow_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    octaves: usize,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid =
+        py.allow_threads(|| crate::billow_noise(rows, cols, scale, octaves, persistence, lacunarity, seed));
+    to_numpy(py, grid)
+}
+
+/// Worley (cellular) noise — territory / patch patterns. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Seed-point frequency; higher values produce smaller cells.
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, seed=None))]
+fn worley_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::worley_noise(rows, cols, scale, seed));
+    to_numpy(py, grid)
+}
+
+/// Gaussian random field — spatially correlated noise. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// sigma : float
+///     Gaussian kernel standard deviation in cells (controls correlation length).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, sigma=10.0, seed=None))]
+fn gaussian_field(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    sigma: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::gaussian_field(rows, cols, sigma, seed));
+    to_numpy(py, grid)
+}
+
+/// Random cluster NLM via fault-line cuts. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of fault-line cuts. Higher values produce finer-grained clusters.
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=200, seed=None))]
+fn random_cluster(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::random_cluster(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+// ── Post-processing ──────────────────────────────────────────────────────────
+
+/// Quantise a grid into `n` equal-width classes.
+///
+/// Parameters
+/// ----------
+/// arr : numpy.ndarray
+///     2-D float64 array with values in [0, 1], as returned by any generator.
+/// n : int
+///     Number of classes (>= 1). Class `k` maps to output value `k / (n - 1)`.
+#[pyfunction]
+fn classify(py: Python<'_>, arr: &Bound<'_, PyArray2<f64>>, n: usize) -> Bound<'_, PyArray2<f64>> {
+    let (rows, cols, data) = {
+        let ro = arr.readonly();
+        let view = ro.as_array();
+        let (r, c) = view.dim();
+        (r, c, view.to_owned().into_raw_vec())
+    };
+    let grid = py.allow_threads(|| {
+        let mut g = Grid { data, rows, cols };
+        crate::classify(&mut g, n);
+        g
+    });
+    to_numpy(py, grid)
+}
+
+/// Apply a binary threshold to a grid.
+///
+/// Parameters
+/// ----------
+/// arr : numpy.ndarray
+///     2-D float64 array with values in [0, 1].
+/// t : float
+///     Values strictly below `t` become 0.0; values at or above become 1.0.
+#[pyfunction]
+fn threshold(py: Python<'_>, arr: &Bound<'_, PyArray2<f64>>, t: f64) -> Bound<'_, PyArray2<f64>> {
+    let (rows, cols, data) = {
+        let ro = arr.readonly();
+        let view = ro.as_array();
+        let (r, c) = view.dim();
+        (r, c, view.to_owned().into_raw_vec())
+    };
+    let grid = py.allow_threads(|| {
+        let mut g = Grid { data, rows, cols };
+        crate::threshold(&mut g, t);
+        g
+    });
+    to_numpy(py, grid)
+}
+
 // ── Module ───────────────────────────────────────────────────────────────────
 
 /// Fast Neutral Landscape Model generation.
@@ -237,5 +402,12 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(hill_grow, m)?)?;
     m.add_function(wrap_pyfunction!(perlin_noise, m)?)?;
     m.add_function(wrap_pyfunction!(fbm_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(ridged_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(billow_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(worley_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(gaussian_field, m)?)?;
+    m.add_function(wrap_pyfunction!(random_cluster, m)?)?;
+    m.add_function(wrap_pyfunction!(classify, m)?)?;
+    m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())
 }

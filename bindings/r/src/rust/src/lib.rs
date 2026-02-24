@@ -182,6 +182,111 @@ fn r_fbm_noise(
     grid_to_rmatrix(grid)
 }
 
+/// Ridged multifractal noise. Values in [0, 1).
+#[extendr]
+fn r_ridged_noise(
+    rows: i32,
+    cols: i32,
+    scale_factor: f64,
+    octaves: i32,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Nullable<f64>,
+) -> RMatrix<f64> {
+    let grid = nlmrs::ridged_noise(
+        rows as usize,
+        cols as usize,
+        scale_factor,
+        octaves as usize,
+        persistence,
+        lacunarity,
+        seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
+/// Billow noise — rounded cloud- and hill-like patterns. Values in [0, 1).
+#[extendr]
+fn r_billow_noise(
+    rows: i32,
+    cols: i32,
+    scale_factor: f64,
+    octaves: i32,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Nullable<f64>,
+) -> RMatrix<f64> {
+    let grid = nlmrs::billow_noise(
+        rows as usize,
+        cols as usize,
+        scale_factor,
+        octaves as usize,
+        persistence,
+        lacunarity,
+        seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
+/// Worley (cellular) noise — territory / patch patterns. Values in [0, 1).
+#[extendr]
+fn r_worley_noise(rows: i32, cols: i32, scale_factor: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::worley_noise(rows as usize, cols as usize, scale_factor, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Gaussian random field — spatially correlated noise. Values in [0, 1).
+#[extendr]
+fn r_gaussian_field(rows: i32, cols: i32, sigma: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::gaussian_field(rows as usize, cols as usize, sigma, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Random cluster NLM via fault-line cuts. Values in [0, 1).
+#[extendr]
+fn r_random_cluster(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::random_cluster(rows as usize, cols as usize, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+// ── Post-processing ───────────────────────────────────────────────────────────
+
+/// Convert a column-major R matrix to a row-major Grid.
+fn rmatrix_to_grid(m: &RMatrix<f64>) -> Grid {
+    let rows = m.nrows();
+    let cols = m.ncols();
+    // R matrix data is column-major: element [r, c] lives at col_major[c * rows + r].
+    let col_major = m.data();
+    let mut data = vec![0.0f64; rows * cols];
+    for c in 0..cols {
+        for r in 0..rows {
+            data[r * cols + c] = col_major[c * rows + r];
+        }
+    }
+    Grid { data, rows, cols }
+}
+
+/// Quantise a landscape matrix into `n` equal-width classes.
+///
+/// Class `k` (0-indexed) is assigned output value `k / (n - 1)`,
+/// evenly spacing the classes across [0, 1].
+#[extendr]
+fn r_classify(m: &RMatrix<f64>, n: i32) -> RMatrix<f64> {
+    let mut grid = rmatrix_to_grid(m);
+    nlmrs::classify(&mut grid, n as usize);
+    grid_to_rmatrix(grid)
+}
+
+/// Apply a binary threshold to a landscape matrix.
+///
+/// Values strictly below `t` become 0.0; values at or above become 1.0.
+#[extendr]
+fn r_threshold(m: &RMatrix<f64>, t: f64) -> RMatrix<f64> {
+    let mut grid = rmatrix_to_grid(m);
+    nlmrs::threshold(&mut grid, t);
+    grid_to_rmatrix(grid)
+}
+
 // ── Module registration ───────────────────────────────────────────────────────
 
 // `mod nlmrs` matches the R package name, so the generated C symbol is
@@ -198,4 +303,11 @@ extendr_module! {
     fn r_hill_grow;
     fn r_perlin_noise;
     fn r_fbm_noise;
+    fn r_ridged_noise;
+    fn r_billow_noise;
+    fn r_worley_noise;
+    fn r_gaussian_field;
+    fn r_random_cluster;
+    fn r_classify;
+    fn r_threshold;
 }

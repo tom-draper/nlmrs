@@ -47,3 +47,35 @@ r_fbm_noise <- function(rows, cols, scale_factor = 4.0, octaves = 6L,
   .Call(wrap__r_fbm_noise, rows, cols, scale_factor, octaves,
         persistence, lacunarity, seed)
 }
+
+r_ridged_noise <- function(rows, cols, scale_factor = 4.0, octaves = 6L,
+                           persistence = 0.5, lacunarity = 2.0, seed = NULL) {
+  .Call(wrap__r_ridged_noise, rows, cols, scale_factor, octaves,
+        persistence, lacunarity, seed)
+}
+
+r_billow_noise <- function(rows, cols, scale_factor = 4.0, octaves = 6L,
+                           persistence = 0.5, lacunarity = 2.0, seed = NULL) {
+  .Call(wrap__r_billow_noise, rows, cols, scale_factor, octaves,
+        persistence, lacunarity, seed)
+}
+
+r_worley_noise <- function(rows, cols, scale_factor = 4.0, seed = NULL) {
+  .Call(wrap__r_worley_noise, rows, cols, scale_factor, seed)
+}
+
+r_gaussian_field <- function(rows, cols, sigma = 10.0, seed = NULL) {
+  .Call(wrap__r_gaussian_field, rows, cols, sigma, seed)
+}
+
+r_random_cluster <- function(rows, cols, n = 200L, seed = NULL) {
+  .Call(wrap__r_random_cluster, rows, cols, n, seed)
+}
+
+r_classify <- function(m, n) {
+  .Call(wrap__r_classify, m, n)
+}
+
+r_threshold <- function(m, t) {
+  .Call(wrap__r_threshold, m, t)
+}

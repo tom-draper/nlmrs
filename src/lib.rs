@@ -7,21 +7,18 @@ mod fenwick;
 mod python;
 
 pub use grid::Grid;
-pub use operation::{abs, add, add_value, invert, max, min, min_and_max, multiply, multiply_value, scale};
+pub use operation::{abs, add, add_value, classify, invert, max, min, min_and_max, multiply, multiply_value, scale, threshold};
 
-use crate::array::{diamond_square, rand_grid, rand_sub_grid, value_mask};
+use crate::array::{diamond_square, rand_grid, rand_sub_grid};
 use crate::fenwick::WeightedSampler;
 use crate::operation::{euclidean_distance_transform, interpolate};
 use rand::rngs::StdRng;
-use rand::{Rng, RngCore, SeedableRng};
+use rand::{Rng, SeedableRng};
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
-fn make_rng(seed: Option<u64>) -> Box<dyn RngCore> {
-    match seed {
-        Some(s) => Box::new(StdRng::seed_from_u64(s)),
-        None => Box::new(rand::thread_rng()),
-    }
+fn make_rng(seed: Option<u64>) -> StdRng {
+    StdRng::seed_from_u64(seed.unwrap_or_else(|| rand::thread_rng().gen()))
 }
 
 /// Converts an optional 64-bit seed to a 32-bit Perlin seed, generating a random
@@ -58,24 +55,23 @@ pub fn random_element(rows: usize, cols: usize, n: f64, seed: Option<u64>) -> Gr
     }
 
     let mut rng = make_rng(seed);
-    let mut grid = Grid::filled(rows, cols, 1.0);
+    let mut grid = Grid::new(rows, cols);
 
     // Track the last successfully placed label to avoid an O(rows*cols) max() scan
     // every iteration (which would make the whole function O(n * rows * cols)).
-    let mut last_label = 1.0f64;
+    let mut last_label = 0.0f64;
     let mut i: f64 = 1.;
     while last_label < n && i < n {
         let row = rng.gen_range(0..rows);
         let col = rng.gen_range(0..cols);
-        if grid[row][col] == 1. {
+        if grid[row][col] == 0. {
             grid[row][col] = i;
             last_label = i;
         }
         i += 1.;
     }
 
-    let mask = value_mask(&grid, 0.);
-    interpolate(&mut grid, &mask, &mut rng);
+    interpolate(&mut grid);
     scale(&mut grid);
 
     grid
@@ -363,11 +359,13 @@ pub fn perlin_noise(rows: usize, cols: usize, scale_factor: f64, seed: Option<u6
     let perlin = Perlin::new(seed_val);
 
     let mut grid = Grid::new(rows, cols);
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
     // Each row is independent — parallelise over rows.
     let fill_row = |(i, row): (usize, &mut [f64])| {
+        let ny = i as f64 * inv_rows * scale_factor;
         for (j, cell) in row.iter_mut().enumerate() {
-            let nx = j as f64 / cols as f64 * scale_factor;
-            let ny = i as f64 / rows as f64 * scale_factor;
+            let nx = j as f64 * inv_cols * scale_factor;
             *cell = perlin.get([nx, ny]);
         }
     };
@@ -409,29 +407,329 @@ pub fn fbm_noise(
         .map(|o| Perlin::new(seed_val.wrapping_add(o as u32)))
         .collect();
 
+    // Precompute per-octave (frequency, amplitude) pairs and the normalisation
+    // factor — these are identical for every pixel and must not be recomputed
+    // inside the hot loop.
+    let mut freq_amp: Vec<(f64, f64)> = Vec::with_capacity(octaves);
+    {
+        let mut amp = 1.0f64;
+        let mut freq = scale_factor;
+        let mut total = 0.0f64;
+        for _ in 0..octaves {
+            freq_amp.push((freq, amp));
+            total += amp;
+            amp *= persistence;
+            freq *= lacunarity;
+        }
+        // Store the reciprocal so the inner loop multiplies instead of divides.
+        let inv_total = if total > 0.0 { 1.0 / total } else { 0.0 };
+        // Re-use the amplitude slot to bake the normalisation in.
+        for (_, a) in &mut freq_amp {
+            *a *= inv_total;
+        }
+    }
+
     let mut grid = Grid::new(rows, cols);
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
     // Each row is independent — parallelise over rows.
     let fill_row = |(i, row): (usize, &mut [f64])| {
+        // Precompute ny for each octave — constant across all columns of this row.
+        let nys: Vec<f64> = freq_amp.iter().map(|&(freq, _)| i as f64 * inv_rows * freq).collect();
         for (j, cell) in row.iter_mut().enumerate() {
+            let x = j as f64 * inv_cols;
             let mut value = 0.0;
-            let mut amplitude = 1.0;
-            let mut frequency = scale_factor;
-            let mut total_amplitude = 0.0;
-            for gen in &generators {
-                let nx = j as f64 / cols as f64 * frequency;
-                let ny = i as f64 / rows as f64 * frequency;
-                value += gen.get([nx, ny]) * amplitude;
-                total_amplitude += amplitude;
-                amplitude *= persistence;
-                frequency *= lacunarity;
+            for (k, gen) in generators.iter().enumerate() {
+                let (freq, amp) = freq_amp[k];
+                value += gen.get([x * freq, nys[k]]) * amp;
             }
-            *cell = if total_amplitude > 0.0 { value / total_amplitude } else { 0.0 };
+            *cell = value;
         }
     };
     #[cfg(feature = "parallel")]
     grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
     #[cfg(not(feature = "parallel"))]
     grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a ridged multifractal NLM with values ranging [0, 1).
+///
+/// Produces sharp ridges and peak-like terrain.  Similar in structure to fBm
+/// but each octave's value is folded (`1 - |x|`) so high-frequency details
+/// accumulate into pronounced ridges rather than smooth hills.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `scale_factor` - Base noise frequency (higher = more features per unit).
+/// * `octaves` - Number of noise layers to combine.
+/// * `persistence` - Amplitude scaling per octave.
+/// * `lacunarity` - Frequency scaling per octave (2.0 = each octave twice as dense).
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn ridged_noise(
+    rows: usize,
+    cols: usize,
+    scale_factor: f64,
+    octaves: usize,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Option<u64>,
+) -> Grid {
+    use noise::{MultiFractal, NoiseFn, Perlin, RidgedMulti};
+    let seed_val = perlin_seed(seed);
+    let ridged = RidgedMulti::<Perlin>::new(seed_val)
+        .set_octaves(octaves)
+        .set_persistence(persistence)
+        .set_lacunarity(lacunarity);
+
+    let mut grid = Grid::new(rows, cols);
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let ny = i as f64 * inv_rows * scale_factor;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let nx = j as f64 * inv_cols * scale_factor;
+            *cell = ridged.get([nx, ny]);
+        }
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a billow NLM with values ranging [0, 1).
+///
+/// Billow noise applies an absolute-value fold to each octave of Perlin noise,
+/// producing rounded, cloud- and hill-like patterns.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `scale_factor` - Base noise frequency.
+/// * `octaves` - Number of noise layers to combine.
+/// * `persistence` - Amplitude scaling per octave.
+/// * `lacunarity` - Frequency scaling per octave.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn billow_noise(
+    rows: usize,
+    cols: usize,
+    scale_factor: f64,
+    octaves: usize,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Option<u64>,
+) -> Grid {
+    use noise::{Billow, MultiFractal, NoiseFn, Perlin};
+    let seed_val = perlin_seed(seed);
+    let billow = Billow::<Perlin>::new(seed_val)
+        .set_octaves(octaves)
+        .set_persistence(persistence)
+        .set_lacunarity(lacunarity);
+
+    let mut grid = Grid::new(rows, cols);
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let ny = i as f64 * inv_rows * scale_factor;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let nx = j as f64 * inv_cols * scale_factor;
+            *cell = billow.get([nx, ny]);
+        }
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a Worley (cellular) noise NLM with values ranging [0, 1).
+///
+/// Each cell value is proportional to its distance to the nearest of a set of
+/// randomly scattered Voronoi seed points, producing cellular / territory-like
+/// patch patterns.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `scale_factor` - Frequency of the seed points (higher = smaller cells).
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn worley_noise(rows: usize, cols: usize, scale_factor: f64, seed: Option<u64>) -> Grid {
+    use noise::{NoiseFn, Worley};
+    let seed_val = perlin_seed(seed);
+
+    let mut grid = Grid::new(rows, cols);
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+    // Worley contains Rc<dyn Fn> and is not Sync, so each row constructs its
+    // own instance.  The permutation table creation is O(256) — negligible.
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let worley = Worley::new(seed_val);
+        let ny = i as f64 * inv_rows * scale_factor;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let nx = j as f64 * inv_cols * scale_factor;
+            *cell = worley.get([nx, ny]);
+        }
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a spatially correlated Gaussian random field NLM with values in [0, 1).
+///
+/// Generates white noise then applies a separable Gaussian blur, so nearby
+/// cells are correlated over a distance roughly proportional to `sigma` cells.
+/// `sigma` maps directly to ecological correlation length.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `sigma` - Standard deviation of the Gaussian kernel in cells.  Higher
+///   values produce larger, smoother patches.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn gaussian_field(rows: usize, cols: usize, sigma: f64, seed: Option<u64>) -> Grid {
+    let mut rng = make_rng(seed);
+
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+
+    let mut grid = rand_grid(rows, cols, &mut rng);
+
+    if sigma <= 0.0 {
+        scale(&mut grid);
+        return grid;
+    }
+
+    // Build a 1-D normalised Gaussian kernel with radius = ceil(3σ).
+    let radius = (3.0 * sigma).ceil() as usize;
+    let kernel: Vec<f64> = {
+        let size = 2 * radius + 1;
+        let mut k = vec![0.0f64; size];
+        let mut sum = 0.0f64;
+        for i in 0..size {
+            let x = i as f64 - radius as f64;
+            k[i] = (-0.5 * (x / sigma).powi(2)).exp();
+            sum += k[i];
+        }
+        k.iter_mut().for_each(|v| *v /= sum);
+        k
+    };
+
+    // Horizontal pass — row-wise, cache-friendly.
+    let mut row_conv = Grid::new(rows, cols);
+    {
+        let fill = |(i, out_row): (usize, &mut [f64])| {
+            let src_row = &grid[i];
+            for j in 0..cols {
+                let mut val = 0.0f64;
+                for (k, &w) in kernel.iter().enumerate() {
+                    let jj = (j as i64 + k as i64 - radius as i64)
+                        .clamp(0, cols as i64 - 1) as usize;
+                    val += src_row[jj] * w;
+                }
+                out_row[j] = val;
+            }
+        };
+        #[cfg(feature = "parallel")]
+        row_conv.data.par_chunks_mut(cols).enumerate().for_each(fill);
+        #[cfg(not(feature = "parallel"))]
+        row_conv.data.chunks_mut(cols).enumerate().for_each(fill);
+    }
+
+    // Vertical pass.
+    let mut result = Grid::new(rows, cols);
+    {
+        let fill = |(i, out_row): (usize, &mut [f64])| {
+            for j in 0..cols {
+                let mut val = 0.0f64;
+                for (k, &w) in kernel.iter().enumerate() {
+                    let ii = (i as i64 + k as i64 - radius as i64)
+                        .clamp(0, rows as i64 - 1) as usize;
+                    val += row_conv[ii][j] * w;
+                }
+                out_row[j] = val;
+            }
+        };
+        #[cfg(feature = "parallel")]
+        result.data.par_chunks_mut(cols).enumerate().for_each(fill);
+        #[cfg(not(feature = "parallel"))]
+        result.data.chunks_mut(cols).enumerate().for_each(fill);
+    }
+
+    scale(&mut result);
+    result
+}
+
+/// Returns a random cluster NLM with values ranging [0, 1).
+///
+/// Applies `n` random fault-line cuts; each cut adds +1 to all cells on one
+/// side and −1 on the other.  After all cuts the accumulated field is scaled
+/// to [0, 1], producing spatially clustered landscapes with the linear
+/// structural elements characteristic of geological fault patterns.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n` - Number of fault-line cuts (higher = finer-grained clustering).
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn random_cluster(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+
+    let mut rng = make_rng(seed);
+
+    // Pre-generate all cuts so the per-cell inner loop has no mutable state.
+    // Each cut: (px, py, sin θ, cos θ) where θ ∈ [0, π).
+    let cuts: Vec<(f64, f64, f64, f64)> = (0..n)
+        .map(|_| {
+            let theta: f64 = rng.gen_range(0.0..std::f64::consts::PI);
+            let px: f64 = rng.gen();
+            let py: f64 = rng.gen();
+            (px, py, theta.sin(), theta.cos())
+        })
+        .collect();
+
+    let mut grid = Grid::new(rows, cols);
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+
+    let fill = |(k, v): (usize, &mut f64)| {
+        let row = k / cols;
+        let col = k % cols;
+        let x = col as f64 * inv_cols;
+        let y = row as f64 * inv_rows;
+        *v = cuts
+            .iter()
+            .map(|&(px, py, sin_t, cos_t)| {
+                if (x - px) * sin_t + (y - py) * cos_t > 0.0 { 1.0 } else { -1.0 }
+            })
+            .sum::<f64>();
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_iter_mut().enumerate().for_each(fill);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.iter_mut().enumerate().for_each(fill);
 
     scale(&mut grid);
     grid
@@ -664,5 +962,189 @@ mod tests {
         assert_eq!(grid.cols, cols);
         assert_eq!(nan_count(&grid), 0);
         assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    // ── classify ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_classify_two_classes() {
+        // With n=2 every output value must be exactly 0.0 or 1.0.
+        let mut grid = random(50, 50, Some(1));
+        classify(&mut grid, 2);
+        for &v in grid.iter() {
+            assert!(v == 0.0 || v == 1.0, "unexpected value {v}");
+        }
+    }
+
+    #[test]
+    fn test_classify_four_classes() {
+        // With n=4 the only legal output values are 0.0, 1/3, 2/3, 1.0.
+        let mut grid = random(50, 50, Some(2));
+        classify(&mut grid, 4);
+        let allowed = [0.0, 1.0 / 3.0, 2.0 / 3.0, 1.0];
+        for &v in grid.iter() {
+            assert!(
+                allowed.iter().any(|&a| (v - a).abs() < 1e-10),
+                "unexpected value {v}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_classify_one_class() {
+        let mut grid = random(10, 10, Some(3));
+        classify(&mut grid, 1);
+        for &v in grid.iter() {
+            assert_eq!(v, 0.0);
+        }
+    }
+
+    #[test]
+    fn test_classify_boundary_at_one() {
+        // A cell with value 1.0 must land in the highest class.
+        let mut grid = Grid::filled(1, 1, 1.0);
+        classify(&mut grid, 3);
+        assert_eq!(grid[0][0], 1.0);
+    }
+
+    // ── threshold ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_threshold_binary() {
+        let mut grid = random(50, 50, Some(4));
+        let original = grid.clone();
+        threshold(&mut grid, 0.5);
+        for (i, (&orig, &new)) in original.iter().zip(grid.iter()).enumerate() {
+            let expected = if orig < 0.5 { 0.0 } else { 1.0 };
+            assert_eq!(new, expected, "cell {i}: original {orig}");
+        }
+    }
+
+    #[test]
+    fn test_threshold_all_ones() {
+        // t = 0.0 → everything becomes 1.0 (all values >= 0.0).
+        let mut grid = random(10, 10, Some(5));
+        threshold(&mut grid, 0.0);
+        for &v in grid.iter() {
+            assert_eq!(v, 1.0);
+        }
+    }
+
+    #[test]
+    fn test_threshold_all_zeros() {
+        // t > 1.0 → everything becomes 0.0.
+        let mut grid = random(10, 10, Some(6));
+        threshold(&mut grid, 1.1);
+        for &v in grid.iter() {
+            assert_eq!(v, 0.0);
+        }
+    }
+
+    // ── ridged_noise ──────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_ridged_noise(#[case] rows: usize, #[case] cols: usize) {
+        let grid = ridged_noise(rows, cols, 4.0, 6, 0.5, 2.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_ridged_noise_seeded_determinism() {
+        let a = ridged_noise(50, 50, 4.0, 6, 0.5, 2.0, Some(42));
+        let b = ridged_noise(50, 50, 4.0, 6, 0.5, 2.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── billow_noise ──────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_billow_noise(#[case] rows: usize, #[case] cols: usize) {
+        let grid = billow_noise(rows, cols, 4.0, 6, 0.5, 2.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_billow_noise_seeded_determinism() {
+        let a = billow_noise(50, 50, 4.0, 6, 0.5, 2.0, Some(42));
+        let b = billow_noise(50, 50, 4.0, 6, 0.5, 2.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── worley_noise ──────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_worley_noise(#[case] rows: usize, #[case] cols: usize) {
+        let grid = worley_noise(rows, cols, 4.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_worley_noise_seeded_determinism() {
+        let a = worley_noise(50, 50, 4.0, Some(42));
+        let b = worley_noise(50, 50, 4.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── gaussian_field ────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_gaussian_field(#[case] rows: usize, #[case] cols: usize) {
+        let grid = gaussian_field(rows, cols, 5.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_gaussian_field_seeded_determinism() {
+        let a = gaussian_field(50, 50, 5.0, Some(42));
+        let b = gaussian_field(50, 50, 5.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── random_cluster ────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    #[case(500, 500)]
+    fn test_random_cluster(#[case] rows: usize, #[case] cols: usize) {
+        let grid = random_cluster(rows, cols, 200, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_random_cluster_seeded_determinism() {
+        let a = random_cluster(50, 50, 200, Some(42));
+        let b = random_cluster(50, 50, 200, Some(42));
+        assert_eq!(a.data, b.data);
     }
 }
