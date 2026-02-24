@@ -1,2 +1,6 @@
 /target
+/memory
 tempCodeFileRunner.rs
+examples/*.csv
+examples/*.json
+examples/*.png

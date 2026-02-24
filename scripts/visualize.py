@@ -68,7 +68,7 @@ def parse_json(path: str) -> list[list[float]]:
 if __name__ == '__main__':
     path = get_path()
     if path is None:
-        path = "./data/data.csv"  # default file path
+        path = "./examples/example.csv"  # default file path
 
     extension = get_file_extension(path)
 
