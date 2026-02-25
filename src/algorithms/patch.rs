@@ -398,6 +398,64 @@ pub fn binary_space_partitioning(rows: usize, cols: usize, n: usize, seed: Optio
     grid
 }
 
+/// Returns a neighbourhood clustering NLM with values ranging [0, 1).
+///
+/// Initialises a grid with `k` randomly assigned classes then repeatedly
+/// applies a majority-vote rule: each cell adopts the most common class among
+/// its 3×3 Moore neighbourhood. After `iterations` passes the discrete classes
+/// are mapped to evenly spaced values in [0, 1), producing smooth organic
+/// patch regions.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `k`          - Number of distinct patch classes (≥ 2).
+/// * `iterations` - Number of majority-vote passes (more = larger, smoother patches).
+/// * `seed`       - Optional RNG seed for reproducible results.
+pub fn neighbourhood_clustering(
+    rows: usize,
+    cols: usize,
+    k: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+
+    let k = k.max(2);
+    let mut rng = make_rng(seed);
+
+    let mut classes: Vec<usize> = (0..rows * cols).map(|_| rng.gen_range(0..k)).collect();
+    let mut next = vec![0usize; rows * cols];
+
+    for _ in 0..iterations {
+        let fill = |(idx, out): (usize, &mut usize)| {
+            let i = idx / cols;
+            let j = idx % cols;
+            let mut counts = vec![0usize; k];
+            for di in -1i64..=1 {
+                let ni = (i as i64 + di).clamp(0, rows as i64 - 1) as usize;
+                for dj in -1i64..=1 {
+                    let nj = (j as i64 + dj).clamp(0, cols as i64 - 1) as usize;
+                    counts[classes[ni * cols + nj]] += 1;
+                }
+            }
+            *out = counts.iter().enumerate().max_by_key(|&(_, &c)| c).map(|(i, _)| i).unwrap_or(0);
+        };
+        #[cfg(feature = "parallel")]
+        next.par_iter_mut().enumerate().for_each(fill);
+        #[cfg(not(feature = "parallel"))]
+        next.iter_mut().enumerate().for_each(fill);
+        std::mem::swap(&mut classes, &mut next);
+    }
+
+    let inv = 1.0 / k as f64;
+    let data: Vec<f64> = classes.iter().map(|&c| c as f64 * inv).collect();
+    Grid { data, rows, cols }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -627,6 +685,27 @@ mod tests {
     fn test_binary_space_partitioning_seeded_determinism() {
         let a = binary_space_partitioning(50, 50, 20, Some(42));
         let b = binary_space_partitioning(50, 50, 20, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── neighbourhood_clustering ──────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_neighbourhood_clustering(#[case] rows: usize, #[case] cols: usize) {
+        let grid = neighbourhood_clustering(rows, cols, 5, 10, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_neighbourhood_clustering_seeded_determinism() {
+        let a = neighbourhood_clustering(50, 50, 5, 10, Some(42));
+        let b = neighbourhood_clustering(50, 50, 5, 10, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

@@ -271,6 +271,25 @@ enum Commands {
         #[arg(long, default_value = "100")]
         n: usize,
     },
+    /// Neighbourhood clustering — iterative majority-vote patch clustering
+    NeighbourhoodClustering {
+        rows: usize,
+        cols: usize,
+        /// Number of distinct patch classes
+        #[arg(long, default_value = "5")]
+        k: usize,
+        /// Number of majority-vote iterations
+        #[arg(long, default_value = "10")]
+        iterations: usize,
+    },
+    /// Spectral synthesis — 1/f^beta noise generated in the frequency domain
+    SpectralSynthesis {
+        rows: usize,
+        cols: usize,
+        /// Spectral exponent: 0 = white noise, 1 = pink, 2 = brown/natural terrain
+        #[arg(long, default_value = "2.0")]
+        beta: f64,
+    },
 }
 
 fn main() {
@@ -328,6 +347,12 @@ fn main() {
         Commands::Percolation { rows, cols, p } => nlmrs::percolation(rows, cols, p, seed),
         Commands::BinarySpacePartitioning { rows, cols, n } => {
             nlmrs::binary_space_partitioning(rows, cols, n, seed)
+        }
+        Commands::NeighbourhoodClustering { rows, cols, k, iterations } => {
+            nlmrs::neighbourhood_clustering(rows, cols, k, iterations, seed)
+        }
+        Commands::SpectralSynthesis { rows, cols, beta } => {
+            nlmrs::spectral_synthesis(rows, cols, beta, seed)
         }
     };
 

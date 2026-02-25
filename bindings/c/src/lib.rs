@@ -438,3 +438,33 @@ pub extern "C" fn nlmrs_rectangular_cluster(
 ) -> NlmGrid {
     NlmGrid::from_grid(nlmrs::rectangular_cluster(rows, cols, n, opt_seed(seed)))
 }
+
+/// Neighbourhood clustering NLM — iterative majority-vote patch clustering. Values in [0, 1).
+///
+/// @param k          Number of distinct patch classes (>= 2).
+/// @param iterations Number of majority-vote passes.
+/// @param seed       Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_neighbourhood_clustering(
+    rows: usize,
+    cols: usize,
+    k: usize,
+    iterations: usize,
+    seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::neighbourhood_clustering(rows, cols, k, iterations, opt_seed(seed)))
+}
+
+/// Spectral synthesis NLM — 1/f^beta noise generated in the frequency domain. Values in [0, 1).
+///
+/// @param beta  Spectral exponent: 0 = white noise, 1 = pink, 2 = brown/natural terrain.
+/// @param seed  Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_spectral_synthesis(
+    rows: usize,
+    cols: usize,
+    beta: f64,
+    seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::spectral_synthesis(rows, cols, beta, opt_seed(seed)))
+}

@@ -502,6 +502,55 @@ fn binary_space_partitioning(
     to_numpy(py, grid)
 }
 
+/// Neighbourhood clustering NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// rows : int
+/// cols : int
+/// k : int
+///     Number of distinct patch classes (default 5).
+/// iterations : int
+///     Number of majority-vote passes (default 10). More iterations produce
+///     larger, smoother patches.
+/// seed : int, optional
+#[pyfunction]
+#[pyo3(signature = (rows, cols, k=5, iterations=10, seed=None))]
+fn neighbourhood_clustering(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    k: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::neighbourhood_clustering(rows, cols, k, iterations, seed));
+    to_numpy(py, grid)
+}
+
+/// Spectral synthesis NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// rows : int
+/// cols : int
+/// beta : float
+///     Spectral exponent. 0 = white noise, 1 = pink noise,
+///     2 = red/brown noise (natural terrain), higher = smoother.
+/// seed : int, optional
+#[pyfunction]
+#[pyo3(signature = (rows, cols, beta=2.0, seed=None))]
+fn spectral_synthesis(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    beta: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::spectral_synthesis(rows, cols, beta, seed));
+    to_numpy(py, grid)
+}
+
 // ── Post-processing ──────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.
@@ -591,6 +640,8 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rectangular_cluster, m)?)?;
     m.add_function(wrap_pyfunction!(percolation, m)?)?;
     m.add_function(wrap_pyfunction!(binary_space_partitioning, m)?)?;
+    m.add_function(wrap_pyfunction!(neighbourhood_clustering, m)?)?;
+    m.add_function(wrap_pyfunction!(spectral_synthesis, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

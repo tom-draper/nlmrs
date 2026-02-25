@@ -587,6 +587,50 @@ nlm_binary_space_partitioning <- function(rows, cols, n = 100L, seed = NULL) {
                                if (is.null(seed)) NULL else as.double(seed))
 }
 
+#' Neighbourhood clustering NLM
+#'
+#' Initialises a grid with \code{k} randomly assigned classes then repeatedly
+#' applies a majority-vote rule: each cell adopts the most common class among
+#' its 3x3 Moore neighbourhood. Produces smooth organic patch regions.
+#'
+#' @param rows       Integer. Number of rows.
+#' @param cols       Integer. Number of columns.
+#' @param k          Integer. Number of distinct patch classes (>= 2). Default 5.
+#' @param iterations Integer. Number of majority-vote passes. Default 10.
+#' @param seed       Optional integer seed for reproducible output.
+#' @return A numeric matrix with values in \[0, 1).
+#' @export
+#' @examples
+#' m <- nlm_neighbourhood_clustering(50, 50, k = 5L, iterations = 10L, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_neighbourhood_clustering <- function(rows, cols, k = 5L, iterations = 10L, seed = NULL) {
+  r_neighbourhood_clustering(as.integer(rows), as.integer(cols),
+                              as.integer(k), as.integer(iterations),
+                              if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Spectral synthesis NLM
+#'
+#' Generates correlated noise in the frequency domain. Each frequency component
+#' is assigned a random phase and an amplitude proportional to
+#' \eqn{f^{-\beta/2}}, giving a power spectrum \eqn{\propto 1/f^\beta}.
+#'
+#' @param rows Integer. Number of rows.
+#' @param cols Integer. Number of columns.
+#' @param beta Numeric. Spectral exponent. 0 = white noise, 1 = pink noise,
+#'   2 = red/brown noise (natural terrain), higher = smoother. Default 2.0.
+#' @param seed Optional integer seed for reproducible output.
+#' @return A numeric matrix with values in \[0, 1).
+#' @export
+#' @examples
+#' m <- nlm_spectral_synthesis(50, 50, beta = 2.0, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_spectral_synthesis <- function(rows, cols, beta = 2.0, seed = NULL) {
+  r_spectral_synthesis(as.integer(rows), as.integer(cols),
+                       as.double(beta),
+                       if (is.null(seed)) NULL else as.double(seed))
+}
+
 # ── Post-processing ───────────────────────────────────────────────────────────
 
 #' Classify a landscape matrix into discrete classes

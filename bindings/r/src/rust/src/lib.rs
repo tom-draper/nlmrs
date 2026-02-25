@@ -393,6 +393,24 @@ fn r_binary_space_partitioning(rows: i32, cols: i32, n: i32, seed: Nullable<f64>
     grid_to_rmatrix(grid)
 }
 
+/// Neighbourhood clustering NLM — iterative majority-vote patch clustering. Values in [0, 1).
+#[extendr]
+fn r_neighbourhood_clustering(
+    rows: i32, cols: i32, k: i32, iterations: i32, seed: Nullable<f64>,
+) -> RMatrix<f64> {
+    let grid = nlmrs::neighbourhood_clustering(
+        rows as usize, cols as usize, k as usize, iterations as usize, seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
+/// Spectral synthesis NLM — 1/f^beta noise generated in the frequency domain. Values in [0, 1).
+#[extendr]
+fn r_spectral_synthesis(rows: i32, cols: i32, beta: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::spectral_synthesis(rows as usize, cols as usize, beta, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
 // ── Module registration ───────────────────────────────────────────────────────
 
 // `mod nlmrs` matches the R package name, so the generated C symbol is
@@ -422,6 +440,8 @@ extendr_module! {
     fn r_rectangular_cluster;
     fn r_percolation;
     fn r_binary_space_partitioning;
+    fn r_neighbourhood_clustering;
+    fn r_spectral_synthesis;
     fn r_classify;
     fn r_threshold;
 }

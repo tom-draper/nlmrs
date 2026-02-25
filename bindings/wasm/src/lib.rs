@@ -475,6 +475,33 @@ pub fn binary_space_partitioning(rows: u32, cols: u32, n: u32, seed: Option<u32>
     grid_to_wasm(grid)
 }
 
+/// Neighbourhood clustering NLM — iterative majority-vote patch clustering. Values in [0, 1).
+///
+/// @param rows       - Number of rows.
+/// @param cols       - Number of columns.
+/// @param k          - Number of distinct patch classes (default 5).
+/// @param iterations - Number of majority-vote passes (default 10).
+/// @param seed       - Optional integer seed.
+#[wasm_bindgen]
+pub fn neighbourhood_clustering(rows: u32, cols: u32, k: u32, iterations: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::neighbourhood_clustering(
+        rows as usize, cols as usize, k as usize, iterations as usize, seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
+/// Spectral synthesis NLM — 1/f^beta noise generated in the frequency domain. Values in [0, 1).
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param beta - Spectral exponent: 0 = white noise, 1 = pink, 2 = brown/natural terrain (default 2.0).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn spectral_synthesis(rows: u32, cols: u32, beta: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::spectral_synthesis(rows as usize, cols as usize, beta, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.

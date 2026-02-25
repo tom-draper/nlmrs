@@ -55,6 +55,8 @@ ALGORITHMS = [
     ("rectangular_cluster",   "rectangular_cluster",  {"n": 300}),
     ("percolation",           "percolation",          {"p": 0.55}),
     ("binary_space_partitioning", "binary_space_partitioning", {"n": 200}),
+    ("neighbourhood_clustering",  "neighbourhood_clustering",  {"k": 5, "iterations": 10}),
+    ("spectral_synthesis",        "spectral_synthesis",        {"beta": 2.0}),
 ]
 
 

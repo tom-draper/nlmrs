@@ -445,6 +445,77 @@ pub fn domain_warp(
     grid
 }
 
+/// Returns a spectral synthesis NLM with values ranging [0, 1).
+///
+/// Generates correlated noise in the frequency domain: each complex frequency
+/// component is assigned a random phase and an amplitude proportional to
+/// `f^(-beta/2)`, giving a power spectrum ∝ `1/f^beta` (1/f noise).
+/// The result is the real part of the 2-D inverse FFT, normalised to [0, 1).
+///
+/// # Arguments
+///
+/// * `rows`  - Number of rows.
+/// * `cols`  - Number of columns.
+/// * `beta`  - Spectral exponent. 0 = white noise, 1 = pink noise,
+///             2 = red/brown noise (Brownian landscape), higher = smoother.
+/// * `seed`  - Optional RNG seed for reproducible results.
+pub fn spectral_synthesis(rows: usize, cols: usize, beta: f64, seed: Option<u64>) -> Grid {
+    use rustfft::{FftPlanner, num_complex::Complex};
+    use super::make_rng;
+    use rand::Rng;
+
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+
+    let mut rng = make_rng(seed);
+
+    // Build frequency-domain grid: random phase, amplitude ∝ f^(-beta/2).
+    let mut freq: Vec<Complex<f64>> = (0..rows * cols)
+        .map(|_| Complex::new(0.0f64, 0.0))
+        .collect();
+
+    for i in 0..rows {
+        // Map to centred frequency coordinates.
+        let fi = if i <= rows / 2 { i as f64 } else { i as f64 - rows as f64 };
+        for j in 0..cols {
+            if i == 0 && j == 0 {
+                continue; // DC component stays 0 → zero mean
+            }
+            let fj = if j <= cols / 2 { j as f64 } else { j as f64 - cols as f64 };
+            let f = (fi * fi + fj * fj).sqrt();
+            let amplitude = f.powf(-beta / 2.0);
+            let phase = rng.gen::<f64>() * 2.0 * std::f64::consts::PI;
+            freq[i * cols + j] = Complex::new(amplitude * phase.cos(), amplitude * phase.sin());
+        }
+    }
+
+    // 2-D IFFT: IFFT each row, then each column.
+    let mut planner = FftPlanner::<f64>::new();
+    let ifft_row = planner.plan_fft_inverse(cols);
+    let ifft_col = planner.plan_fft_inverse(rows);
+
+    for row in freq.chunks_mut(cols) {
+        ifft_row.process(row);
+    }
+
+    let mut col_buf = vec![Complex::new(0.0f64, 0.0); rows];
+    for j in 0..cols {
+        for i in 0..rows {
+            col_buf[i] = freq[i * cols + j];
+        }
+        ifft_col.process(&mut col_buf);
+        for i in 0..rows {
+            freq[i * cols + j] = col_buf[i];
+        }
+    }
+
+    let data: Vec<f64> = freq.iter().map(|c| c.re).collect();
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -626,6 +697,27 @@ mod tests {
     fn test_domain_warp_seeded_determinism() {
         let a = domain_warp(50, 50, 4.0, 1.0, Some(42));
         let b = domain_warp(50, 50, 4.0, 1.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── spectral_synthesis ────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_spectral_synthesis(#[case] rows: usize, #[case] cols: usize) {
+        let grid = spectral_synthesis(rows, cols, 2.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_spectral_synthesis_seeded_determinism() {
+        let a = spectral_synthesis(50, 50, 2.0, Some(42));
+        let b = spectral_synthesis(50, 50, 2.0, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

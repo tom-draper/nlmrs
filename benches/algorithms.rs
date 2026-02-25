@@ -253,6 +253,30 @@ fn bench_binary_space_partitioning(c: &mut Criterion) {
     group.finish();
 }
 
+// ── neighbourhood_clustering ──────────────────────────────────────────────────
+
+fn bench_neighbourhood_clustering(c: &mut Criterion) {
+    let mut group = c.benchmark_group("neighbourhood_clustering");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::neighbourhood_clustering(size, size, 5, 10, Some(42)));
+        });
+    }
+    group.finish()
+}
+
+// ── spectral_synthesis ────────────────────────────────────────────────────────
+
+fn bench_spectral_synthesis(c: &mut Criterion) {
+    let mut group = c.benchmark_group("spectral_synthesis");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::spectral_synthesis(size, size, 2.0, Some(42)));
+        });
+    }
+    group.finish()
+}
+
 criterion_group!(
     benches,
     bench_midpoint_displacement,
@@ -275,5 +299,7 @@ criterion_group!(
     bench_rectangular_cluster,
     bench_percolation,
     bench_binary_space_partitioning,
+    bench_neighbourhood_clustering,
+    bench_spectral_synthesis,
 );
 criterion_main!(benches);

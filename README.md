@@ -160,6 +160,16 @@ Perlin noise sampled at coordinates displaced by a second Perlin field, producin
 
 *Source: [Quilez (2002)](https://iquilezles.org/articles/warp/)*
 
+#### Spectral Synthesis
+
+`spectral_synthesis(rows: 100, cols: 100, beta: 2.0, seed: 42)`
+
+Generates correlated noise in the frequency domain — each component's amplitude is scaled by `f^(-beta/2)`, giving a power spectrum ∝ `1/f^beta`. Higher `beta` produces smoother, more spatially correlated landscapes.
+
+<img src="examples/spectral_synthesis.png" alt="" width=300 />
+
+*Source: [Peitgen & Saupe (1988)](https://link.springer.com/book/9780387966694)*
+
 ### Patch
 
 Discrete spatial patterns built from random processes, clustering, or hierarchical partitioning.
@@ -221,6 +231,14 @@ Hierarchical rectilinear partition — the largest rectangle is repeatedly split
 <img src="examples/binary_space_partitioning.png" alt="" width=300 />
 
 *Source: [Etherington, Morgan & O'Sullivan (2022)](https://doi.org/10.1007/s10980-022-01452-6)*
+
+#### Neighbourhood Clustering
+
+`neighbourhood_clustering(rows: 100, cols: 100, k: 5, iterations: 10, seed: 42)`
+
+Initialises a grid with `k` random classes then repeatedly applies a majority-vote rule — each cell adopts the most common class in its 3×3 Moore neighbourhood. More iterations produce larger, smoother organic patches.
+
+<img src="examples/neighbourhood_clustering.png" alt="" width=300 />
 
 #### Hill Grow
 
@@ -352,6 +370,7 @@ nlmrs.mosaic(100, 100, n=200)
 nlmrs.rectangular_cluster(100, 100, n=200)
 nlmrs.percolation(100, 100, p=0.5)
 nlmrs.binary_space_partitioning(100, 100, n=100)
+nlmrs.neighbourhood_clustering(100, 100, k=5, iterations=10)
 
 # Gradient
 nlmrs.planar_gradient(100, 100, direction=45.0)
@@ -369,6 +388,7 @@ nlmrs.hybrid_noise(100, 100, scale=4.0, octaves=6)
 nlmrs.value_noise(100, 100, scale=4.0)
 nlmrs.turbulence(100, 100, scale=4.0, octaves=6)
 nlmrs.domain_warp(100, 100, scale=4.0, warp_strength=1.0)
+nlmrs.spectral_synthesis(100, 100, beta=2.0)
 ```
 
 Post-processing functions are also available:
@@ -400,7 +420,7 @@ m <- nlm_midpoint_displacement(100, 100, h = 0.8, seed = 42L)
 image(m, col = terrain.colors(256))
 ```
 
-All 23 algorithms are available with the `nlm_` prefix:
+All 25 algorithms are available with the `nlm_` prefix:
 
 ```r
 nlm_random(100, 100)
@@ -426,6 +446,8 @@ nlm_mosaic(100, 100, n = 200L)
 nlm_rectangular_cluster(100, 100, n = 200L)
 nlm_percolation(100, 100, p = 0.5)
 nlm_binary_space_partitioning(100, 100, n = 100L)
+nlm_neighbourhood_clustering(100, 100, k = 5L, iterations = 10L)
+nlm_spectral_synthesis(100, 100, beta = 2.0)
 ```
 
 ### C bindings
@@ -486,11 +508,11 @@ nlmrs_free(g1);
 nlmrs_free(g2);
 ```
 
-All 23 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
+All 25 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
 
 ### WASM bindings
 
-`nlmrs` can run in the browser or Node.js via WebAssembly.
+NLMrs can run in the browser or Node.js via WebAssembly.
 
 #### Build
 
@@ -516,7 +538,7 @@ const value = flat[r * grid.cols + c];
 grid.free();  // release Rust memory
 ```
 
-All 23 algorithms are available. Seeds are passed as plain integers. Omit the seed argument for random output.
+All 25 algorithms are available. Seeds are passed as plain integers. Omit the seed argument for random output.
 
 ## Contributions
 

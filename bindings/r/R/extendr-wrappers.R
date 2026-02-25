@@ -108,6 +108,14 @@ r_binary_space_partitioning <- function(rows, cols, n = 100L, seed = NULL) {
   .Call(wrap__r_binary_space_partitioning, rows, cols, n, seed)
 }
 
+r_neighbourhood_clustering <- function(rows, cols, k = 5L, iterations = 10L, seed = NULL) {
+  .Call(wrap__r_neighbourhood_clustering, rows, cols, k, iterations, seed)
+}
+
+r_spectral_synthesis <- function(rows, cols, beta = 2.0, seed = NULL) {
+  .Call(wrap__r_spectral_synthesis, rows, cols, beta, seed)
+}
+
 r_classify <- function(m, n) {
   .Call(wrap__r_classify, m, n)
 }
