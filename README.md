@@ -65,11 +65,15 @@ nlmrs --help   # list all subcommands and options
 
 <img src="examples/random.png" alt="" width=300 />
 
+*`random(rows: 100, cols: 100, seed: 42)`*
+
 ### Random Element
 
 `random_element(rows, cols, n, seed)`
 
 <img src="examples/random_element.png" alt="" width=300 />
+
+*`random_element(rows: 100, cols: 100, n: 5000, seed: 42)`*
 
 *Source: [Etherington, Holland & O'Sullivan (2015)](https://doi.org/10.1111/2041-210X.12308)*
 
@@ -79,11 +83,15 @@ nlmrs --help   # list all subcommands and options
 
 <img src="examples/planar_gradient.png" alt="" width=300 />
 
+*`planar_gradient(rows: 100, cols: 100, direction: 45.0, seed: 42)`*
+
 ### Edge Gradient
 
 `edge_gradient(rows, cols, direction, seed)`
 
 <img src="examples/edge_gradient.png" alt="" width=300 />
+
+*`edge_gradient(rows: 100, cols: 100, direction: 45.0, seed: 42)`*
 
 ### Distance Gradient
 
@@ -91,17 +99,23 @@ nlmrs --help   # list all subcommands and options
 
 <img src="examples/distance_gradient.png" alt="" width=300 />
 
+*`distance_gradient(rows: 100, cols: 100, seed: 42)`*
+
 ### Wave Gradient
 
 `wave_gradient(rows, cols, period, direction, seed)`
 
 <img src="examples/wave_gradient.png" alt="" width=300 />
 
+*`wave_gradient(rows: 100, cols: 100, period: 3.0, seed: 42)`*
+
 ### Midpoint Displacement
 
 `midpoint_displacement(rows, cols, h, seed)`
 
 <img src="examples/midpoint_displacement.png" alt="" width=300 />
+
+*`midpoint_displacement(rows: 100, cols: 100, h: 0.8, seed: 42)`*
 
 *Source: [Fournier, Fussell & Carpenter (1982)](https://doi.org/10.1145/358523.358553)*
 
@@ -111,6 +125,8 @@ nlmrs --help   # list all subcommands and options
 
 <img src="examples/hill_grow.png" alt="" width=300 />
 
+*`hill_grow(rows: 100, cols: 100, n: 20000, seed: 42)`*
+
 *Source: [Etherington, Holland & O'Sullivan (2015)](https://doi.org/10.1111/2041-210X.12308)*
 
 ### Perlin Noise
@@ -118,6 +134,8 @@ nlmrs --help   # list all subcommands and options
 `perlin_noise(rows, cols, scale, seed)`
 
 <img src="examples/perlin.png" alt="" width=300 />
+
+*`perlin_noise(rows: 100, cols: 100, scale: 4.0, seed: 42)`*
 
 *Source: [Perlin (1985)](https://doi.org/10.1145/325165.325247)*
 
@@ -129,6 +147,8 @@ Fractal Brownian motion layers multiple octaves of Perlin noise for more natural
 
 <img src="examples/fbm.png" alt="" width=300 />
 
+*`fbm_noise(rows: 100, cols: 100, scale: 4.0, octaves: 6, seed: 42)`*
+
 *Source: [Mandelbrot & Van Ness (1968)](https://doi.org/10.1137/1010093); [Voss (1985)](https://doi.org/10.1007/978-3-642-84574-1_34)*
 
 ### Ridged Noise
@@ -136,6 +156,8 @@ Fractal Brownian motion layers multiple octaves of Perlin noise for more natural
 `ridged_noise(rows, cols, scale, octaves, persistence, lacunarity, seed)`
 
 <img src="examples/ridged.png" alt="" width=300 />
+
+*`ridged_noise(rows: 100, cols: 100, scale: 4.0, octaves: 6, seed: 42)`*
 
 *Source: [Musgrave, Kolb & Mace (1989)](https://doi.org/10.1145/74334.74337)*
 
@@ -145,6 +167,8 @@ Fractal Brownian motion layers multiple octaves of Perlin noise for more natural
 
 <img src="examples/billow.png" alt="" width=300 />
 
+*`billow_noise(rows: 100, cols: 100, scale: 4.0, octaves: 6, seed: 42)`*
+
 *Source: Ebert et al. — Texturing and Modeling: A Procedural Approach (2002)*
 
 ### Worley Noise
@@ -152,6 +176,8 @@ Fractal Brownian motion layers multiple octaves of Perlin noise for more natural
 `worley_noise(rows, cols, scale, seed)`
 
 <img src="examples/worley.png" alt="" width=300 />
+
+*`worley_noise(rows: 100, cols: 100, scale: 4.0, seed: 42)`*
 
 *Source: [Worley (1996)](https://doi.org/10.1145/237170.237267)*
 
@@ -161,11 +187,15 @@ Fractal Brownian motion layers multiple octaves of Perlin noise for more natural
 
 <img src="examples/gaussian_field.png" alt="" width=300 />
 
+*`gaussian_field(rows: 100, cols: 100, sigma: 10.0, seed: 42)`*
+
 ### Random Cluster
 
 `random_cluster(rows, cols, n, seed)`
 
 <img src="examples/random_cluster.png" alt="" width=300 />
+
+*`random_cluster(rows: 100, cols: 100, n: 200, seed: 42)`*
 
 *Source: [Saura & Martínez-Millán (2000)](https://doi.org/10.1023/A:1008107902848)*
 
@@ -177,6 +207,8 @@ Hybrid multifractal noise combines fBm-style layering with a multiplicative weig
 
 <img src="examples/hybrid_noise.png" alt="" width=300 />
 
+*`hybrid_noise(rows: 100, cols: 100, scale: 4.0, octaves: 6, seed: 42)`*
+
 *Source: [Musgrave, Kolb & Mace (1989)](https://doi.org/10.1145/74334.74337)*
 
 ### Value Noise
@@ -187,6 +219,8 @@ Interpolated lattice noise — smoother and more rounded than Perlin noise.
 
 <img src="examples/value_noise.png" alt="" width=300 />
 
+*`value_noise(rows: 100, cols: 100, scale: 4.0, seed: 42)`*
+
 ### Turbulence
 
 `turbulence(rows, cols, scale, octaves, persistence, lacunarity, seed)`
@@ -194,6 +228,8 @@ Interpolated lattice noise — smoother and more rounded than Perlin noise.
 fBm with absolute-value folding per octave, producing sharp ridges and a storm-cloud appearance.
 
 <img src="examples/turbulence.png" alt="" width=300 />
+
+*`turbulence(rows: 100, cols: 100, scale: 4.0, octaves: 6, seed: 42)`*
 
 *Source: [Perlin (1985)](https://doi.org/10.1145/325165.325247)*
 
@@ -205,6 +241,8 @@ Perlin noise sampled at coordinates displaced by a second Perlin field, producin
 
 <img src="examples/domain_warp.png" alt="" width=300 />
 
+*`domain_warp(rows: 100, cols: 100, scale: 4.0, warp_strength: 1.0, seed: 42)`*
+
 *Source: [Quilez (2002)](https://iquilezles.org/articles/warp/)*
 
 ### Mosaic
@@ -215,6 +253,8 @@ Discrete Voronoi map — each region is a flat colour determined by its nearest 
 
 <img src="examples/mosaic.png" alt="" width=300 />
 
+*`mosaic(rows: 100, cols: 100, n: 300, seed: 42)`*
+
 ### Rectangular Cluster
 
 `rectangular_cluster(rows, cols, n, seed)`
@@ -222,6 +262,32 @@ Discrete Voronoi map — each region is a flat colour determined by its nearest 
 Overlapping random axis-aligned rectangles accumulated and scaled, producing blocky clustered patches.
 
 <img src="examples/rectangular_cluster.png" alt="" width=300 />
+
+*`rectangular_cluster(rows: 100, cols: 100, n: 300, seed: 42)`*
+
+### Percolation
+
+`percolation(rows, cols, p, seed)`
+
+Binary Bernoulli lattice — each cell is independently set to 1 with probability `p`, producing binary habitat maps. The critical percolation threshold for 4-connectivity is approximately 0.593.
+
+<img src="examples/percolation.png" alt="" width=300 />
+
+*`percolation(rows: 100, cols: 100, p: 0.55, seed: 42)`*
+
+*Source: [Gardner et al. (1987)](https://doi.org/10.1007/BF02275052)*
+
+### Binary Space Partitioning
+
+`binary_space_partitioning(rows, cols, n, seed)`
+
+Hierarchical rectilinear partition — the largest rectangle is repeatedly split along its longest dimension until `n` leaf regions remain, each assigned a random value. Produces structured blocky landscapes.
+
+<img src="examples/binary_space_partitioning.png" alt="" width=300 />
+
+*`binary_space_partitioning(rows: 100, cols: 100, n: 200, seed: 42)`*
+
+*Source: [Etherington, Morgan & O'Sullivan (2022)](https://doi.org/10.1007/s10980-022-01452-6)*
 
 ## C bindings
 
@@ -283,7 +349,7 @@ nlmrs_free(g1);
 nlmrs_free(g2);
 ```
 
-All 21 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
+All 23 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
 
 ## Python bindings
 
@@ -325,6 +391,8 @@ nlmrs.gaussian_field(100, 100, sigma=10.0)
 nlmrs.random_cluster(100, 100, n=200)
 nlmrs.mosaic(100, 100, n=200)
 nlmrs.rectangular_cluster(100, 100, n=200)
+nlmrs.percolation(100, 100, p=0.5)
+nlmrs.binary_space_partitioning(100, 100, n=100)
 
 # Gradient
 nlmrs.planar_gradient(100, 100, direction=45.0)
@@ -373,7 +441,7 @@ m <- nlm_midpoint_displacement(100, 100, h = 0.8, seed = 42L)
 image(m, col = terrain.colors(256))
 ```
 
-All 21 algorithms are available with the `nlm_` prefix:
+All 23 algorithms are available with the `nlm_` prefix:
 
 ```r
 nlm_random(100, 100)
@@ -397,6 +465,8 @@ nlm_turbulence(100, 100, scale = 4.0, octaves = 6L)
 nlm_domain_warp(100, 100, scale = 4.0, warp_strength = 1.0)
 nlm_mosaic(100, 100, n = 200L)
 nlm_rectangular_cluster(100, 100, n = 200L)
+nlm_percolation(100, 100, p = 0.5)
+nlm_binary_space_partitioning(100, 100, n = 100L)
 ```
 
 ## WASM bindings
@@ -427,7 +497,7 @@ const value = flat[r * grid.cols + c];
 grid.free();  // release Rust memory
 ```
 
-All 21 algorithms are available. Seeds are passed as plain integers (not BigInt). Omit the seed argument for random output.
+All 23 algorithms are available. Seeds are passed as plain integers (not BigInt). Omit the seed argument for random output.
 
 ## Grid operations
 

@@ -27,7 +27,7 @@ import nlmrs
 import numpy as np
 
 
-SIZE = 400   # rows × cols for all grids
+SIZE = 100   # rows × cols for all grids
 SEED = 42
 
 # (filename_stem, fn_name, kwargs)
@@ -53,6 +53,8 @@ ALGORITHMS = [
     ("domain_warp",           "domain_warp",          {"scale": 4.0, "warp_strength": 1.0}),
     ("mosaic",                "mosaic",               {"n": 300}),
     ("rectangular_cluster",   "rectangular_cluster",  {"n": 300}),
+    ("percolation",           "percolation",          {"p": 0.55}),
+    ("binary_space_partitioning", "binary_space_partitioning", {"n": 200}),
 ]
 
 

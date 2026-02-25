@@ -394,6 +394,37 @@ pub extern "C" fn nlmrs_mosaic(
     NlmGrid::from_grid(nlmrs::mosaic(rows, cols, n, opt_seed(seed)))
 }
 
+/// Binary percolation NLM. Values in {0.0, 1.0}.
+///
+/// Each cell is independently habitat (1.0) with probability `p`.
+/// The critical percolation threshold for 4-connectivity is ~0.593.
+///
+/// @param p     Habitat probability (0.0–1.0).
+/// @param seed  Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_percolation(
+    rows: usize,
+    cols: usize,
+    p: f64,
+    seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::percolation(rows, cols, p, opt_seed(seed)))
+}
+
+/// Binary space partitioning NLM — hierarchical rectilinear partition. Values in [0, 1).
+///
+/// @param n     Number of rectangles in the final partition.
+/// @param seed  Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_binary_space_partitioning(
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::binary_space_partitioning(rows, cols, n, opt_seed(seed)))
+}
+
 /// Rectangular cluster NLM — overlapping random axis-aligned rectangles. Values in [0, 1).
 ///
 /// @param n     Number of rectangles to place.

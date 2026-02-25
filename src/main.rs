@@ -255,6 +255,22 @@ enum Commands {
         #[arg(long, default_value = "200")]
         n: usize,
     },
+    /// Percolation — binary Bernoulli lattice (Gardner 1987)
+    Percolation {
+        rows: usize,
+        cols: usize,
+        /// Probability a cell is habitat (0.0–1.0)
+        #[arg(long, default_value = "0.5")]
+        p: f64,
+    },
+    /// Binary space partitioning — hierarchical rectilinear partition
+    BinarySpacePartitioning {
+        rows: usize,
+        cols: usize,
+        /// Number of rectangles in the final partition
+        #[arg(long, default_value = "100")]
+        n: usize,
+    },
 }
 
 fn main() {
@@ -308,6 +324,10 @@ fn main() {
         Commands::Mosaic { rows, cols, n } => nlmrs::mosaic(rows, cols, n, seed),
         Commands::RectangularCluster { rows, cols, n } => {
             nlmrs::rectangular_cluster(rows, cols, n, seed)
+        }
+        Commands::Percolation { rows, cols, p } => nlmrs::percolation(rows, cols, p, seed),
+        Commands::BinarySpacePartitioning { rows, cols, n } => {
+            nlmrs::binary_space_partitioning(rows, cols, n, seed)
         }
     };
 

@@ -446,6 +446,35 @@ pub fn rectangular_cluster(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> W
     grid_to_wasm(grid)
 }
 
+/// Binary percolation NLM. Values in {0.0, 1.0}.
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param p    - Habitat probability (0.0–1.0). Critical threshold ~0.593.
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn percolation(rows: u32, cols: u32, p: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::percolation(rows as usize, cols as usize, p, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Binary space partitioning NLM — hierarchical rectilinear partition. Values in [0, 1).
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param n    - Number of rectangles in the final partition (default 100).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn binary_space_partitioning(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::binary_space_partitioning(
+        rows as usize,
+        cols as usize,
+        n as usize,
+        seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.

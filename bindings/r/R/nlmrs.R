@@ -536,6 +536,57 @@ nlm_rectangular_cluster <- function(rows, cols, n = 200L, seed = NULL) {
                         if (is.null(seed)) NULL else as.double(seed))
 }
 
+# ── Percolation ───────────────────────────────────────────────────────────────
+
+#' Percolation NLM
+#'
+#' Each cell is independently set to habitat (\code{1}) with probability
+#' \code{p} and matrix (\code{0}) with probability \code{1 - p}.  As \code{p}
+#' approaches the critical percolation threshold (~0.593 for 4-connectivity)
+#' habitat clusters coalesce and span the landscape.
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param p    Habitat probability in \eqn{[0, 1]} (default 0.5).
+#' @param seed Integer seed. \code{NULL} for random output.
+#'
+#' @return A binary numeric matrix with values in \eqn{\{0, 1\}}.
+#' @export
+#' @examples
+#' m <- nlm_percolation(50, 50, p = 0.6, seed = 1L)
+#' stopifnot(all(m %in% c(0, 1)))
+nlm_percolation <- function(rows, cols, p = 0.5, seed = NULL) {
+  r_percolation(as.integer(rows), as.integer(cols),
+                as.double(p),
+                if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Binary space partitioning ─────────────────────────────────────────────────
+
+#' Binary space partitioning NLM
+#'
+#' Recursively splits the grid into non-overlapping axis-aligned rectangles.
+#' At each step the largest remaining rectangle is split along its longest
+#' dimension at a random position. Each leaf rectangle is assigned a unique
+#' random float, producing a hierarchically-nested rectilinear partition ideal
+#' for modelling human-dominated agricultural or urban landscapes.
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param n    Number of rectangles in the final partition (default 100).
+#' @param seed Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1)}.
+#' @export
+#' @examples
+#' m <- nlm_binary_space_partitioning(50, 50, n = 20L, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_binary_space_partitioning <- function(rows, cols, n = 100L, seed = NULL) {
+  r_binary_space_partitioning(as.integer(rows), as.integer(cols),
+                               as.integer(n),
+                               if (is.null(seed)) NULL else as.double(seed))
+}
+
 # ── Post-processing ───────────────────────────────────────────────────────────
 
 #' Classify a landscape matrix into discrete classes

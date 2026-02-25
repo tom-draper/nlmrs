@@ -298,6 +298,106 @@ pub fn rectangular_cluster(rows: usize, cols: usize, n: usize, seed: Option<u64>
     grid
 }
 
+/// Returns a binary percolation NLM with values in {0.0, 1.0}.
+///
+/// Each cell is independently set to 1.0 (habitat) with probability `p` and
+/// 0.0 (matrix) with probability `1 - p`.  As `p` approaches the critical
+/// percolation threshold (~0.593 for 4-connectivity) habitat clusters coalesce
+/// and span the landscape, making this the canonical NLM for studying
+/// percolation theory and habitat connectivity.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `p` - Probability that a cell is habitat (0.0–1.0).
+/// * `seed` - Optional RNG seed for reproducible results.
+///
+/// Based on: Gardner et al. (1987). Neutral models for the analysis of
+/// broad-scale landscape pattern. *Landscape Ecology* 1(1):19–28.
+pub fn percolation(rows: usize, cols: usize, p: f64, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let data = (0..rows * cols)
+        .map(|_| if rng.gen::<f64>() < p { 1.0 } else { 0.0 })
+        .collect();
+    Grid { data, rows, cols }
+}
+
+/// Returns a binary space partitioning (BSP) NLM with values in [0, 1).
+///
+/// Recursively splits the grid into non-overlapping axis-aligned rectangles.
+/// At each step the largest remaining rectangle is split along its longest
+/// dimension at a random position. Once `n` rectangles exist each is assigned
+/// a unique random float value, producing a hierarchically-nested rectilinear
+/// partition.  Unlike `rectangular_cluster` (overlapping accumulation), BSP
+/// produces a complete, non-overlapping partition of the grid — ideal for
+/// modelling human-dominated agricultural or urban landscapes.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n` - Number of rectangles in the final partition.
+/// * `seed` - Optional RNG seed for reproducible results.
+///
+/// Based on: Etherington, Morgan & O'Sullivan (2022). Binary space
+/// partitioning generates hierarchical and rectilinear neutral landscape
+/// models suitable for human-dominated landscapes. *Landscape Ecology*
+/// 37:1761–1769.
+pub fn binary_space_partitioning(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let mut grid = Grid::new(rows, cols);
+
+    // (row_start, col_start, row_end, col_end)
+    let mut rects: Vec<(usize, usize, usize, usize)> = vec![(0, 0, rows, cols)];
+
+    while rects.len() < n.max(1) {
+        // Always split the largest rectangle for more uniform patch sizes.
+        let idx = rects
+            .iter()
+            .enumerate()
+            .max_by_key(|(_, &(r0, c0, r1, c1))| (r1 - r0) * (c1 - c0))
+            .map(|(i, _)| i)
+            .unwrap();
+
+        let (r0, c0, r1, c1) = rects[idx];
+        let height = r1 - r0;
+        let width = c1 - c0;
+
+        if height <= 1 && width <= 1 {
+            break; // All patches are single cells; can't split further.
+        }
+
+        if height >= width && height > 1 {
+            let split = r0 + rng.gen_range(1..height);
+            rects[idx] = (r0, c0, split, c1);
+            rects.push((split, c0, r1, c1));
+        } else {
+            let split = c0 + rng.gen_range(1..width);
+            rects[idx] = (r0, c0, r1, split);
+            rects.push((r0, split, r1, c1));
+        }
+    }
+
+    // Assign a unique random float to every leaf rectangle.
+    for (r0, c0, r1, c1) in rects {
+        let val: f64 = rng.gen();
+        for r in r0..r1 {
+            for c in c0..c1 {
+                grid[r][c] = val;
+            }
+        }
+    }
+
+    grid
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -469,6 +569,64 @@ mod tests {
     fn test_rectangular_cluster_seeded_determinism() {
         let a = rectangular_cluster(50, 50, 50, Some(42));
         let b = rectangular_cluster(50, 50, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── percolation ───────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_percolation(#[case] rows: usize, #[case] cols: usize) {
+        let grid = percolation(rows, cols, 0.5, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        for &v in grid.iter() {
+            assert!(v == 0.0 || v == 1.0, "unexpected value {v}");
+        }
+    }
+
+    #[test]
+    fn test_percolation_all_habitat() {
+        let grid = percolation(20, 20, 1.0, Some(1));
+        assert!(grid.iter().all(|&v| v == 1.0));
+    }
+
+    #[test]
+    fn test_percolation_no_habitat() {
+        let grid = percolation(20, 20, 0.0, Some(1));
+        assert!(grid.iter().all(|&v| v == 0.0));
+    }
+
+    #[test]
+    fn test_percolation_seeded_determinism() {
+        let a = percolation(50, 50, 0.5, Some(42));
+        let b = percolation(50, 50, 0.5, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── binary_space_partitioning ─────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_binary_space_partitioning(#[case] rows: usize, #[case] cols: usize) {
+        let grid = binary_space_partitioning(rows, cols, 20, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_binary_space_partitioning_seeded_determinism() {
+        let a = binary_space_partitioning(50, 50, 20, Some(42));
+        let b = binary_space_partitioning(50, 50, 20, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

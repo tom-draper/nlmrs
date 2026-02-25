@@ -100,6 +100,14 @@ r_rectangular_cluster <- function(rows, cols, n = 200L, seed = NULL) {
   .Call(wrap__r_rectangular_cluster, rows, cols, n, seed)
 }
 
+r_percolation <- function(rows, cols, p = 0.5, seed = NULL) {
+  .Call(wrap__r_percolation, rows, cols, p, seed)
+}
+
+r_binary_space_partitioning <- function(rows, cols, n = 100L, seed = NULL) {
+  .Call(wrap__r_binary_space_partitioning, rows, cols, n, seed)
+}
+
 r_classify <- function(m, n) {
   .Call(wrap__r_classify, m, n)
 }

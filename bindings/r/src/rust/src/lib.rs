@@ -374,6 +374,25 @@ fn r_threshold(m: &RMatrix<f64>, t: f64) -> RMatrix<f64> {
     grid_to_rmatrix(grid)
 }
 
+/// Binary percolation NLM. Values in {0.0, 1.0}.
+#[extendr]
+fn r_percolation(rows: i32, cols: i32, p: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::percolation(rows as usize, cols as usize, p, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Binary space partitioning NLM — hierarchical rectilinear partition. Values in [0, 1).
+#[extendr]
+fn r_binary_space_partitioning(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::binary_space_partitioning(
+        rows as usize,
+        cols as usize,
+        n as usize,
+        seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
 // ── Module registration ───────────────────────────────────────────────────────
 
 // `mod nlmrs` matches the R package name, so the generated C symbol is
@@ -401,6 +420,8 @@ extendr_module! {
     fn r_domain_warp;
     fn r_mosaic;
     fn r_rectangular_cluster;
+    fn r_percolation;
+    fn r_binary_space_partitioning;
     fn r_classify;
     fn r_threshold;
 }

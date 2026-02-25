@@ -463,6 +463,45 @@ fn rectangular_cluster(
     to_numpy(py, grid)
 }
 
+/// Binary percolation NLM. Values in {0.0, 1.0}.
+///
+/// Parameters
+/// ----------
+/// p : float
+///     Probability a cell is habitat (0.0–1.0). The critical threshold for
+///     spanning habitat clusters is ~0.593 (4-connectivity).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, p=0.5, seed=None))]
+fn percolation(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    p: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::percolation(rows, cols, p, seed));
+    to_numpy(py, grid)
+}
+
+/// Binary space partitioning NLM — hierarchical rectilinear partition. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of rectangles in the final partition (default 100).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=100, seed=None))]
+fn binary_space_partitioning(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::binary_space_partitioning(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
 // ── Post-processing ──────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.
@@ -550,6 +589,8 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(domain_warp, m)?)?;
     m.add_function(wrap_pyfunction!(mosaic, m)?)?;
     m.add_function(wrap_pyfunction!(rectangular_cluster, m)?)?;
+    m.add_function(wrap_pyfunction!(percolation, m)?)?;
+    m.add_function(wrap_pyfunction!(binary_space_partitioning, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

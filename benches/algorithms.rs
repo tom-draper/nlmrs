@@ -229,6 +229,30 @@ fn bench_rectangular_cluster(c: &mut Criterion) {
     group.finish();
 }
 
+// ── percolation ───────────────────────────────────────────────────────────────
+
+fn bench_percolation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("percolation");
+    for &size in &[256usize, 512, 1024, 2048] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::percolation(size, size, 0.5, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── binary_space_partitioning ─────────────────────────────────────────────────
+
+fn bench_binary_space_partitioning(c: &mut Criterion) {
+    let mut group = c.benchmark_group("binary_space_partitioning");
+    for &size in &[256usize, 512, 1024] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::binary_space_partitioning(size, size, 100, Some(42)));
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_midpoint_displacement,
@@ -249,5 +273,7 @@ criterion_group!(
     bench_domain_warp,
     bench_mosaic,
     bench_rectangular_cluster,
+    bench_percolation,
+    bench_binary_space_partitioning,
 );
 criterion_main!(benches);
