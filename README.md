@@ -8,7 +8,7 @@ Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.c
 
 ## Usage
 
-`nlmrs` can be installed as a Rust crate, but language bindings also exist for Python, R, WASM and C. 
+NLMrs can be installed as a Rust crate, but language bindings also exist for Python, R, WASM and C.
 
 ```bash
 cargo add nlmrs
