@@ -72,6 +72,34 @@ r_random_cluster <- function(rows, cols, n = 200L, seed = NULL) {
   .Call(wrap__r_random_cluster, rows, cols, n, seed)
 }
 
+r_hybrid_noise <- function(rows, cols, scale_factor = 4.0, octaves = 6L,
+                           persistence = 0.5, lacunarity = 2.0, seed = NULL) {
+  .Call(wrap__r_hybrid_noise, rows, cols, scale_factor, octaves,
+        persistence, lacunarity, seed)
+}
+
+r_value_noise <- function(rows, cols, scale_factor = 4.0, seed = NULL) {
+  .Call(wrap__r_value_noise, rows, cols, scale_factor, seed)
+}
+
+r_turbulence <- function(rows, cols, scale_factor = 4.0, octaves = 6L,
+                         persistence = 0.5, lacunarity = 2.0, seed = NULL) {
+  .Call(wrap__r_turbulence, rows, cols, scale_factor, octaves,
+        persistence, lacunarity, seed)
+}
+
+r_domain_warp <- function(rows, cols, scale_factor = 4.0, warp_strength = 1.0, seed = NULL) {
+  .Call(wrap__r_domain_warp, rows, cols, scale_factor, warp_strength, seed)
+}
+
+r_mosaic <- function(rows, cols, n = 200L, seed = NULL) {
+  .Call(wrap__r_mosaic, rows, cols, n, seed)
+}
+
+r_rectangular_cluster <- function(rows, cols, n = 200L, seed = NULL) {
+  .Call(wrap__r_rectangular_cluster, rows, cols, n, seed)
+}
+
 r_classify <- function(m, n) {
   .Call(wrap__r_classify, m, n)
 }

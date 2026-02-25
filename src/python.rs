@@ -326,6 +326,143 @@ fn random_cluster(
     to_numpy(py, grid)
 }
 
+/// Hybrid multifractal noise. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Base noise frequency.
+/// octaves : int
+///     Number of noise layers to combine.
+/// persistence : float
+///     Amplitude scaling per octave.
+/// lacunarity : float
+///     Frequency scaling per octave.
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, octaves=6, persistence=0.5, lacunarity=2.0, seed=None))]
+fn hybrid_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    octaves: usize,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid =
+        py.allow_threads(|| crate::hybrid_noise(rows, cols, scale, octaves, persistence, lacunarity, seed));
+    to_numpy(py, grid)
+}
+
+/// Value noise — interpolated lattice noise. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Noise frequency — higher values produce more features per unit area.
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, seed=None))]
+fn value_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::value_noise(rows, cols, scale, seed));
+    to_numpy(py, grid)
+}
+
+/// Turbulence — fBm with absolute-value fold per octave. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Base noise frequency.
+/// octaves : int
+///     Number of noise layers to combine.
+/// persistence : float
+///     Amplitude scaling per octave.
+/// lacunarity : float
+///     Frequency scaling per octave.
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, octaves=6, persistence=0.5, lacunarity=2.0, seed=None))]
+fn turbulence(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    octaves: usize,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid =
+        py.allow_threads(|| crate::turbulence(rows, cols, scale, octaves, persistence, lacunarity, seed));
+    to_numpy(py, grid)
+}
+
+/// Domain-warped Perlin noise — organic, swirling patterns. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Coordinate frequency — higher values produce more features per unit area.
+/// warp_strength : float
+///     Displacement magnitude applied to sample coordinates (default 1.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, warp_strength=1.0, seed=None))]
+fn domain_warp(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    warp_strength: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::domain_warp(rows, cols, scale, warp_strength, seed));
+    to_numpy(py, grid)
+}
+
+/// Mosaic NLM — discrete Voronoi patch map with flat-coloured regions. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of Voronoi seed points to place (default 200).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=200, seed=None))]
+fn mosaic(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::mosaic(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Rectangular cluster NLM — overlapping random axis-aligned rectangles. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of rectangles to place (default 200).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=200, seed=None))]
+fn rectangular_cluster(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::rectangular_cluster(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
 // ── Post-processing ──────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.
@@ -407,6 +544,12 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(worley_noise, m)?)?;
     m.add_function(wrap_pyfunction!(gaussian_field, m)?)?;
     m.add_function(wrap_pyfunction!(random_cluster, m)?)?;
+    m.add_function(wrap_pyfunction!(hybrid_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(value_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(turbulence, m)?)?;
+    m.add_function(wrap_pyfunction!(domain_warp, m)?)?;
+    m.add_function(wrap_pyfunction!(mosaic, m)?)?;
+    m.add_function(wrap_pyfunction!(rectangular_cluster, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

@@ -382,6 +382,160 @@ nlm_random_cluster <- function(rows, cols, n = 200L, seed = NULL) {
                    if (is.null(seed)) NULL else as.double(seed))
 }
 
+# ── Hybrid noise ──────────────────────────────────────────────────────────────
+
+#' Hybrid multifractal NLM
+#'
+#' Blends smooth and ridged noise characteristics using the HybridMulti
+#' combiner, producing terrain with varied spectral qualities.
+#'
+#' @param rows         Number of rows.
+#' @param cols         Number of columns.
+#' @param scale_factor Base noise frequency (default 4.0).
+#' @param octaves      Number of noise layers (default 6).
+#' @param persistence  Amplitude scaling per octave (default 0.5).
+#' @param lacunarity   Frequency scaling per octave (default 2.0).
+#' @param seed         Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_hybrid_noise(50, 50, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_hybrid_noise <- function(rows, cols, scale_factor = 4.0, octaves = 6L,
+                              persistence = 0.5, lacunarity = 2.0, seed = NULL) {
+  r_hybrid_noise(as.integer(rows), as.integer(cols),
+                 as.double(scale_factor), as.integer(octaves),
+                 as.double(persistence), as.double(lacunarity),
+                 if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Value noise ────────────────────────────────────────────────────────────────
+
+#' Value noise NLM
+#'
+#' Interpolated lattice noise producing blocky, low-frequency patterns.
+#'
+#' @param rows         Number of rows.
+#' @param cols         Number of columns.
+#' @param scale_factor Noise frequency — higher values produce more features
+#'   per unit area (default 4.0).
+#' @param seed         Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_value_noise(50, 50, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_value_noise <- function(rows, cols, scale_factor = 4.0, seed = NULL) {
+  r_value_noise(as.integer(rows), as.integer(cols),
+                as.double(scale_factor),
+                if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Turbulence ─────────────────────────────────────────────────────────────────
+
+#' Turbulence NLM
+#'
+#' Like fBm but accumulates the absolute value of each octave's contribution,
+#' producing sharper, more chaotic textures.
+#'
+#' @param rows         Number of rows.
+#' @param cols         Number of columns.
+#' @param scale_factor Base noise frequency (default 4.0).
+#' @param octaves      Number of noise layers (default 6).
+#' @param persistence  Amplitude scaling per octave (default 0.5).
+#' @param lacunarity   Frequency scaling per octave (default 2.0).
+#' @param seed         Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_turbulence(50, 50, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_turbulence <- function(rows, cols, scale_factor = 4.0, octaves = 6L,
+                            persistence = 0.5, lacunarity = 2.0, seed = NULL) {
+  r_turbulence(as.integer(rows), as.integer(cols),
+               as.double(scale_factor), as.integer(octaves),
+               as.double(persistence), as.double(lacunarity),
+               if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Domain warp ────────────────────────────────────────────────────────────────
+
+#' Domain-warped Perlin noise NLM
+#'
+#' Displaces the sample coordinates of a base Perlin generator using a
+#' secondary warp generator, producing highly organic, swirling patterns.
+#'
+#' @param rows          Number of rows.
+#' @param cols          Number of columns.
+#' @param scale_factor  Coordinate frequency — higher values produce more
+#'   features per unit area (default 4.0).
+#' @param warp_strength Displacement magnitude applied to sample coordinates
+#'   (default 1.0).
+#' @param seed          Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_domain_warp(50, 50, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_domain_warp <- function(rows, cols, scale_factor = 4.0, warp_strength = 1.0, seed = NULL) {
+  r_domain_warp(as.integer(rows), as.integer(cols),
+                as.double(scale_factor), as.double(warp_strength),
+                if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Mosaic ─────────────────────────────────────────────────────────────────────
+
+#' Mosaic NLM
+#'
+#' Discrete Voronoi patch map. Places \code{n} seed cells each with a unique
+#' random float value, then fills every remaining cell with the value of its
+#' nearest seed. All cells within a patch share the same value, producing
+#' flat-coloured regions.
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param n    Number of Voronoi seed points to place (default 200).
+#' @param seed Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_mosaic(50, 50, n = 100L, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_mosaic <- function(rows, cols, n = 200L, seed = NULL) {
+  r_mosaic(as.integer(rows), as.integer(cols),
+           as.integer(n),
+           if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Rectangular cluster ────────────────────────────────────────────────────────
+
+#' Rectangular cluster NLM
+#'
+#' Places \code{n} random axis-aligned rectangles and accumulates +1 per cell
+#' for each overlapping rectangle. The accumulated field is scaled to
+#' \eqn{[0, 1]}, producing patch-like landscapes with rectilinear boundaries.
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param n    Number of rectangles to place (default 200).
+#' @param seed Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_rectangular_cluster(50, 50, n = 100L, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_rectangular_cluster <- function(rows, cols, n = 200L, seed = NULL) {
+  r_rectangular_cluster(as.integer(rows), as.integer(cols),
+                        as.integer(n),
+                        if (is.null(seed)) NULL else as.double(seed))
+}
+
 # ── Post-processing ───────────────────────────────────────────────────────────
 
 #' Classify a landscape matrix into discrete classes

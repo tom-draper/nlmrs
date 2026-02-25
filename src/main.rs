@@ -186,6 +186,75 @@ enum Commands {
         #[arg(long, default_value = "200")]
         n: usize,
     },
+    /// Hybrid multifractal noise — blends smooth and ridged characteristics
+    HybridNoise {
+        rows: usize,
+        cols: usize,
+        /// Base noise frequency
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+        /// Number of octaves
+        #[arg(long, default_value = "6")]
+        octaves: usize,
+        /// Amplitude scaling per octave
+        #[arg(long, default_value = "0.5")]
+        persistence: f64,
+        /// Frequency scaling per octave
+        #[arg(long, default_value = "2.0")]
+        lacunarity: f64,
+    },
+    /// Value noise — interpolated lattice noise
+    ValueNoise {
+        rows: usize,
+        cols: usize,
+        /// Noise frequency (higher = more features)
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+    },
+    /// Turbulence — fBm with absolute-value fold per octave
+    Turbulence {
+        rows: usize,
+        cols: usize,
+        /// Base noise frequency
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+        /// Number of octaves
+        #[arg(long, default_value = "6")]
+        octaves: usize,
+        /// Amplitude scaling per octave
+        #[arg(long, default_value = "0.5")]
+        persistence: f64,
+        /// Frequency scaling per octave
+        #[arg(long, default_value = "2.0")]
+        lacunarity: f64,
+    },
+    /// Domain-warped Perlin noise — organic, swirling patterns
+    DomainWarp {
+        rows: usize,
+        cols: usize,
+        /// Coordinate frequency (higher = more features)
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+        /// Displacement magnitude applied to sample coordinates
+        #[arg(long, default_value = "1.0")]
+        warp_strength: f64,
+    },
+    /// Mosaic — discrete Voronoi patch map with flat-coloured regions
+    Mosaic {
+        rows: usize,
+        cols: usize,
+        /// Number of Voronoi seed points
+        #[arg(long, default_value = "200")]
+        n: usize,
+    },
+    /// Rectangular cluster — overlapping random axis-aligned rectangles
+    RectangularCluster {
+        rows: usize,
+        cols: usize,
+        /// Number of rectangles to place
+        #[arg(long, default_value = "200")]
+        n: usize,
+    },
 }
 
 fn main() {
@@ -226,6 +295,20 @@ fn main() {
             nlmrs::gaussian_field(rows, cols, sigma, seed)
         }
         Commands::RandomCluster { rows, cols, n } => nlmrs::random_cluster(rows, cols, n, seed),
+        Commands::HybridNoise { rows, cols, scale, octaves, persistence, lacunarity } => {
+            nlmrs::hybrid_noise(rows, cols, scale, octaves, persistence, lacunarity, seed)
+        }
+        Commands::ValueNoise { rows, cols, scale } => nlmrs::value_noise(rows, cols, scale, seed),
+        Commands::Turbulence { rows, cols, scale, octaves, persistence, lacunarity } => {
+            nlmrs::turbulence(rows, cols, scale, octaves, persistence, lacunarity, seed)
+        }
+        Commands::DomainWarp { rows, cols, scale, warp_strength } => {
+            nlmrs::domain_warp(rows, cols, scale, warp_strength, seed)
+        }
+        Commands::Mosaic { rows, cols, n } => nlmrs::mosaic(rows, cols, n, seed),
+        Commands::RectangularCluster { rows, cols, n } => {
+            nlmrs::rectangular_cluster(rows, cols, n, seed)
+        }
     };
 
     let mut grid = grid;

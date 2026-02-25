@@ -322,6 +322,130 @@ pub fn random_cluster(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGr
     grid_to_wasm(grid)
 }
 
+/// Hybrid multifractal noise. Values in \[0, 1\).
+///
+/// @param rows         - Number of rows.
+/// @param cols         - Number of columns.
+/// @param scale_factor - Base noise frequency (default 4.0).
+/// @param octaves      - Number of noise layers (default 6).
+/// @param persistence  - Amplitude scaling per octave (default 0.5).
+/// @param lacunarity   - Frequency scaling per octave (default 2.0).
+/// @param seed         - Optional integer seed.
+#[wasm_bindgen]
+pub fn hybrid_noise(
+    rows: u32,
+    cols: u32,
+    scale_factor: f64,
+    octaves: u32,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Option<u32>,
+) -> WasmGrid {
+    let grid = nlmrs::hybrid_noise(
+        rows as usize,
+        cols as usize,
+        scale_factor,
+        octaves as usize,
+        persistence,
+        lacunarity,
+        seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
+/// Value noise — interpolated lattice noise. Values in \[0, 1\).
+///
+/// @param rows         - Number of rows.
+/// @param cols         - Number of columns.
+/// @param scale_factor - Noise frequency; higher = more features (default 4.0).
+/// @param seed         - Optional integer seed.
+#[wasm_bindgen]
+pub fn value_noise(rows: u32, cols: u32, scale_factor: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::value_noise(rows as usize, cols as usize, scale_factor, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Turbulence — fBm with absolute-value fold per octave. Values in \[0, 1\).
+///
+/// @param rows         - Number of rows.
+/// @param cols         - Number of columns.
+/// @param scale_factor - Base noise frequency (default 4.0).
+/// @param octaves      - Number of noise layers (default 6).
+/// @param persistence  - Amplitude scaling per octave (default 0.5).
+/// @param lacunarity   - Frequency scaling per octave (default 2.0).
+/// @param seed         - Optional integer seed.
+#[wasm_bindgen]
+pub fn turbulence(
+    rows: u32,
+    cols: u32,
+    scale_factor: f64,
+    octaves: u32,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Option<u32>,
+) -> WasmGrid {
+    let grid = nlmrs::turbulence(
+        rows as usize,
+        cols as usize,
+        scale_factor,
+        octaves as usize,
+        persistence,
+        lacunarity,
+        seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
+/// Domain-warped Perlin noise — organic, swirling patterns. Values in \[0, 1\).
+///
+/// @param rows          - Number of rows.
+/// @param cols          - Number of columns.
+/// @param scale_factor  - Coordinate frequency (default 4.0).
+/// @param warp_strength - Displacement magnitude (default 1.0).
+/// @param seed          - Optional integer seed.
+#[wasm_bindgen]
+pub fn domain_warp(
+    rows: u32,
+    cols: u32,
+    scale_factor: f64,
+    warp_strength: f64,
+    seed: Option<u32>,
+) -> WasmGrid {
+    let grid = nlmrs::domain_warp(
+        rows as usize,
+        cols as usize,
+        scale_factor,
+        warp_strength,
+        seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
+/// Mosaic NLM — discrete Voronoi patch map. Values in \[0, 1\).
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param n    - Number of Voronoi seed points (default 200).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn mosaic(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::mosaic(rows as usize, cols as usize, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Rectangular cluster NLM — overlapping random rectangles. Values in \[0, 1\).
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param n    - Number of rectangles (default 200).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn rectangular_cluster(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid =
+        nlmrs::rectangular_cluster(rows as usize, cols as usize, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.

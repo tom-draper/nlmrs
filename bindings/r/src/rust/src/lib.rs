@@ -249,6 +249,93 @@ fn r_random_cluster(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatri
     grid_to_rmatrix(grid)
 }
 
+/// Hybrid multifractal noise. Values in [0, 1).
+#[extendr]
+fn r_hybrid_noise(
+    rows: i32,
+    cols: i32,
+    scale_factor: f64,
+    octaves: i32,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Nullable<f64>,
+) -> RMatrix<f64> {
+    let grid = nlmrs::hybrid_noise(
+        rows as usize,
+        cols as usize,
+        scale_factor,
+        octaves as usize,
+        persistence,
+        lacunarity,
+        seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
+/// Value noise — interpolated lattice noise. Values in [0, 1).
+#[extendr]
+fn r_value_noise(rows: i32, cols: i32, scale_factor: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::value_noise(rows as usize, cols as usize, scale_factor, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Turbulence — fBm with absolute-value fold per octave. Values in [0, 1).
+#[extendr]
+fn r_turbulence(
+    rows: i32,
+    cols: i32,
+    scale_factor: f64,
+    octaves: i32,
+    persistence: f64,
+    lacunarity: f64,
+    seed: Nullable<f64>,
+) -> RMatrix<f64> {
+    let grid = nlmrs::turbulence(
+        rows as usize,
+        cols as usize,
+        scale_factor,
+        octaves as usize,
+        persistence,
+        lacunarity,
+        seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
+/// Domain-warped Perlin noise — organic, swirling patterns. Values in [0, 1).
+#[extendr]
+fn r_domain_warp(
+    rows: i32,
+    cols: i32,
+    scale_factor: f64,
+    warp_strength: f64,
+    seed: Nullable<f64>,
+) -> RMatrix<f64> {
+    let grid = nlmrs::domain_warp(
+        rows as usize,
+        cols as usize,
+        scale_factor,
+        warp_strength,
+        seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
+/// Mosaic NLM — discrete Voronoi patch map. Values in [0, 1).
+#[extendr]
+fn r_mosaic(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::mosaic(rows as usize, cols as usize, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Rectangular cluster NLM — overlapping random rectangles. Values in [0, 1).
+#[extendr]
+fn r_rectangular_cluster(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid =
+        nlmrs::rectangular_cluster(rows as usize, cols as usize, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Convert a column-major R matrix to a row-major Grid.
@@ -308,6 +395,12 @@ extendr_module! {
     fn r_worley_noise;
     fn r_gaussian_field;
     fn r_random_cluster;
+    fn r_hybrid_noise;
+    fn r_value_noise;
+    fn r_turbulence;
+    fn r_domain_warp;
+    fn r_mosaic;
+    fn r_rectangular_cluster;
     fn r_classify;
     fn r_threshold;
 }

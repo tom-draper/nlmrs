@@ -157,6 +157,78 @@ fn bench_random_cluster(c: &mut Criterion) {
     group.finish();
 }
 
+// ── hybrid_noise ──────────────────────────────────────────────────────────────
+
+fn bench_hybrid_noise(c: &mut Criterion) {
+    let mut group = c.benchmark_group("hybrid_noise");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::hybrid_noise(size, size, 4.0, 6, 0.5, 2.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── value_noise ───────────────────────────────────────────────────────────────
+
+fn bench_value_noise(c: &mut Criterion) {
+    let mut group = c.benchmark_group("value_noise");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::value_noise(size, size, 4.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── turbulence ────────────────────────────────────────────────────────────────
+
+fn bench_turbulence(c: &mut Criterion) {
+    let mut group = c.benchmark_group("turbulence");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::turbulence(size, size, 4.0, 6, 0.5, 2.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── domain_warp ───────────────────────────────────────────────────────────────
+
+fn bench_domain_warp(c: &mut Criterion) {
+    let mut group = c.benchmark_group("domain_warp");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::domain_warp(size, size, 4.0, 1.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── mosaic ────────────────────────────────────────────────────────────────────
+
+fn bench_mosaic(c: &mut Criterion) {
+    let mut group = c.benchmark_group("mosaic");
+    for &size in &[256usize, 512, 1024] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::mosaic(size, size, 200, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── rectangular_cluster ───────────────────────────────────────────────────────
+
+fn bench_rectangular_cluster(c: &mut Criterion) {
+    let mut group = c.benchmark_group("rectangular_cluster");
+    for &size in &[256usize, 512, 1024] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::rectangular_cluster(size, size, 200, Some(42)));
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_midpoint_displacement,
@@ -171,5 +243,11 @@ criterion_group!(
     bench_worley_noise,
     bench_gaussian_field,
     bench_random_cluster,
+    bench_hybrid_noise,
+    bench_value_noise,
+    bench_turbulence,
+    bench_domain_warp,
+    bench_mosaic,
+    bench_rectangular_cluster,
 );
 criterion_main!(benches);
