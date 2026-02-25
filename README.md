@@ -187,6 +187,26 @@ algorithm(rows, cols, [...params], seed: Option<u64>) -> Grid
 
 Fractal Brownian motion layers multiple octaves of Perlin noise for more natural-looking terrain detail.
 
+### Ridged Noise
+
+`ridged_noise(rows: 300, cols: 300, scale_factor: 4.0, octaves: 6, persistence: 0.5, lacunarity: 2.0, seed: Some(42))`
+
+### Billow Noise
+
+`billow_noise(rows: 300, cols: 300, scale_factor: 4.0, octaves: 6, persistence: 0.5, lacunarity: 2.0, seed: Some(42))`
+
+### Worley Noise
+
+`worley_noise(rows: 300, cols: 300, scale_factor: 4.0, seed: Some(42))`
+
+### Gaussian Field
+
+`gaussian_field(rows: 300, cols: 300, sigma: 15.0, seed: Some(42))`
+
+### Random Cluster
+
+`random_cluster(rows: 300, cols: 300, n: 200, seed: Some(42))`
+
 ## Grid operations
 
 The `operation` module exposes combinators for building composite NLMs:
