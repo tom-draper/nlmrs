@@ -8,7 +8,7 @@ Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.c
 
 ## Usage
 
-`nlmrs` can be installed as a Rust crate, but language bindings also exist for Python, R, WASM and C. 
+NLMrs can be installed as a Rust crate, but language bindings also exist for Python, R, WASM and C. 
 
 ```bash
 cargo add nlmrs
@@ -258,8 +258,6 @@ cargo build --release
 # → include/nlmrs.h                       (generated header)
 ```
 
-
-
 ### Usage
 
 ```c
@@ -308,7 +306,7 @@ All 23 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` 
 
 ## Python bindings
 
-`nlmrs` is available as a Python package. Every function returns a 2D numpy array.
+NLMrs is available as a Python package. Every function returns a 2D numpy array.
 
 ### Install
 
@@ -377,7 +375,7 @@ nlmrs.threshold(grid, t=0.5) # binarise at threshold t
 
 ## R bindings
 
-`nlmrs` is available as an R package via the [extendr](https://extendr.github.io/) framework. Every function returns a numeric matrix.
+NLMrs is available as an R package via the [extendr](https://extendr.github.io/) framework. Every function returns a numeric matrix.
 
 ### Install
 
