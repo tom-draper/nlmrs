@@ -1,0 +1,14 @@
+[package]
+name = "nlmrs-c"
+version = "0.2.0"
+edition = "2021"
+description = "C bindings for nlmrs — Neutral Landscape Models"
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+nlmrs = { path = "../../" }
+
+[build-dependencies]
+cbindgen = "0.26"

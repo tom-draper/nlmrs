@@ -320,6 +320,66 @@ Overlapping random axis-aligned rectangles accumulated and scaled, producing blo
 
 <img src="examples/rectangular_cluster.png" alt="" width=300 />
 
+## C bindings
+
+NLMrs exposes a C-compatible shared/static library, making it usable from any language with C FFI support (C++, Go, MATLAB, Fortran, etc.).
+
+### Build
+
+```bash
+cd bindings/c
+cargo build --release
+# → ../../target/release/libnlmrs_c.so   (Linux shared)
+# → ../../target/release/libnlmrs_c.a    (Linux static)
+# → include/nlmrs.h                       (generated header)
+```
+
+### Usage
+
+```c
+#include "nlmrs.h"
+#include <stdio.h>
+
+int main(void) {
+    uint64_t seed = 42;
+
+    // Generate a 200×200 midpoint displacement grid.
+    NlmGrid grid = nlmrs_midpoint_displacement(200, 200, 0.8, &seed);
+
+    printf("rows=%zu cols=%zu\n", grid.rows, grid.cols);
+
+    // Access row-major data: value at (r, c) = grid.data[r * grid.cols + c]
+    printf("value at (0,0): %f\n", grid.data[0]);
+
+    nlmrs_free(grid);   // release Rust-owned memory
+    return 0;
+}
+```
+
+Compile and link against the shared library:
+
+```bash
+gcc example.c -I bindings/c/include -L target/release -lnlmrs_c -o example
+```
+
+### Optional parameters
+
+Seeds and optional floats (e.g. gradient `direction`) are passed as pointers. Pass `NULL` to use the default (random seed / random direction):
+
+```c
+// Random seed
+NlmGrid g1 = nlmrs_perlin_noise(200, 200, 4.0, NULL);
+
+// Fixed direction, random seed
+double dir = 45.0;
+NlmGrid g2 = nlmrs_planar_gradient(200, 200, &dir, NULL);
+
+nlmrs_free(g1);
+nlmrs_free(g2);
+```
+
+All 21 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
+
 ## R bindings
 
 NLMrs is available as an R package via the [extendr](https://extendr.github.io/) framework. Every function returns a **numeric matrix** compatible with standard R spatial workflows.
