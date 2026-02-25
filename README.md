@@ -470,7 +470,7 @@ Compile and link against the shared library:
 gcc example.c -I bindings/c/include -L target/release -lnlmrs_c -o example
 ```
 
-### Optional parameters
+#### Optional parameters
 
 Seeds and optional floats (e.g. gradient `direction`) are passed as pointers. Pass `NULL` to use the default (random seed / random direction):
 
@@ -516,8 +516,7 @@ const value = flat[r * grid.cols + c];
 grid.free();  // release Rust memory
 ```
 
-All 23 algorithms are available. Seeds are passed as plain integers (not BigInt). Omit the seed argument for random output.
-
+All 23 algorithms are available. Seeds are passed as plain integers. Omit the seed argument for random output.
 
 ## Contributions
 
