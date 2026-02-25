@@ -6,13 +6,13 @@ A Rust crate for building **Neutral Landscape Models**.
 
 Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.com/ropensci/NLMR).
 
-## Installation
+## Usage
+
+`nlmrs` can be installed as a Rust crate, but language bindings also exist for Python, R, WASM and C. 
 
 ```bash
 cargo add nlmrs
 ```
-
-## Usage
 
 ```rs
 use nlmrs;
@@ -22,12 +22,6 @@ fn main() {
     let grid = nlmrs::midpoint_displacement(100, 100, 1.0, Some(42));
     println!("{:?}", grid.data);
 }
-```
-
-Pass `None` as the seed for a random result each run:
-
-```rs
-let grid = nlmrs::midpoint_displacement(100, 100, 1.0, None);
 ```
 
 ### Export
@@ -40,7 +34,7 @@ use nlmrs::{midpoint_displacement, export};
 fn main() {
     let grid = midpoint_displacement(100, 100, 0.8, Some(42));
 
-    export::write_to_png(&grid, "terrain.png").unwrap();           // terrain colormap
+    export::write_to_png(&grid, "terrain.png").unwrap();
     export::write_to_png_grayscale(&grid, "terrain_gray.png").unwrap();
     export::write_to_tiff(&grid, "terrain.tif").unwrap();
     export::write_to_csv(&grid, "terrain.csv").unwrap();
@@ -48,8 +42,6 @@ fn main() {
     export::write_to_ascii_grid(&grid, "terrain.asc").unwrap();
 }
 ```
-
-The PNG terrain colormap maps values from deep water (low) through sand, grass, and rock to snow (high).
 
 ### CLI
 
@@ -66,95 +58,6 @@ nlmrs perlin 500 500 --scale 4.0 --grayscale --output noise.png
 nlmrs --help   # list all subcommands and options
 ```
 
-### Visualization
-
-Generate a PNG for every algorithm using the included script:
-
-```bash
-uv run scripts/visualize.py            # saves to examples/
-uv run scripts/visualize.py output/   # custom output directory
-```
-
-[uv](https://github.com/astral-sh/uv) builds the nlmrs Python extension and installs matplotlib automatically — no manual setup required.
-
-## Python bindings
-
-NLMrs is available as a Python package. Every function returns a 2-D **numpy array**, so it slots directly into matplotlib, rasterio, or any scientific Python workflow.
-
-### Install
-
-```bash
-pip install nlmrs
-```
-
-Or build from source (requires Rust and [maturin](https://github.com/PyO3/maturin)):
-
-```bash
-maturin develop --features python   # editable install into the active venv
-```
-
-### Usage
-
-```python
-import nlmrs
-import matplotlib.pyplot as plt
-
-# All functions accept an optional seed for reproducible output.
-grid = nlmrs.midpoint_displacement(100, 100, h=0.8, seed=42)  # numpy array (100, 100)
-
-plt.imshow(grid, cmap="terrain")
-plt.axis("off")
-plt.show()
-```
-
-All parameters are keyword-friendly with sensible defaults:
-
-```python
-# Patch-based
-nlmrs.random(100, 100)
-nlmrs.random_element(100, 100, n=50000.0)
-nlmrs.hill_grow(100, 100, n=10000, runaway=True)
-nlmrs.midpoint_displacement(100, 100, h=1.0)
-nlmrs.gaussian_field(100, 100, sigma=10.0)
-nlmrs.random_cluster(100, 100, n=200)
-nlmrs.mosaic(100, 100, n=200)
-nlmrs.rectangular_cluster(100, 100, n=200)
-
-# Gradient
-nlmrs.planar_gradient(100, 100, direction=45.0)
-nlmrs.edge_gradient(100, 100)
-nlmrs.distance_gradient(100, 100)
-nlmrs.wave_gradient(100, 100, period=2.5, direction=90.0)
-
-# Noise
-nlmrs.perlin_noise(100, 100, scale=4.0)
-nlmrs.fbm_noise(100, 100, scale=4.0, octaves=6, persistence=0.5, lacunarity=2.0)
-nlmrs.ridged_noise(100, 100, scale=4.0, octaves=6)
-nlmrs.billow_noise(100, 100, scale=4.0, octaves=6)
-nlmrs.worley_noise(100, 100, scale=4.0)
-nlmrs.hybrid_noise(100, 100, scale=4.0, octaves=6)
-nlmrs.value_noise(100, 100, scale=4.0)
-nlmrs.turbulence(100, 100, scale=4.0, octaves=6)
-nlmrs.domain_warp(100, 100, scale=4.0, warp_strength=1.0)
-```
-
-Post-processing functions are also available:
-
-```python
-grid = nlmrs.fbm_noise(100, 100, scale=4.0)
-nlmrs.classify(grid, n=5)    # quantise into n equal-width classes
-nlmrs.threshold(grid, t=0.5) # binarise at threshold t
-```
-
-The GIL is released during computation, so rayon uses all available cores even when called from Python threads. Compared to [nlmpy](https://pypi.org/project/nlmpy/) on CPython, NLMrs is typically an order of magnitude faster.
-
-## Algorithms
-
-All functions share the signature pattern:
-
-```
-algorithm(rows, cols, [...params], seed: Option<u64>) -> Grid
-```
 
 ### Random
 
@@ -320,9 +223,78 @@ Overlapping random axis-aligned rectangles accumulated and scaled, producing blo
 
 <img src="examples/rectangular_cluster.png" alt="" width=300 />
 
+## Python bindings
+
+`nlmrs` is available as a Python package. Every function returns a 2D numpy array.
+
+### Install
+
+```bash
+pip install nlmrs
+```
+
+Or build from source (requires Rust and [maturin](https://github.com/PyO3/maturin)):
+
+```bash
+maturin develop --features python   # editable install into the active venv
+```
+
+### Usage
+
+```python
+import nlmrs
+import matplotlib.pyplot as plt
+
+# All functions accept an optional seed for reproducible output.
+grid = nlmrs.midpoint_displacement(100, 100, h=0.8, seed=42)  # numpy array (100, 100)
+
+plt.imshow(grid, cmap="terrain")
+plt.axis("off")
+plt.show()
+```
+
+All parameters are keyword-friendly with sensible defaults:
+
+```python
+# Patch-based
+nlmrs.random(100, 100)
+nlmrs.random_element(100, 100, n=50000.0)
+nlmrs.hill_grow(100, 100, n=10000, runaway=True)
+nlmrs.midpoint_displacement(100, 100, h=1.0)
+nlmrs.gaussian_field(100, 100, sigma=10.0)
+nlmrs.random_cluster(100, 100, n=200)
+nlmrs.mosaic(100, 100, n=200)
+nlmrs.rectangular_cluster(100, 100, n=200)
+
+# Gradient
+nlmrs.planar_gradient(100, 100, direction=45.0)
+nlmrs.edge_gradient(100, 100)
+nlmrs.distance_gradient(100, 100)
+nlmrs.wave_gradient(100, 100, period=2.5, direction=90.0)
+
+# Noise
+nlmrs.perlin_noise(100, 100, scale=4.0)
+nlmrs.fbm_noise(100, 100, scale=4.0, octaves=6, persistence=0.5, lacunarity=2.0)
+nlmrs.ridged_noise(100, 100, scale=4.0, octaves=6)
+nlmrs.billow_noise(100, 100, scale=4.0, octaves=6)
+nlmrs.worley_noise(100, 100, scale=4.0)
+nlmrs.hybrid_noise(100, 100, scale=4.0, octaves=6)
+nlmrs.value_noise(100, 100, scale=4.0)
+nlmrs.turbulence(100, 100, scale=4.0, octaves=6)
+nlmrs.domain_warp(100, 100, scale=4.0, warp_strength=1.0)
+```
+
+Post-processing functions are also available:
+
+```python
+grid = nlmrs.fbm_noise(100, 100, scale=4.0)
+nlmrs.classify(grid, n=5)    # quantise into n equal-width classes
+nlmrs.threshold(grid, t=0.5) # binarise at threshold t
+```
+
 ## R bindings
 
-NLMrs is available as an R package via the [extendr](https://extendr.github.io/) framework. Every function returns a **numeric matrix** compatible with standard R spatial workflows.
+`nlmrs` is available as an R package via the [extendr](https://extendr.github.io/) framework. Every function returns a numeric matrix.
 
 ### Install
 
@@ -369,7 +341,7 @@ nlm_rectangular_cluster(100, 100, n = 200L)
 
 ## WASM bindings
 
-NLMrs can run in the browser or Node.js via WebAssembly.
+`nlmrs` can run in the browser or Node.js via WebAssembly.
 
 ### Build
 
