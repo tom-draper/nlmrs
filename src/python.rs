@@ -1,5 +1,5 @@
 use numpy::ndarray::Array2;
-use numpy::{IntoPyArray, PyArray2};
+use numpy::{IntoPyArray, PyArray2, PyArrayMethods};
 use pyo3::prelude::*;
 
 use crate::Grid;
@@ -474,12 +474,12 @@ fn rectangular_cluster(
 /// n : int
 ///     Number of classes (>= 1). Class `k` maps to output value `k / (n - 1)`.
 #[pyfunction]
-fn classify(py: Python<'_>, arr: &Bound<'_, PyArray2<f64>>, n: usize) -> Bound<'_, PyArray2<f64>> {
+fn classify<'py>(py: Python<'py>, arr: &Bound<'py, PyArray2<f64>>, n: usize) -> Bound<'py, PyArray2<f64>> {
     let (rows, cols, data) = {
         let ro = arr.readonly();
         let view = ro.as_array();
         let (r, c) = view.dim();
-        (r, c, view.to_owned().into_raw_vec())
+        (r, c, view.to_owned().into_raw_vec_and_offset().0)
     };
     let grid = py.allow_threads(|| {
         let mut g = Grid { data, rows, cols };
@@ -498,12 +498,12 @@ fn classify(py: Python<'_>, arr: &Bound<'_, PyArray2<f64>>, n: usize) -> Bound<'
 /// t : float
 ///     Values strictly below `t` become 0.0; values at or above become 1.0.
 #[pyfunction]
-fn threshold(py: Python<'_>, arr: &Bound<'_, PyArray2<f64>>, t: f64) -> Bound<'_, PyArray2<f64>> {
+fn threshold<'py>(py: Python<'py>, arr: &Bound<'py, PyArray2<f64>>, t: f64) -> Bound<'py, PyArray2<f64>> {
     let (rows, cols, data) = {
         let ro = arr.readonly();
         let view = ro.as_array();
         let (r, c) = view.dim();
-        (r, c, view.to_owned().into_raw_vec())
+        (r, c, view.to_owned().into_raw_vec_and_offset().0)
     };
     let grid = py.allow_threads(|| {
         let mut g = Grid { data, rows, cols };
