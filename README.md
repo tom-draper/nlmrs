@@ -6,60 +6,6 @@ A Rust crate for building **Neutral Landscape Models**.
 
 Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.com/ropensci/NLMR).
 
-## Usage
-
-NLMrs can be installed as a Rust crate, but language bindings also exist for Python, R, WASM and C. 
-
-```bash
-cargo add nlmrs
-```
-
-```rs
-use nlmrs;
-
-fn main() {
-    // All functions accept an optional seed for reproducible output.
-    let grid = nlmrs::midpoint_displacement(100, 100, 1.0, Some(42));
-    println!("{:?}", grid.data);
-}
-```
-
-### Export
-
-The `export` module provides functions to save a grid to disk.
-
-```rs
-use nlmrs::{midpoint_displacement, export};
-
-fn main() {
-    let grid = midpoint_displacement(100, 100, 0.8, Some(42));
-
-    export::write_to_png(&grid, "terrain.png").unwrap();
-    export::write_to_png_grayscale(&grid, "terrain_gray.png").unwrap();
-    export::write_to_tiff(&grid, "terrain.tif").unwrap();
-    export::write_to_csv(&grid, "terrain.csv").unwrap();
-    export::write_to_json(&grid, "terrain.json").unwrap();
-    export::write_to_ascii_grid(&grid, "terrain.asc").unwrap();
-}
-```
-
-### CLI
-
-A command-line binary is included. Output format is inferred from the file extension (`.png`, `.csv`, `.json`, `.tif`, `.asc`).
-
-```bash
-cargo install nlmrs
-
-nlmrs midpoint-displacement 200 200 --h 0.8 --seed 42 --output terrain.png
-nlmrs fbm 300 300 --scale 6.0 --octaves 8 --seed 99 --output landscape.png
-nlmrs hill-grow 200 200 --n 20000 --runaway --output hills.csv
-nlmrs perlin 500 500 --scale 4.0 --grayscale --output noise.png
-
-nlmrs --help   # list all subcommands and options
-```
-
-## Algorithms
-
 ### Random
 
 `random(rows: 100, cols: 100, seed: 42)`
@@ -244,71 +190,81 @@ Hierarchical rectilinear partition — the largest rectangle is repeatedly split
 
 *Source: [Etherington, Morgan & O'Sullivan (2022)](https://doi.org/10.1007/s10980-022-01452-6)*
 
-## C bindings
 
-NLMrs exposes a C-compatible shared/static library, making it usable from any language with C FFI support (C++, Go, MATLAB, Fortran, etc.).
+## Usage
 
-### Build
+NLMrs can be installed as a Rust crate, but language bindings also exist for Python, R, WASM and C. 
 
 ```bash
-cd bindings/c
-cargo build --release
-# → ../../target/release/libnlmrs_c.so   (Linux shared)
-# → ../../target/release/libnlmrs_c.a    (Linux static)
-# → include/nlmrs.h                       (generated header)
+cargo add nlmrs
 ```
 
-### Usage
+```rs
+use nlmrs;
 
-```c
-#include "nlmrs.h"
-#include <stdio.h>
-
-int main(void) {
-    uint64_t seed = 42;
-
-    // Generate a 200×200 midpoint displacement grid.
-    NlmGrid grid = nlmrs_midpoint_displacement(200, 200, 0.8, &seed);
-
-    printf("rows=%zu cols=%zu\n", grid.rows, grid.cols);
-
-    // Access row-major data: value at (r, c) = grid.data[r * grid.cols + c]
-    printf("value at (0,0): %f\n", grid.data[0]);
-
-    nlmrs_free(grid);   // release Rust-owned memory
-    return 0;
+fn main() {
+    let grid = nlmrs::midpoint_displacement(100, 100, 1.0, seed: Some(42));
+    println!("{:?}", grid.data);
 }
 ```
 
-Compile and link against the shared library:
+### Export
+
+The `export` module provides functions to save a grid to disk.
+
+```rs
+use nlmrs::{midpoint_displacement, export};
+
+fn main() {
+    let grid = midpoint_displacement(rows: 100, cols: 100, h: 0.8, Some(42));
+
+    export::write_to_png(&grid, "terrain.png").unwrap();
+    export::write_to_png_grayscale(&grid, "terrain_gray.png").unwrap();
+    export::write_to_tiff(&grid, "terrain.tif").unwrap();
+    export::write_to_csv(&grid, "terrain.csv").unwrap();
+    export::write_to_json(&grid, "terrain.json").unwrap();
+    export::write_to_ascii_grid(&grid, "terrain.asc").unwrap();
+}
+```
+
+### CLI
+
+A command-line binary is included. Output format is inferred from the file extension (`.png`, `.csv`, `.json`, `.tif`, `.asc`).
 
 ```bash
-gcc example.c -I bindings/c/include -L target/release -lnlmrs_c -o example
+cargo install nlmrs
+
+nlmrs midpoint-displacement 200 200 --h 0.8 --seed 42 --output terrain.png
+nlmrs fbm 300 300 --scale 6.0 --octaves 8 --seed 99 --output landscape.png
+nlmrs hill-grow 200 200 --n 20000 --runaway --output hills.csv
+nlmrs perlin 500 500 --scale 4.0 --grayscale --output noise.png
+
+nlmrs --help   # list all subcommands and options
 ```
 
-### Optional parameters
+### Grid operations
 
-Seeds and optional floats (e.g. gradient `direction`) are passed as pointers. Pass `NULL` to use the default (random seed / random direction):
+The `operation` module exposes combinators for building composite NLMs:
 
-```c
-// Random seed
-NlmGrid g1 = nlmrs_perlin_noise(200, 200, 4.0, NULL);
+```rs
+use nlmrs::{midpoint_displacement, planar_gradient, operation};
 
-// Fixed direction, random seed
-double dir = 45.0;
-NlmGrid g2 = nlmrs_planar_gradient(200, 200, &dir, NULL);
+fn main() {
+    let mut terrain = midpoint_displacement(100, 100, 0.8, Some(1));
+    let gradient   = planar_gradient(100, 100, Some(90.), Some(2));
 
-nlmrs_free(g1);
-nlmrs_free(g2);
+    operation::multiply(&mut terrain, &gradient);
+    operation::scale(&mut terrain);
+}
 ```
 
-All 23 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
+Available operations: `add`, `add_value`, `multiply`, `multiply_value`, `invert`, `abs`, `scale`, `min`, `max`, `min_and_max`, `classify`, `threshold`.
 
-## Python bindings
+### Python bindings
 
 NLMrs is available as a Python package. Every function returns a 2D numpy array.
 
-### Install
+#### Install
 
 ```bash
 pip install nlmrs
@@ -319,6 +275,8 @@ Or build from source (requires Rust and [maturin](https://github.com/PyO3/maturi
 ```bash
 maturin develop --features python   # editable install into the active venv
 ```
+
+#### Usage
 
 ```python
 import nlmrs
@@ -373,18 +331,18 @@ nlmrs.classify(grid, n=5)    # quantise into n equal-width classes
 nlmrs.threshold(grid, t=0.5) # binarise at threshold t
 ```
 
-## R bindings
+### R bindings
 
 NLMrs is available as an R package via the [extendr](https://extendr.github.io/) framework. Every function returns a numeric matrix.
 
-### Install
+#### Install
 
 ```r
 # Install from source (requires Rust)
 remotes::install_github("tom-draper/nlmrs", subdir = "bindings/r")
 ```
 
-### Usage
+#### Usage
 
 ```r
 library(nlmrs)
@@ -422,18 +380,78 @@ nlm_percolation(100, 100, p = 0.5)
 nlm_binary_space_partitioning(100, 100, n = 100L)
 ```
 
-## WASM bindings
+### C bindings
+
+NLMrs exposes a C-compatible shared/static library, making it usable from any language with C FFI support (C++, Go, MATLAB, Fortran, etc.).
+
+#### Build
+
+```bash
+cd bindings/c
+cargo build --release
+# → ../../target/release/libnlmrs_c.so   (Linux shared)
+# → ../../target/release/libnlmrs_c.a    (Linux static)
+# → include/nlmrs.h                       (generated header)
+```
+
+#### Usage
+
+```c
+#include "nlmrs.h"
+#include <stdio.h>
+
+int main(void) {
+    uint64_t seed = 42;
+
+    // Generate a 200×200 midpoint displacement grid.
+    NlmGrid grid = nlmrs_midpoint_displacement(200, 200, 0.8, &seed);
+
+    printf("rows=%zu cols=%zu\n", grid.rows, grid.cols);
+
+    // Access row-major data: value at (r, c) = grid.data[r * grid.cols + c]
+    printf("value at (0,0): %f\n", grid.data[0]);
+
+    nlmrs_free(grid);   // release Rust-owned memory
+    return 0;
+}
+```
+
+Compile and link against the shared library:
+
+```bash
+gcc example.c -I bindings/c/include -L target/release -lnlmrs_c -o example
+```
+
+### Optional parameters
+
+Seeds and optional floats (e.g. gradient `direction`) are passed as pointers. Pass `NULL` to use the default (random seed / random direction):
+
+```c
+// Random seed
+NlmGrid g1 = nlmrs_perlin_noise(200, 200, 4.0, NULL);
+
+// Fixed direction, random seed
+double dir = 45.0;
+NlmGrid g2 = nlmrs_planar_gradient(200, 200, &dir, NULL);
+
+nlmrs_free(g1);
+nlmrs_free(g2);
+```
+
+All 23 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
+
+### WASM bindings
 
 `nlmrs` can run in the browser or Node.js via WebAssembly.
 
-### Build
+#### Build
 
 ```bash
 cd bindings/wasm
 wasm-pack build --target web
 ```
 
-### Usage
+#### Usage
 
 ```js
 import init, * as nlmrs from "./pkg/nlmrs_wasm.js";
@@ -452,23 +470,6 @@ grid.free();  // release Rust memory
 
 All 23 algorithms are available. Seeds are passed as plain integers (not BigInt). Omit the seed argument for random output.
 
-## Grid operations
-
-The `operation` module exposes combinators for building composite NLMs:
-
-```rs
-use nlmrs::{midpoint_displacement, planar_gradient, operation};
-
-fn main() {
-    let mut terrain = midpoint_displacement(100, 100, 0.8, Some(1));
-    let gradient   = planar_gradient(100, 100, Some(90.), Some(2));
-
-    operation::multiply(&mut terrain, &gradient);
-    operation::scale(&mut terrain);
-}
-```
-
-Available operations: `add`, `add_value`, `multiply`, `multiply_value`, `invert`, `abs`, `scale`, `min`, `max`, `min_and_max`, `classify`, `threshold`.
 
 ## Contributions
 
