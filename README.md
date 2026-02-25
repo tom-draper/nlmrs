@@ -6,6 +6,38 @@ A Rust crate for building **Neutral Landscape Models**.
 
 Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.com/ropensci/NLMR).
 
+## Installation
+
+```bash
+cargo add nlmrs
+```
+
+## Example
+
+```rs
+use nlmrs;
+
+fn main() {
+    let arr = nlmrs::midpoint_displacement(10, 10, 1.);
+    println!("{:?}", arr);
+}
+```
+
+### Export
+
+The `export` module holds a collection of user-friendly functions to export your 2D NLM vector.
+
+```rs
+use nlmrs::{distance_gradient, export};
+
+fn main() {
+    let arr = distance_gradient(50, 50);
+    export::write_to_csv(arr, "./data/data.csv");
+}
+```
+
+## Algorithms
+
 ### Random
 
 `random(rows: 100, cols: 100, seed: 42)`
