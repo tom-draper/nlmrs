@@ -58,6 +58,7 @@ nlmrs perlin 500 500 --scale 4.0 --grayscale --output noise.png
 nlmrs --help   # list all subcommands and options
 ```
 
+## Algorithms
 
 ### Random
 
