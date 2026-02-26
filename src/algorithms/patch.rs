@@ -749,6 +749,169 @@ pub fn eden_growth(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Gri
     Grid { data, rows, cols }
 }
 
+/// Returns an invasion percolation NLM. Binary values {0.0, 1.0}.
+///
+/// Each cell is assigned a random weight. Growing from the centre, the algorithm
+/// always invades the boundary cell with the lowest weight first, producing
+/// dendritic, river-like fractal cluster patterns.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of cells to invade (beyond the initial seed).
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn invasion_percolation(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    use std::collections::BinaryHeap;
+    use std::cmp::Reverse;
+
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+
+    let weights: Vec<f64> = (0..rows * cols).map(|_| rng.gen::<f64>()).collect();
+    let mut invaded = vec![false; rows * cols];
+    let cr = rows / 2;
+    let cc = cols / 2;
+    invaded[cr * cols + cc] = true;
+
+    let dirs: [(i64, i64); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+    // Min-heap keyed on weight bits (IEEE 754 positive floats sort correctly as u64)
+    let mut heap: BinaryHeap<Reverse<(u64, usize, usize)>> = BinaryHeap::new();
+    for (dr, dc) in dirs {
+        let nr = cr as i64 + dr;
+        let nc = cc as i64 + dc;
+        if nr >= 0 && nr < rows as i64 && nc >= 0 && nc < cols as i64 {
+            let nr = nr as usize;
+            let nc = nc as usize;
+            heap.push(Reverse((weights[nr * cols + nc].to_bits(), nr, nc)));
+        }
+    }
+
+    let n_cells = n.min(rows * cols - 1);
+    for _ in 0..n_cells {
+        if heap.is_empty() { break; }
+        let Reverse((_, r, c)) = heap.pop().unwrap();
+        if invaded[r * cols + c] { continue; }
+        invaded[r * cols + c] = true;
+        for (dr, dc) in dirs {
+            let nr = r as i64 + dr;
+            let nc = c as i64 + dc;
+            if nr >= 0 && nr < rows as i64 && nc >= 0 && nc < cols as i64 {
+                let nr = nr as usize;
+                let nc = nc as usize;
+                if !invaded[nr * cols + nc] {
+                    heap.push(Reverse((weights[nr * cols + nc].to_bits(), nr, nc)));
+                }
+            }
+        }
+    }
+
+    let data: Vec<f64> = invaded.iter().map(|&b| if b { 1.0 } else { 0.0 }).collect();
+    Grid { data, rows, cols }
+}
+
+/// Returns a Gaussian blobs NLM with values in [0, 1).
+///
+/// Places `n` Gaussian kernels at random positions and accumulates their
+/// contributions. Produces soft, overlapping circular patches resembling
+/// habitat fragments or dispersal kernels.
+///
+/// # Arguments
+///
+/// * `rows`  - Number of rows.
+/// * `cols`  - Number of columns.
+/// * `n`     - Number of Gaussian blobs to place.
+/// * `sigma` - Standard deviation (radius) of each blob in cells.
+/// * `seed`  - Optional RNG seed for reproducible results.
+pub fn gaussian_blobs(rows: usize, cols: usize, n: usize, sigma: f64, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+
+    let centers: Vec<(f64, f64)> = (0..n)
+        .map(|_| (rng.gen::<f64>() * rows as f64, rng.gen::<f64>() * cols as f64))
+        .collect();
+    let inv2s2 = 1.0 / (2.0 * sigma * sigma);
+
+    let fill = |(idx, v): (usize, &mut f64)| {
+        let i = idx / cols;
+        let j = idx % cols;
+        *v = centers.iter().map(|&(cr, cc)| {
+            let dr = i as f64 - cr;
+            let dc = j as f64 - cc;
+            (-(dr * dr + dc * dc) * inv2s2).exp()
+        }).sum::<f64>();
+    };
+
+    let mut data = vec![0.0f64; rows * cols];
+    #[cfg(feature = "parallel")]
+    data.par_iter_mut().enumerate().for_each(fill);
+    #[cfg(not(feature = "parallel"))]
+    data.iter_mut().enumerate().for_each(fill);
+
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns an Ising model NLM. Binary values {0.0, 1.0}.
+///
+/// Simulates a 2D ferromagnetic Ising model using Glauber dynamics. Spins start
+/// random and relax under neighbourhood energy rules. The inverse temperature
+/// `beta` controls cluster size: values near 0 produce random binary noise;
+/// values near and above the critical point (~0.44) produce large clusters.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `beta`       - Inverse temperature. Higher = larger, more ordered clusters.
+/// * `iterations` - Number of full-grid update sweeps.
+/// * `seed`       - Optional RNG seed for reproducible results.
+pub fn ising_model(
+    rows: usize,
+    cols: usize,
+    beta: f64,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+
+    let mut spins: Vec<i8> = (0..rows * cols)
+        .map(|_| if rng.gen::<bool>() { 1i8 } else { -1i8 })
+        .collect();
+
+    for _ in 0..iterations {
+        // One sweep = rows*cols random single-spin updates (Glauber dynamics)
+        for _ in 0..rows * cols {
+            let idx = rng.gen_range(0..rows * cols);
+            let i = idx / cols;
+            let j = idx % cols;
+
+            let s = spins[idx] as i32;
+            let sum = spins[if i > 0 { (i - 1) * cols + j } else { (rows - 1) * cols + j }] as i32
+                    + spins[if i + 1 < rows { (i + 1) * cols + j } else { j }] as i32
+                    + spins[if j > 0 { i * cols + j - 1 } else { i * cols + cols - 1 }] as i32
+                    + spins[if j + 1 < cols { i * cols + j + 1 } else { i * cols }] as i32;
+
+            // Glauber flip probability: P(flip) = 1 / (1 + exp(β * ΔE)), ΔE = 2 * s * Σ
+            let delta_e = 2.0 * s as f64 * sum as f64;
+            if rng.gen::<f64>() < 1.0 / (1.0 + (beta * delta_e).exp()) {
+                spins[idx] = -spins[idx];
+            }
+        }
+    }
+
+    let data: Vec<f64> = spins.iter().map(|&s| if s > 0 { 1.0 } else { 0.0 }).collect();
+    Grid { data, rows, cols }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1084,6 +1247,69 @@ mod tests {
     fn test_eden_growth_seeded_determinism() {
         let a = eden_growth(50, 50, 200, Some(42));
         let b = eden_growth(50, 50, 200, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── invasion_percolation ──────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(50, 50)]
+    fn test_invasion_percolation(#[case] rows: usize, #[case] cols: usize) {
+        let grid = invasion_percolation(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert!(grid.data.iter().all(|&v| v == 0.0 || v == 1.0));
+    }
+
+    #[test]
+    fn test_invasion_percolation_seeded_determinism() {
+        let a = invasion_percolation(50, 50, 200, Some(42));
+        let b = invasion_percolation(50, 50, 200, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── gaussian_blobs ────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_gaussian_blobs(#[case] rows: usize, #[case] cols: usize) {
+        let grid = gaussian_blobs(rows, cols, 10, 5.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_gaussian_blobs_seeded_determinism() {
+        let a = gaussian_blobs(50, 50, 10, 5.0, Some(42));
+        let b = gaussian_blobs(50, 50, 10, 5.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── ising_model ───────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(50, 50)]
+    fn test_ising_model(#[case] rows: usize, #[case] cols: usize) {
+        let grid = ising_model(rows, cols, 0.4, 100, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert!(grid.data.iter().all(|&v| v == 0.0 || v == 1.0));
+    }
+
+    #[test]
+    fn test_ising_model_seeded_determinism() {
+        let a = ising_model(50, 50, 0.4, 100, Some(42));
+        let b = ising_model(50, 50, 0.4, 100, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

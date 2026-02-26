@@ -357,6 +357,62 @@ fn bench_diffusion_limited_aggregation(c: &mut Criterion) {
     group.finish();
 }
 
+// ── simplex_noise ─────────────────────────────────────────────────────────────
+
+fn bench_simplex_noise(c: &mut Criterion) {
+    let mut group = c.benchmark_group("simplex_noise");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::simplex_noise(size, size, 4.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── invasion_percolation ──────────────────────────────────────────────────────
+//
+// Sequential BFS/heap traversal — reduce sample size for large n.
+
+fn bench_invasion_percolation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("invasion_percolation");
+    group.sample_size(20);
+    group.measurement_time(Duration::from_secs(15));
+    for &n in &[500usize, 2_000, 5_000] {
+        group.bench_with_input(BenchmarkId::from_parameter(n), &n, |b, &n| {
+            b.iter(|| nlmrs::invasion_percolation(128, 128, n, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── gaussian_blobs ────────────────────────────────────────────────────────────
+
+fn bench_gaussian_blobs(c: &mut Criterion) {
+    let mut group = c.benchmark_group("gaussian_blobs");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::gaussian_blobs(size, size, 50, 5.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── ising_model ───────────────────────────────────────────────────────────────
+//
+// Sequential random-sequential updates — reduce sample size for large grids.
+
+fn bench_ising_model(c: &mut Criterion) {
+    let mut group = c.benchmark_group("ising_model");
+    group.sample_size(20);
+    group.measurement_time(Duration::from_secs(15));
+    for &size in &[64usize, 128, 256] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::ising_model(size, size, 0.4, 500, Some(42)));
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_midpoint_displacement,
@@ -387,5 +443,9 @@ criterion_group!(
     bench_eden_growth,
     bench_fractal_brownian_surface,
     bench_landscape_gradient,
+    bench_simplex_noise,
+    bench_invasion_percolation,
+    bench_gaussian_blobs,
+    bench_ising_model,
 );
 criterion_main!(benches);

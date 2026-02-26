@@ -356,6 +356,44 @@ enum Commands {
         #[arg(long, default_value = "1.0")]
         aspect: f64,
     },
+    /// OpenSimplex noise
+    SimplexNoise {
+        rows: usize,
+        cols: usize,
+        /// Coordinate frequency (higher = more features per unit)
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+    },
+    /// Invasion percolation (lowest-weight boundary growth from centre)
+    InvasionPercolation {
+        rows: usize,
+        cols: usize,
+        /// Number of cells to invade
+        #[arg(long, default_value = "2000")]
+        n: usize,
+    },
+    /// Sum of random Gaussian blob kernels
+    GaussianBlobs {
+        rows: usize,
+        cols: usize,
+        /// Number of blob centres
+        #[arg(long, default_value = "50")]
+        n: usize,
+        /// Gaussian width (in cells)
+        #[arg(long, default_value = "5.0")]
+        sigma: f64,
+    },
+    /// Ising model via Glauber dynamics (binary spin lattice)
+    IsingModel {
+        rows: usize,
+        cols: usize,
+        /// Inverse temperature (near 0.44 = critical point)
+        #[arg(long, default_value = "0.4")]
+        beta: f64,
+        /// Number of sweeps (each sweep = rows × cols spin-flip attempts)
+        #[arg(long, default_value = "1000")]
+        iterations: usize,
+    },
 }
 
 fn main() {
@@ -435,6 +473,18 @@ fn main() {
         }
         Commands::LandscapeGradient { rows, cols, direction, aspect } => {
             nlmrs::landscape_gradient(rows, cols, direction, aspect, seed)
+        }
+        Commands::SimplexNoise { rows, cols, scale } => {
+            nlmrs::simplex_noise(rows, cols, scale, seed)
+        }
+        Commands::InvasionPercolation { rows, cols, n } => {
+            nlmrs::invasion_percolation(rows, cols, n, seed)
+        }
+        Commands::GaussianBlobs { rows, cols, n, sigma } => {
+            nlmrs::gaussian_blobs(rows, cols, n, sigma, seed)
+        }
+        Commands::IsingModel { rows, cols, beta, iterations } => {
+            nlmrs::ising_model(rows, cols, beta, iterations, seed)
         }
     };
 

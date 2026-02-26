@@ -789,6 +789,107 @@ nlm_diffusion_limited_aggregation <- function(rows, cols, n = 2000L, seed = NULL
                                    if (is.null(seed)) NULL else as.double(seed))
 }
 
+# ── Simplex noise ─────────────────────────────────────────────────────────────
+
+#' OpenSimplex noise NLM
+#'
+#' Generates spatially correlated noise using OpenSimplex, an open-source
+#' alternative to Perlin noise with fewer directional artefacts.
+#'
+#' @param rows  Number of rows.
+#' @param cols  Number of columns.
+#' @param scale Coordinate frequency — higher values produce more features per
+#'   unit (default 4.0).
+#' @param seed  Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1)}.
+#' @export
+#' @examples
+#' m <- nlm_simplex_noise(50, 50, scale = 4.0, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_simplex_noise <- function(rows, cols, scale = 4.0, seed = NULL) {
+  r_simplex_noise(as.integer(rows), as.integer(cols),
+                  as.double(scale),
+                  if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Invasion percolation ───────────────────────────────────────────────────────
+
+#' Invasion percolation NLM
+#'
+#' Grows a cluster from the grid centre by always invading the boundary cell
+#' with the lowest random weight. Produces spatially connected, fractal-like
+#' binary patches.
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param n    Number of cells to invade from the centre (default 2000).
+#' @param seed Integer seed. \code{NULL} for random output.
+#'
+#' @return A binary numeric matrix with values in \eqn{\{0, 1\}}.
+#' @export
+#' @examples
+#' m <- nlm_invasion_percolation(50, 50, n = 500L, seed = 1L)
+#' stopifnot(all(m %in% c(0, 1)))
+nlm_invasion_percolation <- function(rows, cols, n = 2000L, seed = NULL) {
+  r_invasion_percolation(as.integer(rows), as.integer(cols),
+                          as.integer(n),
+                          if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Gaussian blobs ─────────────────────────────────────────────────────────────
+
+#' Gaussian blobs NLM
+#'
+#' Places \code{n} random Gaussian kernel centres and accumulates their
+#' contributions across the grid, then rescales to \eqn{[0, 1]}. Produces
+#' smooth, blob-like elevation fields.
+#'
+#' @param rows  Number of rows.
+#' @param cols  Number of columns.
+#' @param n     Number of blob centres (default 50).
+#' @param sigma Gaussian width in cells (default 5.0).
+#' @param seed  Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1)}.
+#' @export
+#' @examples
+#' m <- nlm_gaussian_blobs(50, 50, n = 20L, sigma = 8.0, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_gaussian_blobs <- function(rows, cols, n = 50L, sigma = 5.0, seed = NULL) {
+  r_gaussian_blobs(as.integer(rows), as.integer(cols),
+                   as.integer(n), as.double(sigma),
+                   if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Ising model ────────────────────────────────────────────────────────────────
+
+#' Ising model NLM
+#'
+#' Simulates a 2D Ising spin lattice via Glauber (random sequential) dynamics.
+#' Near the critical inverse temperature (\eqn{\beta \approx 0.44}) the model
+#' produces scale-free, patchy binary patterns reminiscent of habitat mosaics.
+#'
+#' @param rows       Number of rows.
+#' @param cols       Number of columns.
+#' @param beta       Inverse temperature. Values near 0.44 produce critical
+#'   (scale-free) patterns; higher values produce larger patches; lower values
+#'   produce finer speckle (default 0.4).
+#' @param iterations Number of sweeps; each sweep attempts \code{rows × cols}
+#'   spin flips (default 1000).
+#' @param seed       Integer seed. \code{NULL} for random output.
+#'
+#' @return A binary numeric matrix with values in \eqn{\{0, 1\}}.
+#' @export
+#' @examples
+#' m <- nlm_ising_model(50, 50, beta = 0.4, iterations = 500L, seed = 1L)
+#' stopifnot(all(m %in% c(0, 1)))
+nlm_ising_model <- function(rows, cols, beta = 0.4, iterations = 1000L, seed = NULL) {
+  r_ising_model(as.integer(rows), as.integer(cols),
+                as.double(beta), as.integer(iterations),
+                if (is.null(seed)) NULL else as.double(seed))
+}
+
 # ── Post-processing ───────────────────────────────────────────────────────────
 
 #' Classify a landscape matrix into discrete classes

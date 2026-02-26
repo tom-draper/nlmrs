@@ -689,6 +689,88 @@ fn diffusion_limited_aggregation(
     to_numpy(py, grid)
 }
 
+/// OpenSimplex noise NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Coordinate frequency (higher = more features per unit, default 4.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, seed=None))]
+fn simplex_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::simplex_noise(rows, cols, scale, seed));
+    to_numpy(py, grid)
+}
+
+/// Invasion percolation NLM. Binary values {0.0, 1.0}.
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of cells to invade from the centre (default 2000).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=2000, seed=None))]
+fn invasion_percolation(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::invasion_percolation(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Sum of random Gaussian blob kernels. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of blob centres (default 50).
+/// sigma : float
+///     Gaussian width in cells (default 5.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=50, sigma=5.0, seed=None))]
+fn gaussian_blobs(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    sigma: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::gaussian_blobs(rows, cols, n, sigma, seed));
+    to_numpy(py, grid)
+}
+
+/// Ising model via Glauber dynamics. Binary values {0.0, 1.0}.
+///
+/// Parameters
+/// ----------
+/// beta : float
+///     Inverse temperature. Near 0.44 = critical point (default 0.4).
+/// iterations : int
+///     Number of sweeps; each sweep = rows × cols spin-flip attempts (default 1000).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, beta=0.4, iterations=1000, seed=None))]
+fn ising_model(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    beta: f64,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::ising_model(rows, cols, beta, iterations, seed));
+    to_numpy(py, grid)
+}
+
 // ── Post-processing ──────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.
@@ -786,6 +868,10 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(eden_growth, m)?)?;
     m.add_function(wrap_pyfunction!(fractal_brownian_surface, m)?)?;
     m.add_function(wrap_pyfunction!(landscape_gradient, m)?)?;
+    m.add_function(wrap_pyfunction!(simplex_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(invasion_percolation, m)?)?;
+    m.add_function(wrap_pyfunction!(gaussian_blobs, m)?)?;
+    m.add_function(wrap_pyfunction!(ising_model, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

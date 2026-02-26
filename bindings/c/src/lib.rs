@@ -551,3 +551,49 @@ pub extern "C" fn nlmrs_diffusion_limited_aggregation(
 ) -> NlmGrid {
     NlmGrid::from_grid(nlmrs::diffusion_limited_aggregation(rows, cols, n, opt_seed(seed)))
 }
+
+/// OpenSimplex noise NLM. Values in [0, 1).
+///
+/// @param scale  Coordinate frequency.
+/// @param seed   Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_simplex_noise(
+    rows: usize, cols: usize, scale: f64, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::simplex_noise(rows, cols, scale, opt_seed(seed)))
+}
+
+/// Invasion percolation NLM — lowest-weight boundary growth from centre. Values in {0.0, 1.0}.
+///
+/// @param n    Number of cells to invade.
+/// @param seed Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_invasion_percolation(
+    rows: usize, cols: usize, n: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::invasion_percolation(rows, cols, n, opt_seed(seed)))
+}
+
+/// Sum of random Gaussian blob kernels. Values in [0, 1).
+///
+/// @param n     Number of blob centres.
+/// @param sigma Gaussian width in cells.
+/// @param seed  Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_gaussian_blobs(
+    rows: usize, cols: usize, n: usize, sigma: f64, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::gaussian_blobs(rows, cols, n, sigma, opt_seed(seed)))
+}
+
+/// Ising model via Glauber dynamics. Binary values {0.0, 1.0}.
+///
+/// @param beta       Inverse temperature (near 0.44 = critical point).
+/// @param iterations Number of sweeps (each = rows × cols spin-flip attempts).
+/// @param seed       Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_ising_model(
+    rows: usize, cols: usize, beta: f64, iterations: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::ising_model(rows, cols, beta, iterations, opt_seed(seed)))
+}

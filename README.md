@@ -50,11 +50,15 @@ Deterministic spatial fields derived from direction, distance, or position.
 
 `planar_gradient(rows: 100, cols: 100, direction: 45.0, seed: 42)`
 
+Linear ramp at a given `direction` angle, increasing uniformly from 0 to 1 across the grid.
+
 <img src="examples/planar_gradient.png" alt="" width=300 />
 
 #### Edge Gradient
 
 `edge_gradient(rows: 100, cols: 100, direction: 45.0, seed: 42)`
+
+Symmetric version of the planar gradient: values peak at 1.0 along the central axis and fall to 0.0 at both edges.
 
 <img src="examples/edge_gradient.png" alt="" width=300 />
 
@@ -62,11 +66,15 @@ Deterministic spatial fields derived from direction, distance, or position.
 
 `distance_gradient(rows: 100, cols: 100, seed: 42)`
 
+Euclidean distance transform from random seed cells, producing a smooth radial falloff from 0 at the seeds outward to 1 at the most distant point.
+
 <img src="examples/distance_gradient.png" alt="" width=300 />
 
 #### Wave Gradient
 
 `wave_gradient(rows: 100, cols: 100, period: 3.0, seed: 42)`
+
+Sinusoidal wave oriented at a given `direction` angle, cycling repeatedly from 0 to 1 and back at the specified `period`.
 
 <img src="examples/wave_gradient.png" alt="" width=300 />
 
@@ -78,6 +86,8 @@ Continuous stochastic fields, from single-layer lattice noise to multi-octave fr
 
 `perlin_noise(rows: 100, cols: 100, scale: 4.0, seed: 42)`
 
+Smooth gradient noise built from dot products of random gradient vectors at lattice points, producing continuous, natural-looking variation.
+
 <img src="examples/perlin.png" alt="" width=300 />
 
 *Source: [Perlin (1985)](https://doi.org/10.1145/325165.325247)*
@@ -86,13 +96,15 @@ Continuous stochastic fields, from single-layer lattice noise to multi-octave fr
 
 `value_noise(rows: 100, cols: 100, scale: 4.0, seed: 42)`
 
-Interpolated lattice noise — smoother and more rounded than Perlin noise.
+Interpolated lattice noise that is smoother and more rounded than Perlin noise.
 
 <img src="examples/value_noise.png" alt="" width=300 />
 
 #### Worley Noise
 
 `worley_noise(rows: 100, cols: 100, scale: 4.0, seed: 42)`
+
+Cell noise built from distances to random feature points, producing cellular, cracked-earth, or mosaic-like patterns.
 
 <img src="examples/worley.png" alt="" width=300 />
 
@@ -101,6 +113,8 @@ Interpolated lattice noise — smoother and more rounded than Perlin noise.
 #### Gaussian Field
 
 `gaussian_field(rows: 100, cols: 100, sigma: 10.0, seed: 42)`
+
+White noise smoothed by a Gaussian blur kernel with standard deviation `sigma`, producing spatially correlated fields where patch size scales directly with `sigma`.
 
 <img src="examples/gaussian_field.png" alt="" width=300 />
 
@@ -118,6 +132,8 @@ Fractal Brownian motion layers multiple octaves of Perlin noise for more natural
 
 `ridged_noise(rows: 100, cols: 100, scale: 4.0, octaves: 6, seed: 42)`
 
+Multi-octave noise where each octave is inverted and folded, producing sharp mountain ridges and valleys.
+
 <img src="examples/ridged.png" alt="" width=300 />
 
 *Source: [Musgrave, Kolb & Mace (1989)](https://doi.org/10.1145/74334.74337)*
@@ -126,9 +142,11 @@ Fractal Brownian motion layers multiple octaves of Perlin noise for more natural
 
 `billow_noise(rows: 100, cols: 100, scale: 4.0, octaves: 6, seed: 42)`
 
+Multi-octave noise with absolute-value folding applied before accumulation, producing rounded billowing clouds or rolling dune shapes.
+
 <img src="examples/billow.png" alt="" width=300 />
 
-*Source: Ebert et al. — Texturing and Modeling: A Procedural Approach (2002)*
+*Source: Ebert et al., Texturing and Modeling: A Procedural Approach (2002)*
 
 #### Hybrid Noise
 
@@ -164,11 +182,19 @@ Perlin noise sampled at coordinates displaced by a second Perlin field, producin
 
 `spectral_synthesis(rows: 100, cols: 100, beta: 2.0, seed: 42)`
 
-Generates correlated noise in the frequency domain — each component's amplitude is scaled by `f^(-beta/2)`, giving a power spectrum ∝ `1/f^beta`. Higher `beta` produces smoother, more spatially correlated landscapes.
+Generates correlated noise in the frequency domain by scaling each component's amplitude by `f^(-beta/2)`, giving a power spectrum proportional to `1/f^beta`. Higher `beta` produces smoother, more spatially correlated landscapes.
 
 <img src="examples/spectral_synthesis.png" alt="" width=300 />
 
 *Source: [Peitgen & Saupe (1988)](https://link.springer.com/book/9780387966694)*
+
+#### Simplex Noise
+
+`simplex_noise(rows: 100, cols: 100, scale: 4.0, seed: 42)`
+
+An open-source alternative to Perlin noise with fewer directional artefacts.
+
+<img src="examples/simplex_noise.png" alt="" width=300 />
 
 ### Patch
 
@@ -178,13 +204,15 @@ Discrete spatial patterns built from random processes, clustering, or hierarchic
 
 `random(rows: 100, cols: 100, seed: 42)`
 
+Independent uniform random values at each cell, with no spatial structure.
+
 <img src="examples/random.png" alt="" width=300 />
 
 #### Percolation
 
 `percolation(rows: 100, cols: 100, p: 0.55, seed: 42)`
 
-Binary Bernoulli lattice — each cell is independently set to 1 with probability `p`, producing binary habitat maps. The critical percolation threshold for 4-connectivity is approximately 0.593.
+Binary Bernoulli lattice where each cell is independently set to 1 with probability `p`, producing binary habitat maps. The critical percolation threshold for 4-connectivity is approximately 0.593.
 
 <img src="examples/percolation.png" alt="" width=300 />
 
@@ -194,6 +222,8 @@ Binary Bernoulli lattice — each cell is independently set to 1 with probabilit
 
 `random_element(rows: 100, cols: 100, n: 5000, seed: 42)`
 
+Places `n` labelled seed cells at random positions, then fills all remaining cells with the value of the nearest seed using nearest-neighbour interpolation.
+
 <img src="examples/random_element.png" alt="" width=300 />
 
 *Source: [Etherington, Holland & O'Sullivan (2015)](https://doi.org/10.1111/2041-210X.12308)*
@@ -202,13 +232,15 @@ Binary Bernoulli lattice — each cell is independently set to 1 with probabilit
 
 `mosaic(rows: 100, cols: 100, n: 300, seed: 42)`
 
-Discrete Voronoi map — each region is a flat colour determined by its nearest seed point, producing a stained-glass or territory effect.
+Discrete Voronoi map where each region is a flat colour determined by its nearest seed point, producing a stained-glass or territory effect.
 
 <img src="examples/mosaic.png" alt="" width=300 />
 
 #### Random Cluster
 
 `random_cluster(rows: 100, cols: 100, n: 200, seed: 42)`
+
+Applies `n` random fault-line cuts across the grid, accumulating the field on each side, then rescales. Produces spatially clustered landscapes with the linear structural elements characteristic of geological fault patterns.
 
 <img src="examples/random_cluster.png" alt="" width=300 />
 
@@ -226,7 +258,7 @@ Overlapping random axis-aligned rectangles accumulated and scaled, producing blo
 
 `binary_space_partitioning(rows: 100, cols: 100, n: 200, seed: 42)`
 
-Hierarchical rectilinear partition — the largest rectangle is repeatedly split along its longest dimension until `n` leaf regions remain, each assigned a random value. Produces structured blocky landscapes.
+Hierarchical rectilinear partition: the largest rectangle is repeatedly split along its longest dimension until `n` leaf regions remain, each assigned a random value. Produces structured blocky landscapes.
 
 <img src="examples/binary_space_partitioning.png" alt="" width=300 />
 
@@ -236,7 +268,7 @@ Hierarchical rectilinear partition — the largest rectangle is repeatedly split
 
 `neighbourhood_clustering(rows: 100, cols: 100, k: 5, iterations: 10, seed: 42)`
 
-Initialises a grid with `k` random classes then repeatedly applies a majority-vote rule — each cell adopts the most common class in its 3×3 Moore neighbourhood. More iterations produce larger, smoother organic patches.
+Initialises a grid with `k` random classes then repeatedly applies a majority-vote rule: each cell adopts the most common class in its 3×3 Moore neighbourhood. More iterations produce larger, smoother organic patches.
 
 <img src="examples/neighbourhood_clustering.png" alt="" width=300 />
 
@@ -244,7 +276,7 @@ Initialises a grid with `k` random classes then repeatedly applies a majority-vo
 
 `cellular_automaton(rows: 100, cols: 100, p: 0.45, iterations: 5, seed: 42)`
 
-Random binary grid evolved by Conway-style birth/survival rules — a dead cell is born if it has ≥ `birth_threshold` live neighbours; a live cell survives if it has ≥ `survival_threshold`. Produces cave-like binary landscapes.
+Random binary grid evolved by Conway-style birth/survival rules: a dead cell is born if it has at least `birth_threshold` live neighbours; a live cell survives if it has at least `survival_threshold`. Produces cave-like binary landscapes.
 
 <img src="examples/cellular_automaton.png" alt="" width=300 />
 
@@ -252,7 +284,7 @@ Random binary grid evolved by Conway-style birth/survival rules — a dead cell 
 
 `reaction_diffusion(rows: 100, cols: 100, iterations: 1000, feed: 0.055, kill: 0.062, seed: 42)`
 
-Gray-Scott reaction-diffusion model — two chemicals (A and B) diffuse and react across the grid. Different `feed`/`kill` combinations produce spots, stripes, labyrinths, and other Turing-pattern morphologies.
+Gray-Scott reaction-diffusion model where two chemicals (A and B) diffuse and react across the grid. Different `feed`/`kill` combinations produce spots, stripes, labyrinths, and other Turing-pattern morphologies.
 
 <img src="examples/reaction_diffusion.png" alt="" width=300 />
 
@@ -288,9 +320,35 @@ Random-walking particles released from a spawn ring stick when adjacent to the g
 
 <img src="examples/diffusion_limited_aggregation.png" alt="" width=300 />
 
+#### Invasion Percolation
+
+`invasion_percolation(rows: 100, cols: 100, n: 2000, seed: 42)`
+
+Grows a cluster from the grid centre by always invading the boundary cell with the lowest random weight, producing fractal-like connected binary patches.
+
+<img src="examples/invasion_percolation.png" alt="" width=300 />
+
+#### Gaussian Blobs
+
+`gaussian_blobs(rows: 100, cols: 100, n: 50, sigma: 5.0, seed: 42)`
+
+Places random Gaussian kernel centres and accumulates their contributions across the grid, then rescales to [0, 1]. Produces smooth blob-like elevation fields.
+
+<img src="examples/gaussian_blobs.png" alt="" width=300 />
+
+#### Ising Model
+
+`ising_model(rows: 100, cols: 100, beta: 0.4, iterations: 1000, seed: 42)`
+
+Simulates a 2D Ising spin lattice via Glauber dynamics. Near the critical inverse temperature (β ≈ 0.44) the model produces scale-free, patchy binary patterns reminiscent of habitat mosaics.
+
+<img src="examples/ising_model.png" alt="" width=300 />
+
 #### Hill Grow
 
 `hill_grow(rows: 100, cols: 100, n: 20000, seed: 42)`
+
+Iteratively stamps a smooth convolution kernel at randomly selected cells, building up hill-like mounds. With `runaway=True`, taller cells attract more growth, causing hills to cluster into ridges.
 
 <img src="examples/hill_grow.png" alt="" width=300 />
 
@@ -299,6 +357,8 @@ Random-walking particles released from a spawn ring stick when adjacent to the g
 #### Midpoint Displacement
 
 `midpoint_displacement(rows: 100, cols: 100, h: 0.8, seed: 42)`
+
+Recursive fractal terrain generation: grid midpoints are displaced by decreasing random amounts at each subdivision step, with `h` controlling the roughness (0 = rough, 1 = smooth).
 
 <img src="examples/midpoint_displacement.png" alt="" width=300 />
 
@@ -407,25 +467,6 @@ plt.show()
 All parameters are keyword-friendly with sensible defaults:
 
 ```python
-# Patch-based
-nlmrs.random(100, 100)
-nlmrs.random_element(100, 100, n=50000.0)
-nlmrs.hill_grow(100, 100, n=10000, runaway=True)
-nlmrs.midpoint_displacement(100, 100, h=1.0)
-nlmrs.gaussian_field(100, 100, sigma=10.0)
-nlmrs.random_cluster(100, 100, n=200)
-nlmrs.mosaic(100, 100, n=200)
-nlmrs.rectangular_cluster(100, 100, n=200)
-nlmrs.percolation(100, 100, p=0.5)
-nlmrs.binary_space_partitioning(100, 100, n=100)
-nlmrs.cellular_automaton(100, 100, p=0.45, iterations=5)
-nlmrs.neighbourhood_clustering(100, 100, k=5, iterations=10)
-nlmrs.diffusion_limited_aggregation(100, 100, n=2000)
-nlmrs.reaction_diffusion(100, 100, iterations=1000, feed=0.055, kill=0.062)
-nlmrs.eden_growth(100, 100, n=2000)
-nlmrs.fractal_brownian_surface(100, 100, h=0.5)
-nlmrs.landscape_gradient(100, 100, direction=45.0, aspect=2.0)
-
 # Gradient
 nlmrs.planar_gradient(100, 100, direction=45.0)
 nlmrs.edge_gradient(100, 100)
@@ -434,15 +475,38 @@ nlmrs.wave_gradient(100, 100, period=2.5, direction=90.0)
 
 # Noise
 nlmrs.perlin_noise(100, 100, scale=4.0)
+nlmrs.value_noise(100, 100, scale=4.0)
+nlmrs.worley_noise(100, 100, scale=4.0)
+nlmrs.gaussian_field(100, 100, sigma=10.0)
 nlmrs.fbm_noise(100, 100, scale=4.0, octaves=6, persistence=0.5, lacunarity=2.0)
 nlmrs.ridged_noise(100, 100, scale=4.0, octaves=6)
 nlmrs.billow_noise(100, 100, scale=4.0, octaves=6)
-nlmrs.worley_noise(100, 100, scale=4.0)
 nlmrs.hybrid_noise(100, 100, scale=4.0, octaves=6)
-nlmrs.value_noise(100, 100, scale=4.0)
 nlmrs.turbulence(100, 100, scale=4.0, octaves=6)
 nlmrs.domain_warp(100, 100, scale=4.0, warp_strength=1.0)
 nlmrs.spectral_synthesis(100, 100, beta=2.0)
+nlmrs.simplex_noise(100, 100, scale=4.0)
+
+# Patch-based
+nlmrs.random(100, 100)
+nlmrs.random_element(100, 100, n=50000.0)
+nlmrs.hill_grow(100, 100, n=10000, runaway=True)
+nlmrs.midpoint_displacement(100, 100, h=1.0)
+nlmrs.random_cluster(100, 100, n=200)
+nlmrs.mosaic(100, 100, n=200)
+nlmrs.rectangular_cluster(100, 100, n=200)
+nlmrs.percolation(100, 100, p=0.5)
+nlmrs.binary_space_partitioning(100, 100, n=100)
+nlmrs.cellular_automaton(100, 100, p=0.45, iterations=5)
+nlmrs.neighbourhood_clustering(100, 100, k=5, iterations=10)
+nlmrs.reaction_diffusion(100, 100, iterations=1000, feed=0.055, kill=0.062)
+nlmrs.eden_growth(100, 100, n=2000)
+nlmrs.fractal_brownian_surface(100, 100, h=0.5)
+nlmrs.landscape_gradient(100, 100, direction=45.0, aspect=2.0)
+nlmrs.diffusion_limited_aggregation(100, 100, n=2000)
+nlmrs.invasion_percolation(100, 100, n=2000)
+nlmrs.gaussian_blobs(100, 100, n=50, sigma=5.0)
+nlmrs.ising_model(100, 100, beta=0.4, iterations=1000)
 ```
 
 Post-processing functions are also available:
@@ -474,40 +538,49 @@ m <- nlm_midpoint_displacement(100, 100, h = 0.8, seed = 42L)
 image(m, col = terrain.colors(256))
 ```
 
-All 31 algorithms are available with the `nlm_` prefix:
+All 35 algorithms are available with the `nlm_` prefix:
 
 ```r
-nlm_random(100, 100)
-nlm_random_element(100, 100, n = 50000)
+# Gradient
 nlm_planar_gradient(100, 100, direction = 45)
 nlm_edge_gradient(100, 100)
 nlm_distance_gradient(100, 100)
 nlm_wave_gradient(100, 100, period = 2.5)
-nlm_midpoint_displacement(100, 100, h = 1.0)
-nlm_hill_grow(100, 100, n = 10000L, runaway = TRUE)
+
+# Noise
 nlm_perlin_noise(100, 100, scale = 4.0)
+nlm_value_noise(100, 100, scale = 4.0)
+nlm_worley_noise(100, 100, scale = 4.0)
+nlm_gaussian_field(100, 100, sigma = 10.0)
 nlm_fbm_noise(100, 100, scale = 4.0, octaves = 6L)
 nlm_ridged_noise(100, 100, scale = 4.0, octaves = 6L)
 nlm_billow_noise(100, 100, scale = 4.0, octaves = 6L)
-nlm_worley_noise(100, 100, scale = 4.0)
-nlm_gaussian_field(100, 100, sigma = 10.0)
-nlm_random_cluster(100, 100, n = 200L)
 nlm_hybrid_noise(100, 100, scale = 4.0, octaves = 6L)
-nlm_value_noise(100, 100, scale = 4.0)
 nlm_turbulence(100, 100, scale = 4.0, octaves = 6L)
 nlm_domain_warp(100, 100, scale = 4.0, warp_strength = 1.0)
+nlm_spectral_synthesis(100, 100, beta = 2.0)
+nlm_simplex_noise(100, 100, scale = 4.0)
+
+# Patch-based
+nlm_random(100, 100)
+nlm_random_element(100, 100, n = 50000)
+nlm_hill_grow(100, 100, n = 10000L, runaway = TRUE)
+nlm_midpoint_displacement(100, 100, h = 1.0)
+nlm_random_cluster(100, 100, n = 200L)
 nlm_mosaic(100, 100, n = 200L)
 nlm_rectangular_cluster(100, 100, n = 200L)
 nlm_percolation(100, 100, p = 0.5)
 nlm_binary_space_partitioning(100, 100, n = 100L)
 nlm_cellular_automaton(100, 100, p = 0.45, iterations = 5L)
 nlm_neighbourhood_clustering(100, 100, k = 5L, iterations = 10L)
-nlm_spectral_synthesis(100, 100, beta = 2.0)
-nlm_diffusion_limited_aggregation(100, 100, n = 2000L)
 nlm_reaction_diffusion(100, 100, iterations = 1000L, feed = 0.055, kill = 0.062)
 nlm_eden_growth(100, 100, n = 2000L)
 nlm_fractal_brownian_surface(100, 100, h = 0.5)
 nlm_landscape_gradient(100, 100, direction = 45.0, aspect = 2.0)
+nlm_diffusion_limited_aggregation(100, 100, n = 2000L)
+nlm_invasion_percolation(100, 100, n = 2000L)
+nlm_gaussian_blobs(100, 100, n = 50L, sigma = 5.0)
+nlm_ising_model(100, 100, beta = 0.4, iterations = 1000L)
 ```
 
 ### C bindings
@@ -568,7 +641,7 @@ nlmrs_free(g1);
 nlmrs_free(g2);
 ```
 
-All 31 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
+All 35 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
 
 ### WASM bindings
 
@@ -598,7 +671,7 @@ const value = flat[r * grid.cols + c];
 grid.free();  // release Rust memory
 ```
 
-All 31 algorithms are available. Seeds are passed as plain integers. Omit the seed argument for random output.
+All 35 algorithms are available. Seeds are passed as plain integers. Omit the seed argument for random output.
 
 ## Contributions
 

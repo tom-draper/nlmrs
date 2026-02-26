@@ -381,6 +381,40 @@ fn r_diffusion_limited_aggregation(rows: i32, cols: i32, n: i32, seed: Nullable<
     grid_to_rmatrix(grid)
 }
 
+/// OpenSimplex noise NLM. Values in [0, 1).
+#[extendr]
+fn r_simplex_noise(rows: i32, cols: i32, scale: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::simplex_noise(rows as usize, cols as usize, scale, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Invasion percolation NLM — lowest-weight boundary growth from centre. Values in {0.0, 1.0}.
+#[extendr]
+fn r_invasion_percolation(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::invasion_percolation(
+        rows as usize, cols as usize, n as usize, seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
+/// Sum of random Gaussian blob kernels. Values in [0, 1).
+#[extendr]
+fn r_gaussian_blobs(rows: i32, cols: i32, n: i32, sigma: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::gaussian_blobs(
+        rows as usize, cols as usize, n as usize, sigma, seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
+/// Ising model via Glauber dynamics. Binary values {0.0, 1.0}.
+#[extendr]
+fn r_ising_model(rows: i32, cols: i32, beta: f64, iterations: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::ising_model(
+        rows as usize, cols as usize, beta, iterations as usize, seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Convert a column-major R matrix to a row-major Grid.
@@ -508,6 +542,10 @@ extendr_module! {
     fn r_eden_growth;
     fn r_fractal_brownian_surface;
     fn r_landscape_gradient;
+    fn r_simplex_noise;
+    fn r_invasion_percolation;
+    fn r_gaussian_blobs;
+    fn r_ising_model;
     fn r_classify;
     fn r_threshold;
 }

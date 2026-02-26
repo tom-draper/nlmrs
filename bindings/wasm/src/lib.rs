@@ -598,6 +598,62 @@ pub fn diffusion_limited_aggregation(rows: u32, cols: u32, n: u32, seed: Option<
     grid_to_wasm(grid)
 }
 
+/// OpenSimplex noise NLM. Values in [0, 1).
+///
+/// @param rows  - Number of rows.
+/// @param cols  - Number of columns.
+/// @param scale - Coordinate frequency (default 4.0).
+/// @param seed  - Optional integer seed.
+#[wasm_bindgen]
+pub fn simplex_noise(rows: u32, cols: u32, scale: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::simplex_noise(rows as usize, cols as usize, scale, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Invasion percolation NLM — lowest-weight boundary growth from centre. Values in {0.0, 1.0}.
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param n    - Number of cells to invade (default 2000).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn invasion_percolation(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::invasion_percolation(
+        rows as usize, cols as usize, n as usize, seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
+/// Sum of random Gaussian blob kernels. Values in [0, 1).
+///
+/// @param rows  - Number of rows.
+/// @param cols  - Number of columns.
+/// @param n     - Number of blob centres (default 50).
+/// @param sigma - Gaussian width in cells (default 5.0).
+/// @param seed  - Optional integer seed.
+#[wasm_bindgen]
+pub fn gaussian_blobs(rows: u32, cols: u32, n: u32, sigma: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::gaussian_blobs(
+        rows as usize, cols as usize, n as usize, sigma, seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
+/// Ising model via Glauber dynamics. Binary values {0.0, 1.0}.
+///
+/// @param rows       - Number of rows.
+/// @param cols       - Number of columns.
+/// @param beta       - Inverse temperature (near 0.44 = critical point, default 0.4).
+/// @param iterations - Number of sweeps (default 1000).
+/// @param seed       - Optional integer seed.
+#[wasm_bindgen]
+pub fn ising_model(rows: u32, cols: u32, beta: f64, iterations: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::ising_model(
+        rows as usize, cols as usize, beta, iterations as usize, seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.

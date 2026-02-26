@@ -63,6 +63,10 @@ ALGORITHMS = [
     ("eden_growth",              "eden_growth",              {"n": 2000}),
     ("fractal_brownian_surface", "fractal_brownian_surface", {"h": 0.5}),
     ("landscape_gradient",       "landscape_gradient",       {"direction": 45.0, "aspect": 2.0}),
+    ("simplex_noise",            "simplex_noise",            {"scale": 4.0}),
+    ("invasion_percolation",     "invasion_percolation",     {"n": 2000}),
+    ("gaussian_blobs",           "gaussian_blobs",           {"n": 50, "sigma": 5.0}),
+    ("ising_model",              "ising_model",              {"beta": 0.4, "iterations": 1000}),
 ]
 
 

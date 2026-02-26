@@ -536,6 +536,41 @@ pub fn fractal_brownian_surface(rows: usize, cols: usize, h: f64, seed: Option<u
     spectral_synthesis(rows, cols, beta, seed)
 }
 
+/// Returns an OpenSimplex noise NLM with values ranging [0, 1).
+///
+/// OpenSimplex is a patent-free alternative to Perlin noise with a rounder
+/// feature shape, fewer directional artefacts, and a different visual character.
+///
+/// # Arguments
+///
+/// * `rows`         - Number of rows.
+/// * `cols`         - Number of columns.
+/// * `scale_factor` - Noise frequency (higher = more features per unit area).
+/// * `seed`         - Optional RNG seed for reproducible results.
+pub fn simplex_noise(rows: usize, cols: usize, scale_factor: f64, seed: Option<u64>) -> Grid {
+    use noise::{NoiseFn, OpenSimplex};
+    let seed_val = perlin_seed(seed);
+    let gen = OpenSimplex::new(seed_val);
+
+    let mut grid = Grid::new(rows, cols);
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let ny = i as f64 * inv_rows * scale_factor;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let nx = j as f64 * inv_cols * scale_factor;
+            *cell = gen.get([nx, ny]);
+        }
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -759,6 +794,27 @@ mod tests {
     fn test_fractal_brownian_surface_seeded_determinism() {
         let a = fractal_brownian_surface(50, 50, 0.5, Some(42));
         let b = fractal_brownian_surface(50, 50, 0.5, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── simplex_noise ─────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_simplex_noise(#[case] rows: usize, #[case] cols: usize) {
+        let grid = simplex_noise(rows, cols, 4.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_simplex_noise_seeded_determinism() {
+        let a = simplex_noise(50, 50, 4.0, Some(42));
+        let b = simplex_noise(50, 50, 4.0, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

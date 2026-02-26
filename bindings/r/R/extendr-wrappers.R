@@ -144,6 +144,22 @@ r_landscape_gradient <- function(rows, cols, direction = NULL, aspect = 1.0, see
   .Call(wrap__r_landscape_gradient, rows, cols, direction, aspect, seed)
 }
 
+r_simplex_noise <- function(rows, cols, scale = 4.0, seed = NULL) {
+  .Call(wrap__r_simplex_noise, rows, cols, scale, seed)
+}
+
+r_invasion_percolation <- function(rows, cols, n = 2000L, seed = NULL) {
+  .Call(wrap__r_invasion_percolation, rows, cols, n, seed)
+}
+
+r_gaussian_blobs <- function(rows, cols, n = 50L, sigma = 5.0, seed = NULL) {
+  .Call(wrap__r_gaussian_blobs, rows, cols, n, sigma, seed)
+}
+
+r_ising_model <- function(rows, cols, beta = 0.4, iterations = 1000L, seed = NULL) {
+  .Call(wrap__r_ising_model, rows, cols, beta, iterations, seed)
+}
+
 r_classify <- function(m, n) {
   .Call(wrap__r_classify, m, n)
 }
