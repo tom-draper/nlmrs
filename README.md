@@ -574,65 +574,6 @@ plt.axis("off")
 plt.show()
 ```
 
-All parameters are keyword-friendly with sensible defaults:
-
-```python
-# Gradient
-nlmrs.planar_gradient(100, 100, direction=45.0)
-nlmrs.edge_gradient(100, 100)
-nlmrs.distance_gradient(100, 100)
-nlmrs.wave_gradient(100, 100, period=2.5, direction=90.0)
-nlmrs.landscape_gradient(100, 100, direction=45.0, aspect=2.0)
-
-# Noise
-nlmrs.perlin_noise(100, 100, scale=4.0)
-nlmrs.value_noise(100, 100, scale=4.0)
-nlmrs.worley_noise(100, 100, scale=4.0)
-nlmrs.fbm_noise(100, 100, scale=4.0, octaves=6, persistence=0.5, lacunarity=2.0)
-nlmrs.ridged_noise(100, 100, scale=4.0, octaves=6)
-nlmrs.billow_noise(100, 100, scale=4.0, octaves=6)
-nlmrs.hybrid_noise(100, 100, scale=4.0, octaves=6)
-nlmrs.turbulence(100, 100, scale=4.0, octaves=6)
-nlmrs.domain_warp(100, 100, scale=4.0, warp_strength=1.0)
-nlmrs.spectral_synthesis(100, 100, beta=2.0)
-nlmrs.fractal_brownian_surface(100, 100, h=0.5)
-nlmrs.simplex_noise(100, 100, scale=4.0)
-nlmrs.voronoi_distance(100, 100, n=50)
-nlmrs.sine_composite(100, 100, waves=8)
-nlmrs.curl_noise(100, 100, scale=4.0)
-nlmrs.gabor_noise(100, 100, scale=4.0, n=500)
-nlmrs.spot_noise(100, 100, n=200)
-nlmrs.anisotropic_noise(100, 100, scale=4.0, octaves=6, direction=45.0, stretch=4.0)
-nlmrs.tiled_noise(100, 100, scale=4.0)
-
-# Patch-based
-nlmrs.random(100, 100)
-nlmrs.random_element(100, 100, n=50000.0)
-nlmrs.hill_grow(100, 100, n=10000, runaway=True)
-nlmrs.midpoint_displacement(100, 100, h=1.0)
-nlmrs.random_cluster(100, 100, n=200)
-nlmrs.mosaic(100, 100, n=200)
-nlmrs.rectangular_cluster(100, 100, n=200)
-nlmrs.percolation(100, 100, p=0.5)
-nlmrs.binary_space_partitioning(100, 100, n=100)
-nlmrs.cellular_automaton(100, 100, p=0.45, iterations=5)
-nlmrs.neighbourhood_clustering(100, 100, k=5, iterations=10)
-nlmrs.reaction_diffusion(100, 100, iterations=1000, feed=0.055, kill=0.062)
-nlmrs.eden_growth(100, 100, n=2000)
-nlmrs.diffusion_limited_aggregation(100, 100, n=2000)
-nlmrs.invasion_percolation(100, 100, n=2000)
-nlmrs.gaussian_blobs(100, 100, n=50, sigma=5.0)
-nlmrs.ising_model(100, 100, beta=0.4, iterations=1000)
-nlmrs.hydraulic_erosion(100, 100, n=500)
-nlmrs.levy_flight(100, 100, n=1000)
-nlmrs.poisson_disk(100, 100, min_dist=5.0)
-nlmrs.gaussian_field(100, 100, sigma=10.0)
-nlmrs.brownian_motion(100, 100, n=5000)
-nlmrs.forest_fire(100, 100, p_tree=0.02, p_lightning=0.001, iterations=500)
-nlmrs.river_network(100, 100)
-nlmrs.hexagonal_voronoi(100, 100, n=50)
-```
-
 Post-processing functions are also available:
 
 ```python
@@ -662,65 +603,6 @@ m <- nlm_midpoint_displacement(100, 100, h = 0.8, seed = 42L)
 image(m, col = terrain.colors(256))
 ```
 
-All 49 algorithms are available with the `nlm_` prefix:
-
-```r
-# Gradient
-nlm_planar_gradient(100, 100, direction = 45)
-nlm_edge_gradient(100, 100)
-nlm_distance_gradient(100, 100)
-nlm_wave_gradient(100, 100, period = 2.5)
-nlm_landscape_gradient(100, 100, direction = 45.0, aspect = 2.0)
-
-# Noise
-nlm_perlin_noise(100, 100, scale = 4.0)
-nlm_value_noise(100, 100, scale = 4.0)
-nlm_worley_noise(100, 100, scale = 4.0)
-nlm_fbm_noise(100, 100, scale = 4.0, octaves = 6L)
-nlm_ridged_noise(100, 100, scale = 4.0, octaves = 6L)
-nlm_billow_noise(100, 100, scale = 4.0, octaves = 6L)
-nlm_hybrid_noise(100, 100, scale = 4.0, octaves = 6L)
-nlm_turbulence(100, 100, scale = 4.0, octaves = 6L)
-nlm_domain_warp(100, 100, scale = 4.0, warp_strength = 1.0)
-nlm_spectral_synthesis(100, 100, beta = 2.0)
-nlm_fractal_brownian_surface(100, 100, h = 0.5)
-nlm_simplex_noise(100, 100, scale = 4.0)
-nlm_voronoi_distance(100, 100, n = 50L)
-nlm_sine_composite(100, 100, waves = 8L)
-nlm_curl_noise(100, 100, scale = 4.0)
-nlm_gabor_noise(100, 100, scale = 4.0, n = 500L)
-nlm_spot_noise(100, 100, n = 200L)
-nlm_anisotropic_noise(100, 100, scale = 4.0, octaves = 6L, direction = 45.0, stretch = 4.0)
-nlm_tiled_noise(100, 100, scale = 4.0)
-
-# Patch-based
-nlm_random(100, 100)
-nlm_random_element(100, 100, n = 50000)
-nlm_hill_grow(100, 100, n = 10000L, runaway = TRUE)
-nlm_midpoint_displacement(100, 100, h = 1.0)
-nlm_random_cluster(100, 100, n = 200L)
-nlm_mosaic(100, 100, n = 200L)
-nlm_rectangular_cluster(100, 100, n = 200L)
-nlm_percolation(100, 100, p = 0.5)
-nlm_binary_space_partitioning(100, 100, n = 100L)
-nlm_cellular_automaton(100, 100, p = 0.45, iterations = 5L)
-nlm_neighbourhood_clustering(100, 100, k = 5L, iterations = 10L)
-nlm_reaction_diffusion(100, 100, iterations = 1000L, feed = 0.055, kill = 0.062)
-nlm_eden_growth(100, 100, n = 2000L)
-nlm_diffusion_limited_aggregation(100, 100, n = 2000L)
-nlm_invasion_percolation(100, 100, n = 2000L)
-nlm_gaussian_blobs(100, 100, n = 50L, sigma = 5.0)
-nlm_ising_model(100, 100, beta = 0.4, iterations = 1000L)
-nlm_hydraulic_erosion(100, 100, n = 500L)
-nlm_levy_flight(100, 100, n = 1000L)
-nlm_poisson_disk(100, 100, min_dist = 5.0)
-nlm_gaussian_field(100, 100, sigma = 10.0)
-nlm_brownian_motion(100, 100, n = 5000L)
-nlm_forest_fire(100, 100, p_tree = 0.02, p_lightning = 0.001, iterations = 500L)
-nlm_river_network(100, 100)
-nlm_hexagonal_voronoi(100, 100, n = 50L)
-```
-
 ### Julia bindings
 
 NLMrs is available as a Julia package. Every function returns a `Matrix{Float64}`.
@@ -740,65 +622,6 @@ using NLMrs
 
 # All functions accept an optional seed keyword for reproducible output.
 m = midpoint_displacement(100, 100, h=0.8, seed=42)  # Matrix{Float64} (100, 100)
-```
-
-All parameters are keyword-friendly with sensible defaults:
-
-```julia
-# Gradient
-planar_gradient(100, 100, direction=45.0)
-edge_gradient(100, 100)
-distance_gradient(100, 100)
-wave_gradient(100, 100, period=2.5)
-landscape_gradient(100, 100, direction=45.0, aspect=2.0)
-
-# Noise
-perlin_noise(100, 100, scale=4.0)
-value_noise(100, 100, scale=4.0)
-worley_noise(100, 100, scale=4.0)
-fbm_noise(100, 100, scale=4.0, octaves=6, persistence=0.5, lacunarity=2.0)
-ridged_noise(100, 100, scale=4.0, octaves=6)
-billow_noise(100, 100, scale=4.0, octaves=6)
-hybrid_noise(100, 100, scale=4.0, octaves=6)
-turbulence(100, 100, scale=4.0, octaves=6)
-domain_warp(100, 100, scale=4.0, warp_strength=1.0)
-spectral_synthesis(100, 100, beta=2.0)
-fractal_brownian_surface(100, 100, h=0.5)
-simplex_noise(100, 100, scale=4.0)
-voronoi_distance(100, 100, n=50)
-sine_composite(100, 100, waves=8)
-curl_noise(100, 100, scale=4.0)
-gabor_noise(100, 100, scale=4.0, n=500)
-spot_noise(100, 100, n=200)
-anisotropic_noise(100, 100, scale=4.0, octaves=6, direction=45.0, stretch=4.0)
-tiled_noise(100, 100, scale=4.0)
-
-# Patch-based
-random(100, 100)
-random_element(100, 100, n=50000)
-hill_grow(100, 100, n=10000, runaway=true)
-midpoint_displacement(100, 100, h=1.0)
-random_cluster(100, 100, n=200)
-mosaic(100, 100, n=200)
-rectangular_cluster(100, 100, n=200)
-percolation(100, 100, p=0.5)
-binary_space_partitioning(100, 100, n=100)
-cellular_automaton(100, 100, p=0.45, iterations=5)
-neighbourhood_clustering(100, 100, k=5, iterations=10)
-reaction_diffusion(100, 100, iterations=1000, feed=0.055, kill=0.062)
-eden_growth(100, 100, n=2000)
-diffusion_limited_aggregation(100, 100, n=2000)
-invasion_percolation(100, 100, n=2000)
-gaussian_blobs(100, 100, n=50, sigma=5.0)
-ising_model(100, 100, beta=0.4, iterations=1000)
-hydraulic_erosion(100, 100, n=500)
-levy_flight(100, 100, n=1000)
-poisson_disk(100, 100, min_dist=5.0)
-gaussian_field(100, 100, sigma=10.0)
-brownian_motion(100, 100, n=5000)
-forest_fire(100, 100, p_tree=0.02, p_lightning=0.001, iterations=500)
-river_network(100, 100)
-hexagonal_voronoi(100, 100, n=50)
 ```
 
 ### C bindings
