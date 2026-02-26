@@ -108,6 +108,62 @@ pub fn wave_gradient(
     grid
 }
 
+/// Returns an elliptical landscape gradient centred at the grid midpoint. Values in [0, 1).
+///
+/// The gradient decreases radially from the centre with an elliptical falloff.
+/// The `direction` angle orients the major axis of the ellipse, and `aspect`
+/// controls how elongated it is.
+///
+/// # Arguments
+///
+/// * `rows`      - Number of rows.
+/// * `cols`      - Number of columns.
+/// * `direction` - Orientation of the major axis in degrees [0, 360). `None` picks a random direction.
+/// * `aspect`    - Ratio of major to minor axis length (≥ 1.0). 1.0 = circular.
+/// * `seed`      - Optional RNG seed (used when `direction` is `None`).
+pub fn landscape_gradient(
+    rows: usize,
+    cols: usize,
+    direction: Option<f64>,
+    aspect: f64,
+    seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let angle = direction.unwrap_or_else(|| rng.gen::<f64>() * 360.0).to_radians();
+    let cos_a = angle.cos();
+    let sin_a = angle.sin();
+    let aspect = aspect.max(1.0);
+
+    let row_scale = if rows > 1 { (rows - 1) as f64 } else { 1.0 };
+    let col_scale = if cols > 1 { (cols - 1) as f64 } else { 1.0 };
+
+    let fill = |(idx, v): (usize, &mut f64)| {
+        let i = idx / cols;
+        let j = idx % cols;
+        let ny = i as f64 / row_scale - 0.5;
+        let nx = j as f64 / col_scale - 0.5;
+        // Rotate into ellipse axes
+        let rx = nx * cos_a + ny * sin_a;
+        let ry = -nx * sin_a + ny * cos_a;
+        // Major axis (rx) is `aspect` times wider than minor axis (ry)
+        *v = ((rx / aspect).powi(2) + ry.powi(2)).sqrt();
+    };
+
+    let mut data = vec![0.0f64; rows * cols];
+    #[cfg(feature = "parallel")]
+    data.par_iter_mut().enumerate().for_each(fill);
+    #[cfg(not(feature = "parallel"))]
+    data.iter_mut().enumerate().for_each(fill);
+
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    invert(&mut grid);
+    grid
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -192,5 +248,26 @@ mod tests {
         assert_eq!(grid.cols, cols);
         assert_eq!(nan_count(&grid), 0);
         assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    // ── landscape_gradient ────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(50, 50)]
+    fn test_landscape_gradient(#[case] rows: usize, #[case] cols: usize) {
+        let grid = landscape_gradient(rows, cols, Some(0.0), 1.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_landscape_gradient_seeded_determinism() {
+        let a = landscape_gradient(50, 50, None, 2.0, Some(42));
+        let b = landscape_gradient(50, 50, None, 2.0, Some(42));
+        assert_eq!(a.data, b.data);
     }
 }

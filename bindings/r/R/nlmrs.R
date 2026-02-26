@@ -587,6 +587,33 @@ nlm_binary_space_partitioning <- function(rows, cols, n = 100L, seed = NULL) {
                                if (is.null(seed)) NULL else as.double(seed))
 }
 
+#' Cellular automaton NLM
+#'
+#' Initialises a random binary grid and applies Conway-style birth/survival rules
+#' for \code{iterations} steps. Out-of-bounds neighbours count as dead, producing
+#' natural cave walls at edges.
+#'
+#' @param rows               Integer. Number of rows.
+#' @param cols               Integer. Number of columns.
+#' @param p                  Numeric. Initial alive probability (default 0.45).
+#' @param iterations         Integer. Number of rule applications (default 5).
+#' @param birth_threshold    Integer. Min live neighbours to birth a dead cell (default 5).
+#' @param survival_threshold Integer. Min live neighbours for a live cell to survive (default 4).
+#' @param seed               Optional integer seed for reproducible output.
+#' @return A binary numeric matrix with values \code{0} or \code{1}.
+#' @export
+#' @examples
+#' m <- nlm_cellular_automaton(50, 50, p = 0.45, seed = 1L)
+#' stopifnot(all(m \%in\% c(0, 1)))
+nlm_cellular_automaton <- function(rows, cols, p = 0.45, iterations = 5L,
+                                    birth_threshold = 5L, survival_threshold = 4L,
+                                    seed = NULL) {
+  r_cellular_automaton(as.integer(rows), as.integer(cols),
+                        as.double(p), as.integer(iterations),
+                        as.integer(birth_threshold), as.integer(survival_threshold),
+                        if (is.null(seed)) NULL else as.double(seed))
+}
+
 #' Neighbourhood clustering NLM
 #'
 #' Initialises a grid with \code{k} randomly assigned classes then repeatedly
@@ -629,6 +656,137 @@ nlm_spectral_synthesis <- function(rows, cols, beta = 2.0, seed = NULL) {
   r_spectral_synthesis(as.integer(rows), as.integer(cols),
                        as.double(beta),
                        if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Reaction-diffusion ────────────────────────────────────────────────────────
+
+#' Reaction-diffusion NLM (Gray-Scott model)
+#'
+#' Simulates two interacting chemicals (A and B) diffusing across the grid.
+#' Different \code{feed}/\code{kill} combinations produce spots, stripes,
+#' labyrinths, and other Turing-pattern morphologies.
+#'
+#' @param rows       Number of rows.
+#' @param cols       Number of columns.
+#' @param iterations Number of simulation steps (default 1000).
+#' @param feed       Feed rate for chemical A (default 0.055).
+#' @param kill       Kill rate for chemical B (default 0.062).
+#' @param seed       Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_reaction_diffusion(30, 30, iterations = 100L, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_reaction_diffusion <- function(rows, cols, iterations = 1000L,
+                                    feed = 0.055, kill = 0.062, seed = NULL) {
+  r_reaction_diffusion(as.integer(rows), as.integer(cols),
+                        as.integer(iterations),
+                        as.double(feed), as.double(kill),
+                        if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Eden growth ────────────────────────────────────────────────────────────────
+
+#' Eden growth model NLM
+#'
+#' Grows a compact cluster from the grid centre by repeatedly selecting a
+#' random boundary cell and adding it. Produces irregular blob shapes with
+#' fractal perimeters.
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param n    Number of cells to add to the initial centre seed (default 2000).
+#' @param seed Integer seed. \code{NULL} for random output.
+#'
+#' @return A binary numeric matrix with values in \eqn{\{0, 1\}}.
+#' @export
+#' @examples
+#' m <- nlm_eden_growth(50, 50, n = 500L, seed = 1L)
+#' stopifnot(all(m %in% c(0, 1)))
+nlm_eden_growth <- function(rows, cols, n = 2000L, seed = NULL) {
+  r_eden_growth(as.integer(rows), as.integer(cols),
+                as.integer(n),
+                if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Fractal Brownian surface ───────────────────────────────────────────────────
+
+#' Fractal Brownian surface NLM
+#'
+#' Generates a surface using the spectral synthesis method, parameterised
+#' by the Hurst exponent \code{h}. Unlike \code{nlm_spectral_synthesis},
+#' this function uses the ecologically meaningful Hurst exponent directly
+#' (β = 2h + 2 internally).
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param h    Hurst exponent in (0, 1). Values near 0 are rough; values
+#'   near 1 are smooth (default 0.5).
+#' @param seed Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_fractal_brownian_surface(50, 50, h = 0.7, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_fractal_brownian_surface <- function(rows, cols, h = 0.5, seed = NULL) {
+  r_fractal_brownian_surface(as.integer(rows), as.integer(cols),
+                              as.double(h),
+                              if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Landscape gradient ────────────────────────────────────────────────────────
+
+#' Landscape gradient NLM
+#'
+#' Generates an elliptical gradient centred at the grid midpoint, decreasing
+#' radially outward. The \code{direction} angle orients the major axis of the
+#' ellipse, and \code{aspect} controls its elongation.
+#'
+#' @param rows      Number of rows.
+#' @param cols      Number of columns.
+#' @param direction Major-axis orientation in degrees \eqn{[0, 360)}.
+#'   \code{NULL} picks a random direction.
+#' @param aspect    Major-to-minor axis ratio (≥ 1.0). 1.0 = circular
+#'   (default 1.0).
+#' @param seed      Integer seed. \code{NULL} for random output.
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_landscape_gradient(50, 50, direction = 45, aspect = 2.0, seed = 1L)
+#' stopifnot(is.matrix(m))
+nlm_landscape_gradient <- function(rows, cols, direction = NULL, aspect = 1.0, seed = NULL) {
+  r_landscape_gradient(as.integer(rows), as.integer(cols),
+                        if (is.null(direction)) NULL else as.double(direction),
+                        as.double(aspect),
+                        if (is.null(seed)) NULL else as.double(seed))
+}
+
+# ── Diffusion-limited aggregation ─────────────────────────────────────────────
+
+#' Diffusion-limited aggregation NLM
+#'
+#' Grows a fractal cluster from the grid centre by releasing random-walking
+#' particles that stick when they touch the existing cluster. Produces
+#' intricate branching tree-like structures.
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param n    Number of particles to release (default 2000). More particles
+#'   produce a denser, more branching cluster.
+#' @param seed Integer seed. \code{NULL} for random output.
+#'
+#' @return A binary numeric matrix with values in \eqn{\{0, 1\}}.
+#' @export
+#' @examples
+#' m <- nlm_diffusion_limited_aggregation(50, 50, n = 500L, seed = 1L)
+#' stopifnot(all(m %in% c(0, 1)))
+nlm_diffusion_limited_aggregation <- function(rows, cols, n = 2000L, seed = NULL) {
+  r_diffusion_limited_aggregation(as.integer(rows), as.integer(cols),
+                                   as.integer(n),
+                                   if (is.null(seed)) NULL else as.double(seed))
 }
 
 # ── Post-processing ───────────────────────────────────────────────────────────

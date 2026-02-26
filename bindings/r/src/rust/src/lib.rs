@@ -336,6 +336,51 @@ fn r_rectangular_cluster(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> R
     grid_to_rmatrix(grid)
 }
 
+/// Gray-Scott reaction-diffusion NLM. Values in [0, 1).
+#[extendr]
+fn r_reaction_diffusion(
+    rows: i32, cols: i32, iterations: i32, feed: f64, kill: f64, seed: Nullable<f64>,
+) -> RMatrix<f64> {
+    let grid = nlmrs::reaction_diffusion(
+        rows as usize, cols as usize, iterations as usize, feed, kill, seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
+/// Eden growth model NLM. Values in {0.0, 1.0}.
+#[extendr]
+fn r_eden_growth(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::eden_growth(rows as usize, cols as usize, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Fractal Brownian surface NLM — parameterised by Hurst exponent. Values in [0, 1).
+#[extendr]
+fn r_fractal_brownian_surface(rows: i32, cols: i32, h: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::fractal_brownian_surface(rows as usize, cols as usize, h, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Elliptical landscape gradient centred at the grid midpoint. Values in [0, 1).
+#[extendr]
+fn r_landscape_gradient(
+    rows: i32, cols: i32, direction: Nullable<f64>, aspect: f64, seed: Nullable<f64>,
+) -> RMatrix<f64> {
+    let grid = nlmrs::landscape_gradient(
+        rows as usize, cols as usize, direction_from_r(direction), aspect, seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
+/// Diffusion-limited aggregation NLM — branching fractal cluster grown from centre. Values in {0.0, 1.0}.
+#[extendr]
+fn r_diffusion_limited_aggregation(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::diffusion_limited_aggregation(
+        rows as usize, cols as usize, n as usize, seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Convert a column-major R matrix to a row-major Grid.
@@ -393,6 +438,21 @@ fn r_binary_space_partitioning(rows: i32, cols: i32, n: i32, seed: Nullable<f64>
     grid_to_rmatrix(grid)
 }
 
+/// Cellular automaton NLM — binary cave-like patterns from birth/survival rules. Values in {0.0, 1.0}.
+#[extendr]
+fn r_cellular_automaton(
+    rows: i32, cols: i32, p: f64,
+    iterations: i32, birth_threshold: i32, survival_threshold: i32,
+    seed: Nullable<f64>,
+) -> RMatrix<f64> {
+    let grid = nlmrs::cellular_automaton(
+        rows as usize, cols as usize, p,
+        iterations as usize, birth_threshold as usize, survival_threshold as usize,
+        seed_from_r(seed),
+    );
+    grid_to_rmatrix(grid)
+}
+
 /// Neighbourhood clustering NLM — iterative majority-vote patch clustering. Values in [0, 1).
 #[extendr]
 fn r_neighbourhood_clustering(
@@ -440,8 +500,14 @@ extendr_module! {
     fn r_rectangular_cluster;
     fn r_percolation;
     fn r_binary_space_partitioning;
+    fn r_cellular_automaton;
     fn r_neighbourhood_clustering;
     fn r_spectral_synthesis;
+    fn r_diffusion_limited_aggregation;
+    fn r_reaction_diffusion;
+    fn r_eden_growth;
+    fn r_fractal_brownian_surface;
+    fn r_landscape_gradient;
     fn r_classify;
     fn r_threshold;
 }

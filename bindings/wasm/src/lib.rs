@@ -475,6 +475,29 @@ pub fn binary_space_partitioning(rows: u32, cols: u32, n: u32, seed: Option<u32>
     grid_to_wasm(grid)
 }
 
+/// Cellular automaton NLM — binary cave-like patterns from birth/survival rules. Values in {0.0, 1.0}.
+///
+/// @param rows               - Number of rows.
+/// @param cols               - Number of columns.
+/// @param p                  - Initial alive probability (default 0.45).
+/// @param iterations         - Number of rule applications (default 5).
+/// @param birth_threshold    - Min live neighbours to birth a dead cell (default 5).
+/// @param survival_threshold - Min live neighbours for a live cell to survive (default 4).
+/// @param seed               - Optional integer seed.
+#[wasm_bindgen]
+pub fn cellular_automaton(
+    rows: u32, cols: u32, p: f64,
+    iterations: u32, birth_threshold: u32, survival_threshold: u32,
+    seed: Option<u32>,
+) -> WasmGrid {
+    let grid = nlmrs::cellular_automaton(
+        rows as usize, cols as usize, p,
+        iterations as usize, birth_threshold as usize, survival_threshold as usize,
+        seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
 /// Neighbourhood clustering NLM — iterative majority-vote patch clustering. Values in [0, 1).
 ///
 /// @param rows       - Number of rows.
@@ -499,6 +522,79 @@ pub fn neighbourhood_clustering(rows: u32, cols: u32, k: u32, iterations: u32, s
 #[wasm_bindgen]
 pub fn spectral_synthesis(rows: u32, cols: u32, beta: f64, seed: Option<u32>) -> WasmGrid {
     let grid = nlmrs::spectral_synthesis(rows as usize, cols as usize, beta, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Gray-Scott reaction-diffusion NLM — Turing-pattern spots, stripes and labyrinths. Values in [0, 1).
+///
+/// @param rows       - Number of rows.
+/// @param cols       - Number of columns.
+/// @param iterations - Number of simulation steps (default 1000).
+/// @param feed       - Feed rate for chemical A (default 0.055).
+/// @param kill       - Kill rate for chemical B (default 0.062).
+/// @param seed       - Optional integer seed.
+#[wasm_bindgen]
+pub fn reaction_diffusion(
+    rows: u32, cols: u32, iterations: u32, feed: f64, kill: f64, seed: Option<u32>,
+) -> WasmGrid {
+    let grid = nlmrs::reaction_diffusion(
+        rows as usize, cols as usize, iterations as usize, feed, kill, seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
+/// Eden growth model NLM — compact fractal blob grown from the centre. Values in {0.0, 1.0}.
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param n    - Number of cells to add to the cluster (default 2000).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn eden_growth(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::eden_growth(rows as usize, cols as usize, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Fractal Brownian surface NLM — parameterised by Hurst exponent. Values in [0, 1).
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param h    - Hurst exponent in (0, 1): 0 = rough, 1 = smooth (default 0.5).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn fractal_brownian_surface(rows: u32, cols: u32, h: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::fractal_brownian_surface(rows as usize, cols as usize, h, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Elliptical landscape gradient centred at the grid midpoint. Values in [0, 1).
+///
+/// @param rows      - Number of rows.
+/// @param cols      - Number of columns.
+/// @param direction - Major-axis orientation in degrees [0, 360). Omit for random.
+/// @param aspect    - Major-to-minor axis ratio (≥ 1.0). 1.0 = circular (default 1.0).
+/// @param seed      - Optional integer seed.
+#[wasm_bindgen]
+pub fn landscape_gradient(
+    rows: u32, cols: u32, direction: Option<f64>, aspect: f64, seed: Option<u32>,
+) -> WasmGrid {
+    let grid = nlmrs::landscape_gradient(
+        rows as usize, cols as usize, direction, aspect, seed_from_js(seed),
+    );
+    grid_to_wasm(grid)
+}
+
+/// Diffusion-limited aggregation NLM — branching fractal cluster grown from the centre. Values in {0.0, 1.0}.
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param n    - Number of particles to release (default 2000).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn diffusion_limited_aggregation(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::diffusion_limited_aggregation(
+        rows as usize, cols as usize, n as usize, seed_from_js(seed),
+    );
     grid_to_wasm(grid)
 }
 

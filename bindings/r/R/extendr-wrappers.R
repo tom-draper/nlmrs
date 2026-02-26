@@ -108,12 +108,40 @@ r_binary_space_partitioning <- function(rows, cols, n = 100L, seed = NULL) {
   .Call(wrap__r_binary_space_partitioning, rows, cols, n, seed)
 }
 
+r_cellular_automaton <- function(rows, cols, p = 0.45, iterations = 5L,
+                                  birth_threshold = 5L, survival_threshold = 4L,
+                                  seed = NULL) {
+  .Call(wrap__r_cellular_automaton, rows, cols, p, iterations,
+        birth_threshold, survival_threshold, seed)
+}
+
 r_neighbourhood_clustering <- function(rows, cols, k = 5L, iterations = 10L, seed = NULL) {
   .Call(wrap__r_neighbourhood_clustering, rows, cols, k, iterations, seed)
 }
 
 r_spectral_synthesis <- function(rows, cols, beta = 2.0, seed = NULL) {
   .Call(wrap__r_spectral_synthesis, rows, cols, beta, seed)
+}
+
+r_diffusion_limited_aggregation <- function(rows, cols, n = 2000L, seed = NULL) {
+  .Call(wrap__r_diffusion_limited_aggregation, rows, cols, n, seed)
+}
+
+r_reaction_diffusion <- function(rows, cols, iterations = 1000L, feed = 0.055,
+                                  kill = 0.062, seed = NULL) {
+  .Call(wrap__r_reaction_diffusion, rows, cols, iterations, feed, kill, seed)
+}
+
+r_eden_growth <- function(rows, cols, n = 2000L, seed = NULL) {
+  .Call(wrap__r_eden_growth, rows, cols, n, seed)
+}
+
+r_fractal_brownian_surface <- function(rows, cols, h = 0.5, seed = NULL) {
+  .Call(wrap__r_fractal_brownian_surface, rows, cols, h, seed)
+}
+
+r_landscape_gradient <- function(rows, cols, direction = NULL, aspect = 1.0, seed = NULL) {
+  .Call(wrap__r_landscape_gradient, rows, cols, direction, aspect, seed)
 }
 
 r_classify <- function(m, n) {

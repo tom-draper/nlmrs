@@ -271,6 +271,23 @@ enum Commands {
         #[arg(long, default_value = "100")]
         n: usize,
     },
+    /// Cellular automaton — binary cave-like patterns from birth/survival rules
+    CellularAutomaton {
+        rows: usize,
+        cols: usize,
+        /// Initial probability of a cell being alive
+        #[arg(long, default_value = "0.45")]
+        p: f64,
+        /// Number of rule iterations
+        #[arg(long, default_value = "5")]
+        iterations: usize,
+        /// Min live neighbours for a dead cell to become alive
+        #[arg(long, default_value = "5")]
+        birth_threshold: usize,
+        /// Min live neighbours for a live cell to stay alive
+        #[arg(long, default_value = "4")]
+        survival_threshold: usize,
+    },
     /// Neighbourhood clustering — iterative majority-vote patch clustering
     NeighbourhoodClustering {
         rows: usize,
@@ -289,6 +306,55 @@ enum Commands {
         /// Spectral exponent: 0 = white noise, 1 = pink, 2 = brown/natural terrain
         #[arg(long, default_value = "2.0")]
         beta: f64,
+    },
+    /// Diffusion-limited aggregation — branching fractal cluster grown from centre
+    DiffusionLimitedAggregation {
+        rows: usize,
+        cols: usize,
+        /// Number of particles to release
+        #[arg(long, default_value = "2000")]
+        n: usize,
+    },
+    /// Gray-Scott reaction-diffusion — Turing-pattern spots, stripes and labyrinths
+    ReactionDiffusion {
+        rows: usize,
+        cols: usize,
+        /// Number of simulation steps
+        #[arg(long, default_value = "1000")]
+        iterations: usize,
+        /// Feed rate for chemical A (controls pattern type)
+        #[arg(long, default_value = "0.055")]
+        feed: f64,
+        /// Kill rate for chemical B (controls pattern type)
+        #[arg(long, default_value = "0.062")]
+        kill: f64,
+    },
+    /// Eden growth model — compact fractal blob grown from the centre
+    EdenGrowth {
+        rows: usize,
+        cols: usize,
+        /// Number of cells to add to the cluster
+        #[arg(long, default_value = "2000")]
+        n: usize,
+    },
+    /// Fractal Brownian surface parameterised by the Hurst exponent
+    FractalBrownianSurface {
+        rows: usize,
+        cols: usize,
+        /// Hurst exponent in (0, 1): 0 = rough, 1 = smooth
+        #[arg(long, default_value = "0.5")]
+        h: f64,
+    },
+    /// Elliptical landscape gradient centred at the grid midpoint
+    LandscapeGradient {
+        rows: usize,
+        cols: usize,
+        /// Major-axis orientation in degrees [0, 360). Random if omitted.
+        #[arg(long)]
+        direction: Option<f64>,
+        /// Major-to-minor axis ratio (≥ 1.0). 1.0 = circular.
+        #[arg(long, default_value = "1.0")]
+        aspect: f64,
     },
 }
 
@@ -348,11 +414,27 @@ fn main() {
         Commands::BinarySpacePartitioning { rows, cols, n } => {
             nlmrs::binary_space_partitioning(rows, cols, n, seed)
         }
+        Commands::CellularAutomaton { rows, cols, p, iterations, birth_threshold, survival_threshold } => {
+            nlmrs::cellular_automaton(rows, cols, p, iterations, birth_threshold, survival_threshold, seed)
+        }
         Commands::NeighbourhoodClustering { rows, cols, k, iterations } => {
             nlmrs::neighbourhood_clustering(rows, cols, k, iterations, seed)
         }
         Commands::SpectralSynthesis { rows, cols, beta } => {
             nlmrs::spectral_synthesis(rows, cols, beta, seed)
+        }
+        Commands::DiffusionLimitedAggregation { rows, cols, n } => {
+            nlmrs::diffusion_limited_aggregation(rows, cols, n, seed)
+        }
+        Commands::ReactionDiffusion { rows, cols, iterations, feed, kill } => {
+            nlmrs::reaction_diffusion(rows, cols, iterations, feed, kill, seed)
+        }
+        Commands::EdenGrowth { rows, cols, n } => nlmrs::eden_growth(rows, cols, n, seed),
+        Commands::FractalBrownianSurface { rows, cols, h } => {
+            nlmrs::fractal_brownian_surface(rows, cols, h, seed)
+        }
+        Commands::LandscapeGradient { rows, cols, direction, aspect } => {
+            nlmrs::landscape_gradient(rows, cols, direction, aspect, seed)
         }
     };
 

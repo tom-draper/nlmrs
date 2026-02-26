@@ -240,6 +240,54 @@ Initialises a grid with `k` random classes then repeatedly applies a majority-vo
 
 <img src="examples/neighbourhood_clustering.png" alt="" width=300 />
 
+#### Cellular Automaton
+
+`cellular_automaton(rows: 100, cols: 100, p: 0.45, iterations: 5, seed: 42)`
+
+Random binary grid evolved by Conway-style birth/survival rules — a dead cell is born if it has ≥ `birth_threshold` live neighbours; a live cell survives if it has ≥ `survival_threshold`. Produces cave-like binary landscapes.
+
+<img src="examples/cellular_automaton.png" alt="" width=300 />
+
+#### Reaction-Diffusion
+
+`reaction_diffusion(rows: 100, cols: 100, iterations: 1000, feed: 0.055, kill: 0.062, seed: 42)`
+
+Gray-Scott reaction-diffusion model — two chemicals (A and B) diffuse and react across the grid. Different `feed`/`kill` combinations produce spots, stripes, labyrinths, and other Turing-pattern morphologies.
+
+<img src="examples/reaction_diffusion.png" alt="" width=300 />
+
+#### Eden Growth
+
+`eden_growth(rows: 100, cols: 100, n: 2000, seed: 42)`
+
+Compact cluster grown from the grid centre by randomly selecting a boundary cell at each step. Produces irregular blob shapes with fractal perimeters.
+
+<img src="examples/eden_growth.png" alt="" width=300 />
+
+#### Fractal Brownian Surface
+
+`fractal_brownian_surface(rows: 100, cols: 100, h: 0.5, seed: 42)`
+
+Spectral synthesis parameterised by the Hurst exponent `h` ∈ (0, 1), which has direct ecological meaning. `h` near 0 is rough; `h` near 1 is smooth. Related to `spectral_synthesis` by β = 2h + 2.
+
+<img src="examples/fractal_brownian_surface.png" alt="" width=300 />
+
+#### Landscape Gradient
+
+`landscape_gradient(rows: 100, cols: 100, direction: 45.0, aspect: 2.0, seed: 42)`
+
+Elliptical gradient centred at the grid midpoint. `direction` orients the major axis; `aspect` controls elongation (1.0 = circular). More flexible than `distance_gradient`.
+
+<img src="examples/landscape_gradient.png" alt="" width=300 />
+
+#### Diffusion-Limited Aggregation
+
+`diffusion_limited_aggregation(rows: 100, cols: 100, n: 2000, seed: 42)`
+
+Random-walking particles released from a spawn ring stick when adjacent to the growing cluster, producing intricate branching fractal structures.
+
+<img src="examples/diffusion_limited_aggregation.png" alt="" width=300 />
+
 #### Hill Grow
 
 `hill_grow(rows: 100, cols: 100, n: 20000, seed: 42)`
@@ -370,7 +418,13 @@ nlmrs.mosaic(100, 100, n=200)
 nlmrs.rectangular_cluster(100, 100, n=200)
 nlmrs.percolation(100, 100, p=0.5)
 nlmrs.binary_space_partitioning(100, 100, n=100)
+nlmrs.cellular_automaton(100, 100, p=0.45, iterations=5)
 nlmrs.neighbourhood_clustering(100, 100, k=5, iterations=10)
+nlmrs.diffusion_limited_aggregation(100, 100, n=2000)
+nlmrs.reaction_diffusion(100, 100, iterations=1000, feed=0.055, kill=0.062)
+nlmrs.eden_growth(100, 100, n=2000)
+nlmrs.fractal_brownian_surface(100, 100, h=0.5)
+nlmrs.landscape_gradient(100, 100, direction=45.0, aspect=2.0)
 
 # Gradient
 nlmrs.planar_gradient(100, 100, direction=45.0)
@@ -420,7 +474,7 @@ m <- nlm_midpoint_displacement(100, 100, h = 0.8, seed = 42L)
 image(m, col = terrain.colors(256))
 ```
 
-All 25 algorithms are available with the `nlm_` prefix:
+All 31 algorithms are available with the `nlm_` prefix:
 
 ```r
 nlm_random(100, 100)
@@ -446,8 +500,14 @@ nlm_mosaic(100, 100, n = 200L)
 nlm_rectangular_cluster(100, 100, n = 200L)
 nlm_percolation(100, 100, p = 0.5)
 nlm_binary_space_partitioning(100, 100, n = 100L)
+nlm_cellular_automaton(100, 100, p = 0.45, iterations = 5L)
 nlm_neighbourhood_clustering(100, 100, k = 5L, iterations = 10L)
 nlm_spectral_synthesis(100, 100, beta = 2.0)
+nlm_diffusion_limited_aggregation(100, 100, n = 2000L)
+nlm_reaction_diffusion(100, 100, iterations = 1000L, feed = 0.055, kill = 0.062)
+nlm_eden_growth(100, 100, n = 2000L)
+nlm_fractal_brownian_surface(100, 100, h = 0.5)
+nlm_landscape_gradient(100, 100, direction = 45.0, aspect = 2.0)
 ```
 
 ### C bindings
@@ -508,7 +568,7 @@ nlmrs_free(g1);
 nlmrs_free(g2);
 ```
 
-All 25 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
+All 31 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
 
 ### WASM bindings
 
@@ -538,7 +598,7 @@ const value = flat[r * grid.cols + c];
 grid.free();  // release Rust memory
 ```
 
-All 25 algorithms are available. Seeds are passed as plain integers. Omit the seed argument for random output.
+All 31 algorithms are available. Seeds are passed as plain integers. Omit the seed argument for random output.
 
 ## Contributions
 

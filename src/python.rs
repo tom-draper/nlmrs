@@ -489,6 +489,39 @@ fn percolation(
 /// ----------
 /// n : int
 ///     Number of rectangles in the final partition (default 100).
+/// Cellular automaton NLM. Binary values {0.0, 1.0}.
+///
+/// Parameters
+/// ----------
+/// rows : int
+/// cols : int
+/// p : float
+///     Initial probability of a cell being alive (default 0.45).
+/// iterations : int
+///     Number of rule applications (default 5).
+/// birth_threshold : int
+///     Min live neighbours for a dead cell to become alive (default 5).
+/// survival_threshold : int
+///     Min live neighbours for a live cell to stay alive (default 4).
+/// seed : int, optional
+#[pyfunction]
+#[pyo3(signature = (rows, cols, p=0.45, iterations=5, birth_threshold=5, survival_threshold=4, seed=None))]
+fn cellular_automaton(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    p: f64,
+    iterations: usize,
+    birth_threshold: usize,
+    survival_threshold: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| {
+        crate::cellular_automaton(rows, cols, p, iterations, birth_threshold, survival_threshold, seed)
+    });
+    to_numpy(py, grid)
+}
+
 #[pyfunction]
 #[pyo3(signature = (rows, cols, n=100, seed=None))]
 fn binary_space_partitioning(
@@ -548,6 +581,111 @@ fn spectral_synthesis(
     seed: Option<u64>,
 ) -> Bound<'_, PyArray2<f64>> {
     let grid = py.allow_threads(|| crate::spectral_synthesis(rows, cols, beta, seed));
+    to_numpy(py, grid)
+}
+
+/// Gray-Scott reaction-diffusion NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// iterations : int
+///     Number of simulation steps (default 1000).
+/// feed : float
+///     Feed rate for chemical A. Controls pattern type (default 0.055).
+/// kill : float
+///     Kill rate for chemical B. Controls pattern type (default 0.062).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, iterations=1000, feed=0.055, kill=0.062, seed=None))]
+fn reaction_diffusion(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    iterations: usize,
+    feed: f64,
+    kill: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::reaction_diffusion(rows, cols, iterations, feed, kill, seed));
+    to_numpy(py, grid)
+}
+
+/// Eden growth model NLM. Binary values {0.0, 1.0}.
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of cells to add to the cluster (default 2000).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=2000, seed=None))]
+fn eden_growth(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::eden_growth(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Fractal Brownian surface NLM parameterised by the Hurst exponent. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// h : float
+///     Hurst exponent in (0, 1). 0 = rough, 1 = smooth (default 0.5).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, h=0.5, seed=None))]
+fn fractal_brownian_surface(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    h: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::fractal_brownian_surface(rows, cols, h, seed));
+    to_numpy(py, grid)
+}
+
+/// Elliptical landscape gradient centred at the grid midpoint. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// direction : float, optional
+///     Major-axis orientation in degrees [0, 360). Random if not supplied.
+/// aspect : float
+///     Major-to-minor axis ratio (≥ 1.0). 1.0 = circular (default 1.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, direction=None, aspect=1.0, seed=None))]
+fn landscape_gradient(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    direction: Option<f64>,
+    aspect: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::landscape_gradient(rows, cols, direction, aspect, seed));
+    to_numpy(py, grid)
+}
+
+/// Diffusion-limited aggregation NLM. Binary values {0.0, 1.0}.
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of particles to release (default 2000). More particles produce
+///     a denser, more branching fractal cluster.
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=2000, seed=None))]
+fn diffusion_limited_aggregation(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::diffusion_limited_aggregation(rows, cols, n, seed));
     to_numpy(py, grid)
 }
 
@@ -639,9 +777,15 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(mosaic, m)?)?;
     m.add_function(wrap_pyfunction!(rectangular_cluster, m)?)?;
     m.add_function(wrap_pyfunction!(percolation, m)?)?;
+    m.add_function(wrap_pyfunction!(cellular_automaton, m)?)?;
     m.add_function(wrap_pyfunction!(binary_space_partitioning, m)?)?;
     m.add_function(wrap_pyfunction!(neighbourhood_clustering, m)?)?;
     m.add_function(wrap_pyfunction!(spectral_synthesis, m)?)?;
+    m.add_function(wrap_pyfunction!(diffusion_limited_aggregation, m)?)?;
+    m.add_function(wrap_pyfunction!(reaction_diffusion, m)?)?;
+    m.add_function(wrap_pyfunction!(eden_growth, m)?)?;
+    m.add_function(wrap_pyfunction!(fractal_brownian_surface, m)?)?;
+    m.add_function(wrap_pyfunction!(landscape_gradient, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

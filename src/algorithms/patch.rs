@@ -456,6 +456,299 @@ pub fn neighbourhood_clustering(
     Grid { data, rows, cols }
 }
 
+/// Returns a cellular automaton NLM with binary values {0.0, 1.0}.
+///
+/// Initialises a random binary grid where each cell is alive with probability
+/// `p`, then applies Conway-style birth/survival rules for `iterations` steps.
+/// Out-of-bounds neighbours are treated as dead, producing natural cave walls
+/// at grid edges. Typical cave settings: `p ≈ 0.45`, `birth ≥ 5`, `survival ≥ 4`.
+///
+/// # Arguments
+///
+/// * `rows`               - Number of rows.
+/// * `cols`               - Number of columns.
+/// * `p`                  - Initial probability of a cell being alive.
+/// * `iterations`         - Number of CA rule applications.
+/// * `birth_threshold`    - Minimum live neighbours for a dead cell to become alive.
+/// * `survival_threshold` - Minimum live neighbours for a live cell to stay alive.
+/// * `seed`               - Optional RNG seed for reproducible results.
+pub fn cellular_automaton(
+    rows: usize,
+    cols: usize,
+    p: f64,
+    iterations: usize,
+    birth_threshold: usize,
+    survival_threshold: usize,
+    seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+
+    let mut rng = make_rng(seed);
+    let mut state: Vec<bool> = (0..rows * cols).map(|_| rng.gen::<f64>() < p).collect();
+    let mut next = vec![false; rows * cols];
+
+    for _ in 0..iterations {
+        let fill = |(idx, out): (usize, &mut bool)| {
+            let i = idx / cols;
+            let j = idx % cols;
+            let mut count = 0usize;
+            for di in -1i64..=1 {
+                let ni = i as i64 + di;
+                if ni < 0 || ni >= rows as i64 { continue; }
+                let ni = ni as usize;
+                for dj in -1i64..=1 {
+                    if di == 0 && dj == 0 { continue; }
+                    let nj = j as i64 + dj;
+                    if nj < 0 || nj >= cols as i64 { continue; }
+                    if state[ni * cols + nj as usize] { count += 1; }
+                }
+            }
+            *out = if state[idx] { count >= survival_threshold } else { count >= birth_threshold };
+        };
+        #[cfg(feature = "parallel")]
+        next.par_iter_mut().enumerate().for_each(fill);
+        #[cfg(not(feature = "parallel"))]
+        next.iter_mut().enumerate().for_each(fill);
+        std::mem::swap(&mut state, &mut next);
+    }
+
+    let data: Vec<f64> = state.iter().map(|&b| if b { 1.0 } else { 0.0 }).collect();
+    Grid { data, rows, cols }
+}
+
+/// Returns a diffusion-limited aggregation (DLA) NLM with binary values {0.0, 1.0}.
+///
+/// Seeds a single cluster at the grid centre then releases `n` particles one at
+/// a time. Each particle spawns on a circle slightly outside the current cluster
+/// radius and performs a 4-connected random walk until it touches the cluster,
+/// at which point it sticks. Particles that wander too far are respawned.
+/// Produces branching fractal tree-like structures.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of particles to release.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn diffusion_limited_aggregation(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+
+    let mut rng = make_rng(seed);
+    let mut cluster = vec![false; rows * cols];
+
+    let cr = rows / 2;
+    let cc = cols / 2;
+    cluster[cr * cols + cc] = true;
+    let mut cluster_r: f64 = 1.0;
+
+    let half = (rows.min(cols) as f64 / 2.0) - 1.0;
+
+    for _ in 0..n {
+        let spawn_r = (cluster_r + 5.0).min(half);
+        let kill_r  = (spawn_r * 2.0).min(half);
+
+        let angle = rng.gen::<f64>() * 2.0 * std::f64::consts::PI;
+        let mut pr = (cr as f64 + spawn_r * angle.sin())
+            .round().clamp(0.0, rows as f64 - 1.0) as usize;
+        let mut pc = (cc as f64 + spawn_r * angle.cos())
+            .round().clamp(0.0, cols as f64 - 1.0) as usize;
+
+        if cluster[pr * cols + pc] {
+            continue;
+        }
+
+        loop {
+            // Stick if adjacent to cluster (4-connected).
+            let stuck = [
+                (pr.wrapping_sub(1), pc),
+                (pr + 1, pc),
+                (pr, pc.wrapping_sub(1)),
+                (pr, pc + 1),
+            ]
+            .iter()
+            .any(|&(nr, nc)| nr < rows && nc < cols && cluster[nr * cols + nc]);
+
+            if stuck {
+                cluster[pr * cols + pc] = true;
+                let d = ((pr as f64 - cr as f64).powi(2) + (pc as f64 - cc as f64).powi(2)).sqrt();
+                if d > cluster_r { cluster_r = d; }
+                break;
+            }
+
+            // Respawn if the particle has wandered too far.
+            let d = ((pr as f64 - cr as f64).powi(2) + (pc as f64 - cc as f64).powi(2)).sqrt();
+            if d > kill_r {
+                let angle = rng.gen::<f64>() * 2.0 * std::f64::consts::PI;
+                pr = (cr as f64 + spawn_r * angle.sin())
+                    .round().clamp(0.0, rows as f64 - 1.0) as usize;
+                pc = (cc as f64 + spawn_r * angle.cos())
+                    .round().clamp(0.0, cols as f64 - 1.0) as usize;
+                continue;
+            }
+
+            // 4-connected random walk step.
+            match rng.gen_range(0..4u8) {
+                0 => { if pr > 0 { pr -= 1; } }
+                1 => { if pr + 1 < rows { pr += 1; } }
+                2 => { if pc > 0 { pc -= 1; } }
+                _ => { if pc + 1 < cols { pc += 1; } }
+            }
+        }
+    }
+
+    let data: Vec<f64> = cluster.iter().map(|&c| if c { 1.0 } else { 0.0 }).collect();
+    Grid { data, rows, cols }
+}
+
+/// Returns a Gray-Scott reaction-diffusion NLM. Values in [0, 1).
+///
+/// Two virtual chemicals (A and B) diffuse and react across the grid.
+/// Different `feed`/`kill` parameter combinations produce spots, stripes,
+/// labyrinths, and other Turing-pattern morphologies.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `iterations` - Number of simulation steps (more = more developed patterns).
+/// * `feed`       - Feed rate for chemical A. Controls pattern type.
+/// * `kill`       - Kill rate for chemical B. Controls pattern type.
+/// * `seed`       - Optional RNG seed for reproducible initial conditions.
+pub fn reaction_diffusion(
+    rows: usize,
+    cols: usize,
+    iterations: usize,
+    feed: f64,
+    kill: f64,
+    seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+
+    const DA: f64 = 0.2;
+    const DB: f64 = 0.1;
+
+    let mut a = vec![1.0f64; rows * cols];
+    let mut b = vec![0.0f64; rows * cols];
+
+    // Seed random 3×3 squares of B (with periodic wrap)
+    let n_seeds = (((rows * cols) as f64 * 0.01).ceil() as usize).max(1);
+    for _ in 0..n_seeds {
+        let r = rng.gen_range(0..rows);
+        let c = rng.gen_range(0..cols);
+        for dr in -1i64..=1 {
+            for dc in -1i64..=1 {
+                let nr = ((r as i64 + dr).rem_euclid(rows as i64)) as usize;
+                let nc = ((c as i64 + dc).rem_euclid(cols as i64)) as usize;
+                b[nr * cols + nc] = 1.0;
+                a[nr * cols + nc] = 0.0;
+            }
+        }
+    }
+
+    let mut na = vec![0.0f64; rows * cols];
+    let mut nb = vec![0.0f64; rows * cols];
+
+    for _ in 0..iterations {
+        let iter_fn = |(idx, (out_a, out_b)): (usize, (&mut f64, &mut f64))| {
+            let i = idx / cols;
+            let j = idx % cols;
+            let ip = if i + 1 < rows { i + 1 } else { 0 };
+            let im = if i > 0 { i - 1 } else { rows - 1 };
+            let jp = if j + 1 < cols { j + 1 } else { 0 };
+            let jm = if j > 0 { j - 1 } else { cols - 1 };
+
+            let av = a[idx];
+            let bv = b[idx];
+            let lap_a = a[im * cols + j] + a[ip * cols + j]
+                      + a[i * cols + jm] + a[i * cols + jp]
+                      - 4.0 * av;
+            let lap_b = b[im * cols + j] + b[ip * cols + j]
+                      + b[i * cols + jm] + b[i * cols + jp]
+                      - 4.0 * bv;
+
+            let reaction = av * bv * bv;
+            *out_a = (av + DA * lap_a - reaction + feed * (1.0 - av)).clamp(0.0, 1.0);
+            *out_b = (bv + DB * lap_b + reaction - (kill + feed) * bv).clamp(0.0, 1.0);
+        };
+
+        #[cfg(feature = "parallel")]
+        na.par_iter_mut().zip(nb.par_iter_mut()).enumerate().for_each(iter_fn);
+        #[cfg(not(feature = "parallel"))]
+        na.iter_mut().zip(nb.iter_mut()).enumerate().for_each(iter_fn);
+
+        std::mem::swap(&mut a, &mut na);
+        std::mem::swap(&mut b, &mut nb);
+    }
+
+    let mut grid = Grid { data: b, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns an Eden growth model NLM. Binary values {0.0, 1.0}.
+///
+/// Grows a compact cluster from the grid centre by repeatedly selecting a
+/// random cell on the current cluster boundary and adding it. Produces
+/// irregular blob shapes with fractal perimeters.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of cells to add to the cluster (beyond the initial seed).
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn eden_growth(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+
+    let mut cluster = vec![false; rows * cols];
+    let cr = rows / 2;
+    let cc = cols / 2;
+    cluster[cr * cols + cc] = true;
+
+    let dirs: [(i64, i64); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+    let mut perimeter: Vec<(usize, usize)> = Vec::new();
+    for (dr, dc) in dirs {
+        let nr = cr as i64 + dr;
+        let nc = cc as i64 + dc;
+        if nr >= 0 && nr < rows as i64 && nc >= 0 && nc < cols as i64 {
+            perimeter.push((nr as usize, nc as usize));
+        }
+    }
+
+    let n_cells = n.min(rows * cols - 1);
+    for _ in 0..n_cells {
+        if perimeter.is_empty() { break; }
+        let idx = rng.gen_range(0..perimeter.len());
+        let (r, c) = perimeter.swap_remove(idx);
+        if cluster[r * cols + c] { continue; }
+        cluster[r * cols + c] = true;
+        for (dr, dc) in dirs {
+            let nr = r as i64 + dr;
+            let nc = c as i64 + dc;
+            if nr >= 0 && nr < rows as i64 && nc >= 0 && nc < cols as i64 {
+                let nr = nr as usize;
+                let nc = nc as usize;
+                if !cluster[nr * cols + nc] {
+                    perimeter.push((nr, nc));
+                }
+            }
+        }
+    }
+
+    let data: Vec<f64> = cluster.iter().map(|&c| if c { 1.0 } else { 0.0 }).collect();
+    Grid { data, rows, cols }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -706,6 +999,91 @@ mod tests {
     fn test_neighbourhood_clustering_seeded_determinism() {
         let a = neighbourhood_clustering(50, 50, 5, 10, Some(42));
         let b = neighbourhood_clustering(50, 50, 5, 10, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── cellular_automaton ────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_cellular_automaton(#[case] rows: usize, #[case] cols: usize) {
+        let grid = cellular_automaton(rows, cols, 0.45, 5, 5, 4, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        // Binary output: every value must be 0.0 or 1.0
+        assert!(grid.data.iter().all(|&v| v == 0.0 || v == 1.0));
+    }
+
+    #[test]
+    fn test_cellular_automaton_seeded_determinism() {
+        let a = cellular_automaton(50, 50, 0.45, 5, 5, 4, Some(42));
+        let b = cellular_automaton(50, 50, 0.45, 5, 5, 4, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── diffusion_limited_aggregation ─────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(50, 50)]
+    fn test_diffusion_limited_aggregation(#[case] rows: usize, #[case] cols: usize) {
+        let grid = diffusion_limited_aggregation(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert!(grid.data.iter().all(|&v| v == 0.0 || v == 1.0));
+    }
+
+    #[test]
+    fn test_diffusion_limited_aggregation_seeded_determinism() {
+        let a = diffusion_limited_aggregation(50, 50, 200, Some(42));
+        let b = diffusion_limited_aggregation(50, 50, 200, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── reaction_diffusion ────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(50, 50)]
+    fn test_reaction_diffusion(#[case] rows: usize, #[case] cols: usize) {
+        let grid = reaction_diffusion(rows, cols, 100, 0.055, 0.062, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_reaction_diffusion_seeded_determinism() {
+        let a = reaction_diffusion(30, 30, 100, 0.055, 0.062, Some(42));
+        let b = reaction_diffusion(30, 30, 100, 0.055, 0.062, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── eden_growth ───────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(50, 50)]
+    fn test_eden_growth(#[case] rows: usize, #[case] cols: usize) {
+        let grid = eden_growth(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert!(grid.data.iter().all(|&v| v == 0.0 || v == 1.0));
+    }
+
+    #[test]
+    fn test_eden_growth_seeded_determinism() {
+        let a = eden_growth(50, 50, 200, Some(42));
+        let b = eden_growth(50, 50, 200, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

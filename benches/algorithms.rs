@@ -253,6 +253,18 @@ fn bench_binary_space_partitioning(c: &mut Criterion) {
     group.finish();
 }
 
+// ── cellular_automaton ────────────────────────────────────────────────────────
+
+fn bench_cellular_automaton(c: &mut Criterion) {
+    let mut group = c.benchmark_group("cellular_automaton");
+    for &size in &[256usize, 512, 1024] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::cellular_automaton(size, size, 0.45, 5, 5, 4, Some(42)));
+        });
+    }
+    group.finish()
+}
+
 // ── neighbourhood_clustering ──────────────────────────────────────────────────
 
 fn bench_neighbourhood_clustering(c: &mut Criterion) {
@@ -277,6 +289,74 @@ fn bench_spectral_synthesis(c: &mut Criterion) {
     group.finish()
 }
 
+// ── reaction_diffusion ────────────────────────────────────────────────────────
+//
+// Each iteration touches every cell; reduce sample size for larger grids.
+
+fn bench_reaction_diffusion(c: &mut Criterion) {
+    let mut group = c.benchmark_group("reaction_diffusion");
+    group.sample_size(20);
+    group.measurement_time(Duration::from_secs(15));
+    for &size in &[64usize, 128, 256] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::reaction_diffusion(size, size, 500, 0.055, 0.062, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── eden_growth ───────────────────────────────────────────────────────────────
+
+fn bench_eden_growth(c: &mut Criterion) {
+    let mut group = c.benchmark_group("eden_growth");
+    for &n in &[1_000usize, 5_000, 10_000] {
+        group.bench_with_input(BenchmarkId::from_parameter(n), &n, |b, &n| {
+            b.iter(|| nlmrs::eden_growth(256, 256, n, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── fractal_brownian_surface ──────────────────────────────────────────────────
+
+fn bench_fractal_brownian_surface(c: &mut Criterion) {
+    let mut group = c.benchmark_group("fractal_brownian_surface");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::fractal_brownian_surface(size, size, 0.5, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── landscape_gradient ────────────────────────────────────────────────────────
+
+fn bench_landscape_gradient(c: &mut Criterion) {
+    let mut group = c.benchmark_group("landscape_gradient");
+    for &size in &[512usize, 1024, 2048] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::landscape_gradient(size, size, Some(45.0), 2.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── diffusion_limited_aggregation ─────────────────────────────────────────────
+//
+// Sequential random walk — reduce sample size and extend measurement time.
+
+fn bench_diffusion_limited_aggregation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("diffusion_limited_aggregation");
+    group.sample_size(20);
+    group.measurement_time(Duration::from_secs(15));
+    for &n in &[500usize, 1_000, 2_000] {
+        group.bench_with_input(BenchmarkId::from_parameter(n), &n, |b, &n| {
+            b.iter(|| nlmrs::diffusion_limited_aggregation(128, 128, n, Some(42)));
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_midpoint_displacement,
@@ -299,7 +379,13 @@ criterion_group!(
     bench_rectangular_cluster,
     bench_percolation,
     bench_binary_space_partitioning,
+    bench_cellular_automaton,
     bench_neighbourhood_clustering,
     bench_spectral_synthesis,
+    bench_diffusion_limited_aggregation,
+    bench_reaction_diffusion,
+    bench_eden_growth,
+    bench_fractal_brownian_surface,
+    bench_landscape_gradient,
 );
 criterion_main!(benches);

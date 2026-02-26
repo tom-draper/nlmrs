@@ -55,8 +55,14 @@ ALGORITHMS = [
     ("rectangular_cluster",   "rectangular_cluster",  {"n": 300}),
     ("percolation",           "percolation",          {"p": 0.55}),
     ("binary_space_partitioning", "binary_space_partitioning", {"n": 200}),
+    ("cellular_automaton",        "cellular_automaton",        {"p": 0.45, "iterations": 5}),
     ("neighbourhood_clustering",  "neighbourhood_clustering",  {"k": 5, "iterations": 10}),
     ("spectral_synthesis",        "spectral_synthesis",        {"beta": 2.0}),
+    ("diffusion_limited_aggregation", "diffusion_limited_aggregation", {"n": 2000}),
+    ("reaction_diffusion",       "reaction_diffusion",       {"iterations": 1000, "feed": 0.055, "kill": 0.062}),
+    ("eden_growth",              "eden_growth",              {"n": 2000}),
+    ("fractal_brownian_surface", "fractal_brownian_surface", {"h": 0.5}),
+    ("landscape_gradient",       "landscape_gradient",       {"direction": 45.0, "aspect": 2.0}),
 ]
 
 

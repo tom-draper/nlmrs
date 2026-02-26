@@ -439,6 +439,28 @@ pub extern "C" fn nlmrs_rectangular_cluster(
     NlmGrid::from_grid(nlmrs::rectangular_cluster(rows, cols, n, opt_seed(seed)))
 }
 
+/// Cellular automaton NLM — binary cave-like patterns from birth/survival rules. Values in {0.0, 1.0}.
+///
+/// @param p                  Initial alive probability.
+/// @param iterations         Number of rule applications.
+/// @param birth_threshold    Min live neighbours to birth a dead cell.
+/// @param survival_threshold Min live neighbours for a live cell to survive.
+/// @param seed               Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_cellular_automaton(
+    rows: usize,
+    cols: usize,
+    p: f64,
+    iterations: usize,
+    birth_threshold: usize,
+    survival_threshold: usize,
+    seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::cellular_automaton(
+        rows, cols, p, iterations, birth_threshold, survival_threshold, opt_seed(seed),
+    ))
+}
+
 /// Neighbourhood clustering NLM — iterative majority-vote patch clustering. Values in [0, 1).
 ///
 /// @param k          Number of distinct patch classes (>= 2).
@@ -467,4 +489,65 @@ pub extern "C" fn nlmrs_spectral_synthesis(
     seed: *const u64,
 ) -> NlmGrid {
     NlmGrid::from_grid(nlmrs::spectral_synthesis(rows, cols, beta, opt_seed(seed)))
+}
+
+/// Gray-Scott reaction-diffusion NLM — Turing-pattern spots, stripes and labyrinths. Values in [0, 1).
+///
+/// @param iterations Number of simulation steps.
+/// @param feed       Feed rate for chemical A (controls pattern type).
+/// @param kill       Kill rate for chemical B (controls pattern type).
+/// @param seed       Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_reaction_diffusion(
+    rows: usize, cols: usize, iterations: usize, feed: f64, kill: f64, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::reaction_diffusion(rows, cols, iterations, feed, kill, opt_seed(seed)))
+}
+
+/// Eden growth model NLM — compact fractal blob grown from the centre. Values in {0.0, 1.0}.
+///
+/// @param n     Number of cells to add to the cluster.
+/// @param seed  Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_eden_growth(
+    rows: usize, cols: usize, n: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::eden_growth(rows, cols, n, opt_seed(seed)))
+}
+
+/// Fractal Brownian surface NLM — parameterised by Hurst exponent. Values in [0, 1).
+///
+/// @param h     Hurst exponent in (0, 1): 0 = rough, 1 = smooth.
+/// @param seed  Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_fractal_brownian_surface(
+    rows: usize, cols: usize, h: f64, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::fractal_brownian_surface(rows, cols, h, opt_seed(seed)))
+}
+
+/// Elliptical landscape gradient centred at the grid midpoint. Values in [0, 1).
+///
+/// @param direction  Pointer to major-axis orientation in degrees [0, 360), or NULL for random.
+/// @param aspect     Major-to-minor axis ratio (≥ 1.0). 1.0 = circular.
+/// @param seed       Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_landscape_gradient(
+    rows: usize, cols: usize, direction: *const f64, aspect: f64, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::landscape_gradient(rows, cols, opt_f64(direction), aspect, opt_seed(seed)))
+}
+
+/// Diffusion-limited aggregation NLM — branching fractal cluster grown from the centre. Values in {0.0, 1.0}.
+///
+/// @param n     Number of particles to release.
+/// @param seed  Pointer to a u64 seed, or NULL for a random seed.
+#[no_mangle]
+pub extern "C" fn nlmrs_diffusion_limited_aggregation(
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::diffusion_limited_aggregation(rows, cols, n, opt_seed(seed)))
 }

@@ -516,6 +516,26 @@ pub fn spectral_synthesis(rows: usize, cols: usize, beta: f64, seed: Option<u64>
     grid
 }
 
+/// Returns a fractal Brownian surface NLM parameterised by the Hurst exponent. Values in [0, 1).
+///
+/// Uses the spectral synthesis method. The Hurst exponent `h` directly controls
+/// the fractal dimension of the surface and has direct ecological meaning:
+/// `h` near 0 produces rough, fine-grained textures; `h` near 1 produces
+/// smooth, long-range correlated surfaces resembling natural terrain.
+///
+/// The relationship to the spectral exponent β used internally is β = 2h + 2.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `h`    - Hurst exponent in (0, 1). Default 0.5.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn fractal_brownian_surface(rows: usize, cols: usize, h: f64, seed: Option<u64>) -> Grid {
+    let beta = 2.0 * h.clamp(1e-6, 1.0 - 1e-6) + 2.0;
+    spectral_synthesis(rows, cols, beta, seed)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -718,6 +738,27 @@ mod tests {
     fn test_spectral_synthesis_seeded_determinism() {
         let a = spectral_synthesis(50, 50, 2.0, Some(42));
         let b = spectral_synthesis(50, 50, 2.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── fractal_brownian_surface ───────────────────────────────────────────────
+
+    #[rstest]
+    #[case(2, 2)]
+    #[case(10, 10)]
+    #[case(50, 50)]
+    fn test_fractal_brownian_surface(#[case] rows: usize, #[case] cols: usize) {
+        let grid = fractal_brownian_surface(rows, cols, 0.5, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_fractal_brownian_surface_seeded_determinism() {
+        let a = fractal_brownian_surface(50, 50, 0.5, Some(42));
+        let b = fractal_brownian_surface(50, 50, 0.5, Some(42));
         assert_eq!(a.data, b.data);
     }
 }
