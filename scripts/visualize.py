@@ -1,85 +1,109 @@
-import csv
+# /// script
+# requires-python = ">=3.8"
+# dependencies = [
+#   "matplotlib",
+#   "nlmrs",
+#   "numpy",
+# ]
+#
+# [tool.uv.sources]
+# nlmrs = { path = ".." }
+# ///
+"""
+Generate a PNG for every NLM algorithm using the nlmrs Python bindings.
+
+Usage:
+    uv run scripts/visualize.py [output_dir]
+
+Output PNGs are written to `output_dir` (default: examples/).
+uv builds the nlmrs extension automatically from the local source.
+"""
+
+import os
+import sys
 
 import matplotlib.pyplot as plt
+import nlmrs
 import numpy as np
-import sys
-import json
 
 
-def heatmap(data: list[list[float]]):
-    rows, cols = len(data), len(data[0])
-    max_dim = max(rows, cols)
-    scale = 10
-    plt.figure(figsize=(scale * (cols / max_dim), scale * (rows / max_dim)))
+SIZE = 100   # rows × cols for all grids
+SEED = 42
 
-    man = plt.get_current_fig_manager()
-    man.canvas.manager.set_window_title("Neutral Landscape Model")
-
-    plt.pcolormesh(data, cmap='terrain')
-    plt.axis('off')
-    plt.tight_layout()
-    plt.show()
-
-
-def sideview(data: list[float]):
-    plt.figure(figsize=(10, 4))
-
-    man = plt.get_current_fig_manager()
-    man.canvas.manager.set_window_title("Neutral Landscape Model")
-
-    plt.bar(range(0, len(data)), data, width=1.0,
-            facecolor='black', edgecolor='black')
-    plt.axis('off')
-    plt.tight_layout()
-    plt.show()
-
-
-def get_path() -> str:
-    path = None
-    if len(sys.argv) > 1:
-        path = sys.argv[1]  # assume first command-line arg is file path
-    return path
-
-
-def get_file_extension(path: str) -> str:
-    return path.split('.')[-1]
-
-
-def parse_csv(path: str) -> list[list[float]]:
-    arr = []
-    with open(path, 'r') as f:
-        csvf = csv.reader(f)
-
-        for lines in csvf:
-            lines = list(map(float, lines))
-            arr.append(lines)
-
-    return arr
+# (filename_stem, fn_name, kwargs)
+ALGORITHMS = [
+    ("random",                "random",               {}),
+    ("random_element",        "random_element",       {"n": 5000}),
+    ("planar_gradient",       "planar_gradient",      {"direction": 45.0}),
+    ("edge_gradient",         "edge_gradient",        {"direction": 45.0}),
+    ("distance_gradient",     "distance_gradient",    {}),
+    ("wave_gradient",         "wave_gradient",        {"period": 3.0}),
+    ("midpoint_displacement", "midpoint_displacement",{"h": 0.8}),
+    ("hill_grow",             "hill_grow",            {"n": 20000}),
+    ("perlin",                "perlin_noise",         {"scale": 4.0}),
+    ("fbm",                   "fbm_noise",            {"scale": 4.0, "octaves": 6}),
+    ("ridged",                "ridged_noise",         {"scale": 4.0, "octaves": 6}),
+    ("billow",                "billow_noise",         {"scale": 4.0, "octaves": 6}),
+    ("worley",                "worley_noise",         {"scale": 4.0}),
+    ("gaussian_field",        "gaussian_field",       {"sigma": 10.0}),
+    ("random_cluster",        "random_cluster",       {"n": 200}),
+    ("hybrid_noise",          "hybrid_noise",         {"scale": 4.0, "octaves": 6}),
+    ("value_noise",           "value_noise",          {"scale": 4.0}),
+    ("turbulence",            "turbulence",           {"scale": 4.0, "octaves": 6}),
+    ("domain_warp",           "domain_warp",          {"scale": 4.0, "warp_strength": 1.0}),
+    ("mosaic",                "mosaic",               {"n": 300}),
+    ("rectangular_cluster",   "rectangular_cluster",  {"n": 300}),
+    ("percolation",           "percolation",          {"p": 0.55}),
+    ("binary_space_partitioning", "binary_space_partitioning", {"n": 200}),
+    ("cellular_automaton",        "cellular_automaton",        {"p": 0.45, "iterations": 5}),
+    ("neighbourhood_clustering",  "neighbourhood_clustering",  {"k": 5, "iterations": 10}),
+    ("spectral_synthesis",        "spectral_synthesis",        {"beta": 2.0}),
+    ("diffusion_limited_aggregation", "diffusion_limited_aggregation", {"n": 2000}),
+    ("reaction_diffusion",       "reaction_diffusion",       {"iterations": 1000, "feed": 0.055, "kill": 0.062}),
+    ("eden_growth",              "eden_growth",              {"n": 2000}),
+    ("fractal_brownian_surface", "fractal_brownian_surface", {"h": 0.5}),
+    ("landscape_gradient",       "landscape_gradient",       {"direction": 45.0, "aspect": 2.0}),
+    ("simplex_noise",            "simplex_noise",            {"scale": 4.0}),
+    ("invasion_percolation",     "invasion_percolation",     {"n": 2000}),
+    ("gaussian_blobs",           "gaussian_blobs",           {"n": 50, "sigma": 5.0}),
+    ("ising_model",              "ising_model",              {"beta": 0.4, "iterations": 1000}),
+    ("voronoi_distance",         "voronoi_distance",         {"n": 50}),
+    ("sine_composite",           "sine_composite",           {"waves": 8}),
+    ("curl_noise",               "curl_noise",               {"scale": 4.0}),
+    ("hydraulic_erosion",        "hydraulic_erosion",        {"n": 500}),
+    ("levy_flight",              "levy_flight",              {"n": 1000}),
+    ("poisson_disk",             "poisson_disk",             {"min_dist": 5.0}),
+]
 
 
-def parse_json(path: str) -> list[list[float]]:
-    arr = []
-    with open(path) as f:
-        arr = json.load(f)
-
-    return arr
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-if __name__ == '__main__':
-    path = get_path()
-    if path is None:
-        path = "./data/data.csv"  # default file path
+def save_png(grid: np.ndarray, out_path: str):
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.pcolormesh(grid, cmap="terrain", vmin=0, vmax=1)
+    ax.set_position([0, 0, 1, 1])
+    ax.axis("off")
+    fig.savefig(out_path, dpi=150, pad_inches=0)
+    plt.close(fig)
 
-    extension = get_file_extension(path)
 
-    if extension == "csv":
-        arr = parse_csv(path)
-    elif extension == "json":
-        arr = parse_json(path)
-    else:
-        exit()
+def main():
+    out_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(REPO_ROOT, "examples")
+    os.makedirs(out_dir, exist_ok=True)
 
-    arr = np.array(arr)
-    print(arr.shape)
+    for stem, fn_name, kwargs in ALGORITHMS:
+        png_path = os.path.join(out_dir, f"{stem}.png")
+        title    = stem.replace("_", " ").title()
 
-    heatmap(arr)
+        print(f"  {title:<28}", end="", flush=True)
+        fn = getattr(nlmrs, fn_name)
+        grid = fn(SIZE, SIZE, **kwargs, seed=SEED)
+        save_png(grid, png_path)
+        print(f"→ {os.path.relpath(png_path)}")
+
+    print(f"\nDone. {len(ALGORITHMS)} PNGs saved to {out_dir}/")
+
+
+if __name__ == "__main__":
+    main()

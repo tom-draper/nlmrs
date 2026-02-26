@@ -1,6 +1,6 @@
 [package]
 name = "nlmrs"
-version = "0.1.8"
+version = "0.2.1"
 edition = "2021"
 description= "A Rust crate for building Neutral Landscape Models."
 repository = "https://github.com/tom-draper/nlmrs"
@@ -8,16 +8,40 @@ license = "MIT"
 keywords = ["landscape", "ecology", "nlm", "neutral", "spatial"]
 categories = ["mathematics", "graphics", "simulation", "multimedia::images", "visualization"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [lib]
-path = "src/nlm.rs"    # The source file of the target.
-crate-type = ["lib"]   # The crate types to generate.
+name = "nlmrs"
+# cdylib  — Python extension (.so / .pyd)
+# rlib    — Rust library (needed by the CLI binary)
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "nlmrs"
+path = "src/main.rs"
+
+[features]
+default = ["parallel"]
+# Enable PyO3 Python bindings. Build with: cargo build --features python
+# Or via maturin: maturin develop --features python
+python = ["pyo3/extension-module", "numpy"]
+# Rayon-based parallelism. Disable for wasm32 (no threads).
+parallel = ["dep:rayon"]
 
 [dev-dependencies]
 rstest = "0.16.0"
+criterion = "0.5"
+
+[[bench]]
+name = "algorithms"
+harness = false
 
 [dependencies]
 rand = "0.8.5"
 csv = "1.1.6"
 serde_json = "1.0"
+image = "0.25"
+noise = "0.9"
+rayon = { version = "1", optional = true }
+clap = { version = "4", features = ["derive"] }
+pyo3  = { version = "0.22", features = ["abi3-py38"], optional = true }
+numpy = { version = "0.22", optional = true }
+rustfft = "6"

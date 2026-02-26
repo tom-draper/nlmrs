@@ -1,2 +1,6 @@
-/target
+target/
+/memory
+/.venv
 tempCodeFileRunner.rs
+examples/*.csv
+examples/*.json

@@ -1,0 +1,24 @@
+TARGET_DIR = $(CURDIR)/rust/target
+LIBDIR     = $(TARGET_DIR)/x86_64-pc-windows-gnu/release
+STATLIB    = $(LIBDIR)/libnlmrs_r.a
+
+PKG_LIBS = -L$(LIBDIR) -lnlmrs_r -lws2_32 -ladvapi32 -luserenv -lbcrypt -lntdll
+
+all: $(SHLIB)
+
+$(SHLIB): $(STATLIB) $(LIBDIR)/libgcc_eh.a $(LIBDIR)/libgcc_s.a
+
+$(STATLIB):
+	cargo build --lib --release \
+	    --manifest-path=$(CURDIR)/rust/Cargo.toml \
+	    --target-dir=$(TARGET_DIR) \
+	    --target=x86_64-pc-windows-gnu
+
+$(LIBDIR)/libgcc_eh.a: $(STATLIB)
+	touch $@
+
+$(LIBDIR)/libgcc_s.a: $(STATLIB)
+	touch $@
+
+clean:
+	rm -Rf $(SHLIB) $(STATLIB) $(TARGET_DIR)
