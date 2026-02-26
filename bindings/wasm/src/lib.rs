@@ -654,6 +654,78 @@ pub fn ising_model(rows: u32, cols: u32, beta: f64, iterations: u32, seed: Optio
     grid_to_wasm(grid)
 }
 
+/// Voronoi distance field from random feature points. Values in [0, 1).
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param n    - Number of feature points (default 50).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn voronoi_distance(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::voronoi_distance(rows as usize, cols as usize, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Superposition of sinusoidal plane waves. Values in [0, 1).
+///
+/// @param rows  - Number of rows.
+/// @param cols  - Number of columns.
+/// @param waves - Number of waves to superpose (default 8).
+/// @param seed  - Optional integer seed.
+#[wasm_bindgen]
+pub fn sine_composite(rows: u32, cols: u32, waves: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::sine_composite(rows as usize, cols as usize, waves as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Divergence-free curl-warped Perlin noise NLM. Values in [0, 1).
+///
+/// @param rows  - Number of rows.
+/// @param cols  - Number of columns.
+/// @param scale - Coordinate frequency (default 4.0).
+/// @param seed  - Optional integer seed.
+#[wasm_bindgen]
+pub fn curl_noise(rows: u32, cols: u32, scale: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::curl_noise(rows as usize, cols as usize, scale, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Hydraulic erosion simulation on a random heightmap. Values in [0, 1).
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param n    - Number of erosion droplets (default 500).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn hydraulic_erosion(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::hydraulic_erosion(rows as usize, cols as usize, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Levy flight random walk density map. Values in [0, 1).
+///
+/// @param rows - Number of rows.
+/// @param cols - Number of columns.
+/// @param n    - Number of flight steps (default 1000).
+/// @param seed - Optional integer seed.
+#[wasm_bindgen]
+pub fn levy_flight(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::levy_flight(rows as usize, cols as usize, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+/// Poisson disk sampling inhibition pattern. Binary values {0.0, 1.0}.
+///
+/// @param rows     - Number of rows.
+/// @param cols     - Number of columns.
+/// @param min_dist - Minimum distance in cells between points (default 5.0).
+/// @param seed     - Optional integer seed.
+#[wasm_bindgen]
+pub fn poisson_disk(rows: u32, cols: u32, min_dist: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::poisson_disk(rows as usize, cols as usize, min_dist, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.

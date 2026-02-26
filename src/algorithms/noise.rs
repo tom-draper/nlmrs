@@ -1,6 +1,7 @@
 use crate::grid::Grid;
 use crate::operation::scale;
-use super::perlin_seed;
+use super::{make_rng, perlin_seed};
+use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
@@ -571,6 +572,152 @@ pub fn simplex_noise(rows: usize, cols: usize, scale_factor: f64, seed: Option<u
     grid
 }
 
+/// Returns a Voronoi distance NLM with values ranging [0, 1).
+///
+/// Scatters `n` random feature points across the grid, then fills each cell
+/// with the Euclidean distance to the nearest point. Produces a smooth field
+/// of conical gradients centred on each feature point.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of feature points to scatter.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn voronoi_distance(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let points: Vec<(f64, f64)> = (0..n.max(1))
+        .map(|_| (rng.gen::<f64>() * rows as f64, rng.gen::<f64>() * cols as f64))
+        .collect();
+
+    let mut grid = Grid::new(rows, cols);
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let pr = i as f64 + 0.5;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let pc = j as f64 + 0.5;
+            *cell = points
+                .iter()
+                .map(|&(sr, sc)| {
+                    let dr = pr - sr;
+                    let dc = pc - sc;
+                    (dr * dr + dc * dc).sqrt()
+                })
+                .fold(f64::INFINITY, f64::min);
+        }
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a sine composite NLM with values ranging [0, 1).
+///
+/// Superposes `waves` sinusoidal plane waves, each with a random orientation,
+/// frequency, and phase. The superposition produces standing-wave interference
+/// patterns whose complexity scales with the number of waves.
+///
+/// # Arguments
+///
+/// * `rows`  - Number of rows.
+/// * `cols`  - Number of columns.
+/// * `waves` - Number of sinusoidal waves to superpose.
+/// * `seed`  - Optional RNG seed for reproducible results.
+pub fn sine_composite(rows: usize, cols: usize, waves: usize, seed: Option<u64>) -> Grid {
+    use std::f64::consts::PI;
+    let mut rng = make_rng(seed);
+
+    let n = waves.max(1);
+    // (cos_angle, sin_angle, frequency, phase)
+    let params: Vec<(f64, f64, f64, f64)> = (0..n)
+        .map(|_| {
+            let angle = rng.gen::<f64>() * 2.0 * PI;
+            let freq = rng.gen::<f64>() * 3.5 + 0.5;
+            let phase = rng.gen::<f64>() * 2.0 * PI;
+            (angle.cos(), angle.sin(), freq, phase)
+        })
+        .collect();
+
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+    let inv_n = 1.0 / n as f64;
+
+    let mut grid = Grid::new(rows, cols);
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let ny = i as f64 * inv_rows;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let nx = j as f64 * inv_cols;
+            *cell = params
+                .iter()
+                .map(|&(ca, sa, freq, phase)| {
+                    (2.0 * PI * freq * (ca * nx + sa * ny) + phase).sin()
+                })
+                .sum::<f64>()
+                * inv_n;
+        }
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a curl noise NLM with values ranging [0, 1).
+///
+/// Computes the curl (gradient rotated 90°) of a Perlin potential field using
+/// finite differences, producing a divergence-free velocity field. The velocity
+/// is then used to warp the sample coordinates of a second Perlin generator,
+/// yielding swirling, flow-aligned patterns without directional clumping.
+///
+/// # Arguments
+///
+/// * `rows`         - Number of rows.
+/// * `cols`         - Number of columns.
+/// * `scale_factor` - Coordinate frequency (higher = more features per unit).
+/// * `seed`         - Optional RNG seed for reproducible results.
+pub fn curl_noise(rows: usize, cols: usize, scale_factor: f64, seed: Option<u64>) -> Grid {
+    use noise::{NoiseFn, Perlin};
+    let seed_val = perlin_seed(seed);
+    let potential = Perlin::new(seed_val);
+    let base = Perlin::new(seed_val.wrapping_add(1));
+
+    let mut grid = Grid::new(rows, cols);
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+    // Finite-difference step: half a scaled cell width.
+    let eps = inv_rows.min(inv_cols) * scale_factor * 0.5;
+
+    // Curl of potential: vx = dP/dy, vy = -dP/dx (divergence-free).
+    // Warp base-field sample coordinates by the curl velocity vector.
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let ny = i as f64 * inv_rows * scale_factor;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let nx = j as f64 * inv_cols * scale_factor;
+            let vx =
+                (potential.get([nx, ny + eps]) - potential.get([nx, ny - eps])) / (2.0 * eps);
+            let vy =
+                -(potential.get([nx + eps, ny]) - potential.get([nx - eps, ny])) / (2.0 * eps);
+            *cell = base.get([nx + vx, ny + vy]);
+        }
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -815,6 +962,69 @@ mod tests {
     fn test_simplex_noise_seeded_determinism() {
         let a = simplex_noise(50, 50, 4.0, Some(42));
         let b = simplex_noise(50, 50, 4.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── voronoi_distance ──────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_voronoi_distance(#[case] rows: usize, #[case] cols: usize) {
+        let grid = voronoi_distance(rows, cols, 20, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_voronoi_distance_seeded_determinism() {
+        let a = voronoi_distance(50, 50, 20, Some(42));
+        let b = voronoi_distance(50, 50, 20, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── sine_composite ────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_sine_composite(#[case] rows: usize, #[case] cols: usize) {
+        let grid = sine_composite(rows, cols, 8, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_sine_composite_seeded_determinism() {
+        let a = sine_composite(50, 50, 8, Some(42));
+        let b = sine_composite(50, 50, 8, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── curl_noise ────────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_curl_noise(#[case] rows: usize, #[case] cols: usize) {
+        let grid = curl_noise(rows, cols, 4.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_curl_noise_seeded_determinism() {
+        let a = curl_noise(50, 50, 4.0, Some(42));
+        let b = curl_noise(50, 50, 4.0, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

@@ -196,6 +196,30 @@ An open-source alternative to Perlin noise with fewer directional artefacts.
 
 <img src="examples/simplex_noise.png" alt="" width=300 />
 
+#### Voronoi Distance
+
+`voronoi_distance(rows: 100, cols: 100, n: 50, seed: 42)`
+
+Scatters `n` random feature points across the grid and fills each cell with the Euclidean distance to the nearest point, producing smooth conical gradients centred on each point.
+
+<img src="examples/voronoi_distance.png" alt="" width=300 />
+
+#### Sine Composite
+
+`sine_composite(rows: 100, cols: 100, waves: 8, seed: 42)`
+
+Superposes `waves` sinusoidal plane waves, each with a random orientation, frequency, and phase. The interference of multiple waves produces standing-wave patterns whose complexity grows with the number of waves.
+
+<img src="examples/sine_composite.png" alt="" width=300 />
+
+#### Curl Noise
+
+`curl_noise(rows: 100, cols: 100, scale: 4.0, seed: 42)`
+
+Computes the curl (gradient rotated 90 degrees) of a Perlin potential field using finite differences, producing a divergence-free velocity field. Sample coordinates of a second Perlin generator are warped by this field, yielding swirling, flow-aligned patterns without directional clumping.
+
+<img src="examples/curl_noise.png" alt="" width=300 />
+
 ### Patch
 
 Discrete spatial patterns built from random processes, clustering, or hierarchical partitioning.
@@ -344,6 +368,30 @@ Simulates a 2D Ising spin lattice via Glauber dynamics. Near the critical invers
 
 <img src="examples/ising_model.png" alt="" width=300 />
 
+#### Hydraulic Erosion
+
+`hydraulic_erosion(rows: 100, cols: 100, n: 500, seed: 42)`
+
+Generates a random initial heightmap, then simulates `n` water droplets flowing downhill. Each droplet carries sediment, eroding steeper terrain and depositing on flatter areas. The result resembles naturally worn terrain with drainage channels, alluvial fans, and rounded ridges.
+
+<img src="examples/hydraulic_erosion.png" alt="" width=300 />
+
+#### Levy Flight
+
+`levy_flight(rows: 100, cols: 100, n: 1000, seed: 42)`
+
+Simulates a Levy flight: a random walk where step lengths follow a power-law (heavy-tailed) distribution. The resulting visit-density map has clustered hotspots with occasional long-range jumps, modelling dispersal or foraging patterns.
+
+<img src="examples/levy_flight.png" alt="" width=300 />
+
+#### Poisson Disk
+
+`poisson_disk(rows: 100, cols: 100, min_dist: 5.0, seed: 42)`
+
+Uses Bridson's algorithm to place points such that no two are closer than `min_dist`. The resulting inhibition pattern has regular, even spacing compared to random point placement, modelling processes such as territorial behaviour or tree canopy competition.
+
+<img src="examples/poisson_disk.png" alt="" width=300 />
+
 #### Hill Grow
 
 `hill_grow(rows: 100, cols: 100, n: 20000, seed: 42)`
@@ -486,6 +534,9 @@ nlmrs.turbulence(100, 100, scale=4.0, octaves=6)
 nlmrs.domain_warp(100, 100, scale=4.0, warp_strength=1.0)
 nlmrs.spectral_synthesis(100, 100, beta=2.0)
 nlmrs.simplex_noise(100, 100, scale=4.0)
+nlmrs.voronoi_distance(100, 100, n=50)
+nlmrs.sine_composite(100, 100, waves=8)
+nlmrs.curl_noise(100, 100, scale=4.0)
 
 # Patch-based
 nlmrs.random(100, 100)
@@ -507,6 +558,9 @@ nlmrs.diffusion_limited_aggregation(100, 100, n=2000)
 nlmrs.invasion_percolation(100, 100, n=2000)
 nlmrs.gaussian_blobs(100, 100, n=50, sigma=5.0)
 nlmrs.ising_model(100, 100, beta=0.4, iterations=1000)
+nlmrs.hydraulic_erosion(100, 100, n=500)
+nlmrs.levy_flight(100, 100, n=1000)
+nlmrs.poisson_disk(100, 100, min_dist=5.0)
 ```
 
 Post-processing functions are also available:
@@ -538,7 +592,7 @@ m <- nlm_midpoint_displacement(100, 100, h = 0.8, seed = 42L)
 image(m, col = terrain.colors(256))
 ```
 
-All 35 algorithms are available with the `nlm_` prefix:
+All 41 algorithms are available with the `nlm_` prefix:
 
 ```r
 # Gradient
@@ -560,6 +614,9 @@ nlm_turbulence(100, 100, scale = 4.0, octaves = 6L)
 nlm_domain_warp(100, 100, scale = 4.0, warp_strength = 1.0)
 nlm_spectral_synthesis(100, 100, beta = 2.0)
 nlm_simplex_noise(100, 100, scale = 4.0)
+nlm_voronoi_distance(100, 100, n = 50L)
+nlm_sine_composite(100, 100, waves = 8L)
+nlm_curl_noise(100, 100, scale = 4.0)
 
 # Patch-based
 nlm_random(100, 100)
@@ -581,6 +638,9 @@ nlm_diffusion_limited_aggregation(100, 100, n = 2000L)
 nlm_invasion_percolation(100, 100, n = 2000L)
 nlm_gaussian_blobs(100, 100, n = 50L, sigma = 5.0)
 nlm_ising_model(100, 100, beta = 0.4, iterations = 1000L)
+nlm_hydraulic_erosion(100, 100, n = 500L)
+nlm_levy_flight(100, 100, n = 1000L)
+nlm_poisson_disk(100, 100, min_dist = 5.0)
 ```
 
 ### C bindings
@@ -641,7 +701,7 @@ nlmrs_free(g1);
 nlmrs_free(g2);
 ```
 
-All 35 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
+All 41 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
 
 ### WASM bindings
 
@@ -671,7 +731,7 @@ const value = flat[r * grid.cols + c];
 grid.free();  // release Rust memory
 ```
 
-All 35 algorithms are available. Seeds are passed as plain integers. Omit the seed argument for random output.
+All 41 algorithms are available. Seeds are passed as plain integers. Omit the seed argument for random output.
 
 ## Contributions
 

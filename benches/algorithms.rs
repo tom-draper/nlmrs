@@ -413,6 +413,80 @@ fn bench_ising_model(c: &mut Criterion) {
     group.finish();
 }
 
+// ── voronoi_distance ──────────────────────────────────────────────────────────
+
+fn bench_voronoi_distance(c: &mut Criterion) {
+    let mut group = c.benchmark_group("voronoi_distance");
+    for &size in &[64usize, 128, 256] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::voronoi_distance(size, size, 50, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── sine_composite ────────────────────────────────────────────────────────────
+
+fn bench_sine_composite(c: &mut Criterion) {
+    let mut group = c.benchmark_group("sine_composite");
+    for &size in &[64usize, 128, 256] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::sine_composite(size, size, 8, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── curl_noise ────────────────────────────────────────────────────────────────
+
+fn bench_curl_noise(c: &mut Criterion) {
+    let mut group = c.benchmark_group("curl_noise");
+    for &size in &[64usize, 128, 256] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::curl_noise(size, size, 4.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── hydraulic_erosion ─────────────────────────────────────────────────────────
+
+fn bench_hydraulic_erosion(c: &mut Criterion) {
+    let mut group = c.benchmark_group("hydraulic_erosion");
+    group.sample_size(20);
+    group.measurement_time(Duration::from_secs(15));
+    for &size in &[64usize, 128, 256] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::hydraulic_erosion(size, size, 500, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── levy_flight ───────────────────────────────────────────────────────────────
+
+fn bench_levy_flight(c: &mut Criterion) {
+    let mut group = c.benchmark_group("levy_flight");
+    for &size in &[64usize, 128, 256] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::levy_flight(size, size, 1000, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── poisson_disk ──────────────────────────────────────────────────────────────
+
+fn bench_poisson_disk(c: &mut Criterion) {
+    let mut group = c.benchmark_group("poisson_disk");
+    for &size in &[64usize, 128, 256] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::poisson_disk(size, size, 5.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_midpoint_displacement,
@@ -447,5 +521,11 @@ criterion_group!(
     bench_invasion_percolation,
     bench_gaussian_blobs,
     bench_ising_model,
+    bench_voronoi_distance,
+    bench_sine_composite,
+    bench_curl_noise,
+    bench_hydraulic_erosion,
+    bench_levy_flight,
+    bench_poisson_disk,
 );
 criterion_main!(benches);

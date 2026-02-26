@@ -771,6 +771,120 @@ fn ising_model(
     to_numpy(py, grid)
 }
 
+/// Voronoi distance field from random feature points. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of feature points to scatter (default 50).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=50, seed=None))]
+fn voronoi_distance(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::voronoi_distance(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Superposition of sinusoidal plane waves. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// waves : int
+///     Number of sinusoidal waves to superpose (default 8).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, waves=8, seed=None))]
+fn sine_composite(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    waves: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::sine_composite(rows, cols, waves, seed));
+    to_numpy(py, grid)
+}
+
+/// Divergence-free curl-warped Perlin noise NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Coordinate frequency (higher = more features per unit, default 4.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, seed=None))]
+fn curl_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::curl_noise(rows, cols, scale, seed));
+    to_numpy(py, grid)
+}
+
+/// Hydraulic erosion simulation on a random heightmap. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of erosion droplets to simulate (default 500).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=500, seed=None))]
+fn hydraulic_erosion(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::hydraulic_erosion(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Levy flight random walk density map. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of flight steps (default 1000).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=1000, seed=None))]
+fn levy_flight(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::levy_flight(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Poisson disk sampling inhibition pattern. Binary values {0.0, 1.0}.
+///
+/// Parameters
+/// ----------
+/// min_dist : float
+///     Minimum distance in cells between any two sample points (default 5.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, min_dist=5.0, seed=None))]
+fn poisson_disk(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    min_dist: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::poisson_disk(rows, cols, min_dist, seed));
+    to_numpy(py, grid)
+}
+
 // ── Post-processing ──────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.
@@ -872,6 +986,12 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(invasion_percolation, m)?)?;
     m.add_function(wrap_pyfunction!(gaussian_blobs, m)?)?;
     m.add_function(wrap_pyfunction!(ising_model, m)?)?;
+    m.add_function(wrap_pyfunction!(voronoi_distance, m)?)?;
+    m.add_function(wrap_pyfunction!(sine_composite, m)?)?;
+    m.add_function(wrap_pyfunction!(curl_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(hydraulic_erosion, m)?)?;
+    m.add_function(wrap_pyfunction!(levy_flight, m)?)?;
+    m.add_function(wrap_pyfunction!(poisson_disk, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

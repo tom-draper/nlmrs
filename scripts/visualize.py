@@ -67,6 +67,12 @@ ALGORITHMS = [
     ("invasion_percolation",     "invasion_percolation",     {"n": 2000}),
     ("gaussian_blobs",           "gaussian_blobs",           {"n": 50, "sigma": 5.0}),
     ("ising_model",              "ising_model",              {"beta": 0.4, "iterations": 1000}),
+    ("voronoi_distance",         "voronoi_distance",         {"n": 50}),
+    ("sine_composite",           "sine_composite",           {"waves": 8}),
+    ("curl_noise",               "curl_noise",               {"scale": 4.0}),
+    ("hydraulic_erosion",        "hydraulic_erosion",        {"n": 500}),
+    ("levy_flight",              "levy_flight",              {"n": 1000}),
+    ("poisson_disk",             "poisson_disk",             {"min_dist": 5.0}),
 ]
 
 

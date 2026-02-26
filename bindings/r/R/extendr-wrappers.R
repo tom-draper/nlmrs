@@ -160,6 +160,30 @@ r_ising_model <- function(rows, cols, beta = 0.4, iterations = 1000L, seed = NUL
   .Call(wrap__r_ising_model, rows, cols, beta, iterations, seed)
 }
 
+r_voronoi_distance <- function(rows, cols, n = 50L, seed = NULL) {
+  .Call(wrap__r_voronoi_distance, rows, cols, n, seed)
+}
+
+r_sine_composite <- function(rows, cols, waves = 8L, seed = NULL) {
+  .Call(wrap__r_sine_composite, rows, cols, waves, seed)
+}
+
+r_curl_noise <- function(rows, cols, scale = 4.0, seed = NULL) {
+  .Call(wrap__r_curl_noise, rows, cols, scale, seed)
+}
+
+r_hydraulic_erosion <- function(rows, cols, n = 500L, seed = NULL) {
+  .Call(wrap__r_hydraulic_erosion, rows, cols, n, seed)
+}
+
+r_levy_flight <- function(rows, cols, n = 1000L, seed = NULL) {
+  .Call(wrap__r_levy_flight, rows, cols, n, seed)
+}
+
+r_poisson_disk <- function(rows, cols, min_dist = 5.0, seed = NULL) {
+  .Call(wrap__r_poisson_disk, rows, cols, min_dist, seed)
+}
+
 r_classify <- function(m, n) {
   .Call(wrap__r_classify, m, n)
 }

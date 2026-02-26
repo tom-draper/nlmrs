@@ -890,6 +890,133 @@ nlm_ising_model <- function(rows, cols, beta = 0.4, iterations = 1000L, seed = N
                 if (is.null(seed)) NULL else as.double(seed))
 }
 
+#' Voronoi distance field NLM
+#'
+#' Scatters \code{n} random feature points, then fills each cell with the
+#' Euclidean distance to the nearest point. Produces a smooth field of conical
+#' gradients centred on each feature point.
+#'
+#' @inheritParams nlm_random
+#' @param n Integer. Number of feature points to scatter (default \code{50L}).
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1)}.
+#' @export
+#' @examples
+#' m <- nlm_voronoi_distance(50, 50, n = 30L, seed = 1L)
+#' stopifnot(all(m >= 0 & m <= 1))
+nlm_voronoi_distance <- function(rows, cols, n = 50L, seed = NULL) {
+  r_voronoi_distance(as.integer(rows), as.integer(cols),
+                     as.integer(n),
+                     if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Sine composite NLM
+#'
+#' Superposes \code{waves} sinusoidal plane waves, each with a random
+#' orientation, frequency, and phase. The superposition produces standing-wave
+#' interference patterns whose complexity scales with the number of waves.
+#'
+#' @inheritParams nlm_random
+#' @param waves Integer. Number of sinusoidal waves to superpose (default \code{8L}).
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1)}.
+#' @export
+#' @examples
+#' m <- nlm_sine_composite(50, 50, waves = 8L, seed = 1L)
+#' stopifnot(all(m >= 0 & m <= 1))
+nlm_sine_composite <- function(rows, cols, waves = 8L, seed = NULL) {
+  r_sine_composite(as.integer(rows), as.integer(cols),
+                   as.integer(waves),
+                   if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Curl noise NLM
+#'
+#' Computes the curl (gradient rotated 90 degrees) of a Perlin potential field
+#' using finite differences, producing a divergence-free velocity field, then
+#' uses it to warp the sample coordinates of a second Perlin generator. Yields
+#' swirling, flow-aligned patterns without directional clumping.
+#'
+#' @inheritParams nlm_random
+#' @param scale Numeric. Coordinate frequency; higher values produce more
+#'   features per unit area (default \code{4.0}).
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1)}.
+#' @export
+#' @examples
+#' m <- nlm_curl_noise(50, 50, scale = 4.0, seed = 1L)
+#' stopifnot(all(m >= 0 & m <= 1))
+nlm_curl_noise <- function(rows, cols, scale = 4.0, seed = NULL) {
+  r_curl_noise(as.integer(rows), as.integer(cols),
+               as.double(scale),
+               if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Hydraulic erosion NLM
+#'
+#' Generates a random initial heightmap, then simulates \code{n} water droplets
+#' flowing downhill. Each droplet carries sediment, eroding steeper terrain and
+#' depositing on flatter areas. Produces terrain resembling naturally worn
+#' landscapes with drainage channels and rounded ridges.
+#'
+#' @inheritParams nlm_random
+#' @param n Integer. Number of erosion droplets to simulate (default \code{500L}).
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1)}.
+#' @export
+#' @examples
+#' m <- nlm_hydraulic_erosion(50, 50, n = 200L, seed = 1L)
+#' stopifnot(all(m >= 0 & m <= 1))
+nlm_hydraulic_erosion <- function(rows, cols, n = 500L, seed = NULL) {
+  r_hydraulic_erosion(as.integer(rows), as.integer(cols),
+                      as.integer(n),
+                      if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Levy flight NLM
+#'
+#' Simulates a Levy flight: a random walk where step lengths follow a
+#' power-law (heavy-tailed) distribution. Starting from a random cell, the
+#' walker takes \code{n} steps on a toroidal grid, incrementing the visit count
+#' at each landing cell. Produces clustered hotspots with occasional long-range
+#' jumps, modelling dispersal or foraging patterns.
+#'
+#' @inheritParams nlm_random
+#' @param n Integer. Number of flight steps (default \code{1000L}).
+#'
+#' @return A numeric matrix with values in \eqn{[0, 1)}.
+#' @export
+#' @examples
+#' m <- nlm_levy_flight(50, 50, n = 500L, seed = 1L)
+#' stopifnot(all(m >= 0 & m <= 1))
+nlm_levy_flight <- function(rows, cols, n = 1000L, seed = NULL) {
+  r_levy_flight(as.integer(rows), as.integer(cols),
+                as.integer(n),
+                if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Poisson disk sampling NLM
+#'
+#' Uses Bridson's algorithm to place points such that no two are closer than
+#' \code{min_dist}. Cells at sampling locations are set to 1.0; all others 0.0.
+#' The resulting pattern has regular, inhibition-driven spacing, modelling
+#' territorial behaviour or canopy competition.
+#'
+#' @inheritParams nlm_random
+#' @param min_dist Numeric. Minimum distance in cells between any two sample
+#'   points (default \code{5.0}).
+#'
+#' @return A binary numeric matrix with values in \eqn{\{0, 1\}}.
+#' @export
+#' @examples
+#' m <- nlm_poisson_disk(50, 50, min_dist = 5.0, seed = 1L)
+#' stopifnot(all(m %in% c(0, 1)))
+nlm_poisson_disk <- function(rows, cols, min_dist = 5.0, seed = NULL) {
+  r_poisson_disk(as.integer(rows), as.integer(cols),
+                 as.double(min_dist),
+                 if (is.null(seed)) NULL else as.double(seed))
+}
+
 # ── Post-processing ───────────────────────────────────────────────────────────
 
 #' Classify a landscape matrix into discrete classes

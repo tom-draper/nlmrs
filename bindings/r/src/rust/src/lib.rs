@@ -415,6 +415,48 @@ fn r_ising_model(rows: i32, cols: i32, beta: f64, iterations: i32, seed: Nullabl
     grid_to_rmatrix(grid)
 }
 
+/// Voronoi distance field from random feature points. Values in [0, 1).
+#[extendr]
+fn r_voronoi_distance(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::voronoi_distance(rows as usize, cols as usize, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Superposition of sinusoidal plane waves. Values in [0, 1).
+#[extendr]
+fn r_sine_composite(rows: i32, cols: i32, waves: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::sine_composite(rows as usize, cols as usize, waves as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Divergence-free curl-warped Perlin noise NLM. Values in [0, 1).
+#[extendr]
+fn r_curl_noise(rows: i32, cols: i32, scale: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::curl_noise(rows as usize, cols as usize, scale, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Hydraulic erosion simulation on a random heightmap. Values in [0, 1).
+#[extendr]
+fn r_hydraulic_erosion(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::hydraulic_erosion(rows as usize, cols as usize, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Levy flight random walk density map. Values in [0, 1).
+#[extendr]
+fn r_levy_flight(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::levy_flight(rows as usize, cols as usize, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Poisson disk sampling inhibition pattern. Binary values {0.0, 1.0}.
+#[extendr]
+fn r_poisson_disk(rows: i32, cols: i32, min_dist: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::poisson_disk(rows as usize, cols as usize, min_dist, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Convert a column-major R matrix to a row-major Grid.
@@ -546,6 +588,12 @@ extendr_module! {
     fn r_invasion_percolation;
     fn r_gaussian_blobs;
     fn r_ising_model;
+    fn r_voronoi_distance;
+    fn r_sine_composite;
+    fn r_curl_noise;
+    fn r_hydraulic_erosion;
+    fn r_levy_flight;
+    fn r_poisson_disk;
     fn r_classify;
     fn r_threshold;
 }

@@ -394,6 +394,54 @@ enum Commands {
         #[arg(long, default_value = "1000")]
         iterations: usize,
     },
+    /// Voronoi distance field from random feature points
+    VoronoiDistance {
+        rows: usize,
+        cols: usize,
+        /// Number of feature points
+        #[arg(long, default_value = "50")]
+        n: usize,
+    },
+    /// Superposition of sinusoidal plane waves
+    SineComposite {
+        rows: usize,
+        cols: usize,
+        /// Number of sinusoidal waves to superpose
+        #[arg(long, default_value = "8")]
+        waves: usize,
+    },
+    /// Divergence-free curl-warped Perlin noise
+    CurlNoise {
+        rows: usize,
+        cols: usize,
+        /// Coordinate frequency (higher = more features per unit)
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+    },
+    /// Hydraulic erosion simulation on a random heightmap
+    HydraulicErosion {
+        rows: usize,
+        cols: usize,
+        /// Number of erosion droplets to simulate
+        #[arg(long, default_value = "500")]
+        n: usize,
+    },
+    /// Levy flight random walk density map
+    LevyFlight {
+        rows: usize,
+        cols: usize,
+        /// Number of flight steps
+        #[arg(long, default_value = "1000")]
+        n: usize,
+    },
+    /// Poisson disk sampling (binary inhibition pattern)
+    PoissonDisk {
+        rows: usize,
+        cols: usize,
+        /// Minimum distance in cells between any two sample points
+        #[arg(long, default_value = "5.0")]
+        min_dist: f64,
+    },
 }
 
 fn main() {
@@ -485,6 +533,20 @@ fn main() {
         }
         Commands::IsingModel { rows, cols, beta, iterations } => {
             nlmrs::ising_model(rows, cols, beta, iterations, seed)
+        }
+        Commands::VoronoiDistance { rows, cols, n } => {
+            nlmrs::voronoi_distance(rows, cols, n, seed)
+        }
+        Commands::SineComposite { rows, cols, waves } => {
+            nlmrs::sine_composite(rows, cols, waves, seed)
+        }
+        Commands::CurlNoise { rows, cols, scale } => nlmrs::curl_noise(rows, cols, scale, seed),
+        Commands::HydraulicErosion { rows, cols, n } => {
+            nlmrs::hydraulic_erosion(rows, cols, n, seed)
+        }
+        Commands::LevyFlight { rows, cols, n } => nlmrs::levy_flight(rows, cols, n, seed),
+        Commands::PoissonDisk { rows, cols, min_dist } => {
+            nlmrs::poisson_disk(rows, cols, min_dist, seed)
         }
     };
 

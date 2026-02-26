@@ -597,3 +597,45 @@ pub extern "C" fn nlmrs_ising_model(
 ) -> NlmGrid {
     NlmGrid::from_grid(nlmrs::ising_model(rows, cols, beta, iterations, opt_seed(seed)))
 }
+
+#[no_mangle]
+pub extern "C" fn nlmrs_voronoi_distance(
+    rows: usize, cols: usize, n: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::voronoi_distance(rows, cols, n, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_sine_composite(
+    rows: usize, cols: usize, waves: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::sine_composite(rows, cols, waves, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_curl_noise(
+    rows: usize, cols: usize, scale: f64, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::curl_noise(rows, cols, scale, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_hydraulic_erosion(
+    rows: usize, cols: usize, n: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::hydraulic_erosion(rows, cols, n, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_levy_flight(
+    rows: usize, cols: usize, n: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::levy_flight(rows, cols, n, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_poisson_disk(
+    rows: usize, cols: usize, min_dist: f64, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::poisson_disk(rows, cols, min_dist, opt_seed(seed)))
+}

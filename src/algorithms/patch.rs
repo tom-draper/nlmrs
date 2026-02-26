@@ -912,6 +912,253 @@ pub fn ising_model(
     Grid { data, rows, cols }
 }
 
+/// Returns a Levy flight NLM with values ranging [0, 1).
+///
+/// Simulates a Levy flight: a random walk where step lengths follow a
+/// power-law (heavy-tailed) distribution. Starting from a random cell, the
+/// walker takes `n` steps on a toroidal grid, incrementing the visit count at
+/// each landing cell. The normalised density map produces clustered hotspots
+/// with occasional long-range jumps, modelling dispersal or foraging patterns.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of flight steps.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn levy_flight(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    use std::f64::consts::PI;
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let mut grid = Grid::new(rows, cols);
+
+    let mut row = rng.gen_range(0..rows);
+    let mut col = rng.gen_range(0..cols);
+    grid.data[row * cols + col] += 1.0;
+
+    let alpha = 1.5_f64;
+    let max_step = (rows + cols) as f64;
+    for _ in 0..n {
+        // Power-law step length via inverse CDF: step ~ U^(-1/alpha).
+        let u = rng.gen::<f64>().max(1e-10);
+        let step = u.powf(-1.0 / alpha).min(max_step);
+        let angle = rng.gen::<f64>() * 2.0 * PI;
+        let dr = (step * angle.sin()).round() as i64;
+        let dc = (step * angle.cos()).round() as i64;
+        // Toroidal wrap so the walker never leaves the grid.
+        row = ((row as i64 + dr).rem_euclid(rows as i64)) as usize;
+        col = ((col as i64 + dc).rem_euclid(cols as i64)) as usize;
+        grid.data[row * cols + col] += 1.0;
+    }
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a hydraulic erosion NLM with values ranging [0, 1).
+///
+/// Generates a random initial heightmap, then simulates `n` water droplets
+/// flowing downhill. Each droplet carries sediment, eroding steeper terrain
+/// and depositing on flatter areas. The result resembles naturally worn
+/// terrain with drainage channels, alluvial fans, and rounded ridges.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of erosion droplets to simulate.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn hydraulic_erosion(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows < 2 || cols < 2 {
+        return Grid::new(rows, cols);
+    }
+    let mut rng = make_rng(seed);
+    let mut grid = rand_grid(rows, cols, &mut rng);
+
+    let inertia = 0.3_f64;
+    let capacity_factor = 8.0_f64;
+    let erosion_rate = 0.1_f64;
+    let deposition_rate = 0.1_f64;
+    let evaporation_rate = 0.02_f64;
+    let min_slope = 0.01_f64;
+
+    for _ in 0..n {
+        let mut x = rng.gen::<f64>() * (cols - 1) as f64;
+        let mut y = rng.gen::<f64>() * (rows - 1) as f64;
+        let mut vx = 0.0_f64;
+        let mut vy = 0.0_f64;
+        let mut water = 1.0_f64;
+        let mut sediment = 0.0_f64;
+
+        for _ in 0..30 {
+            let ix = x as usize;
+            let iy = y as usize;
+            if ix + 1 >= cols || iy + 1 >= rows {
+                break;
+            }
+
+            let fx = x - ix as f64;
+            let fy = y - iy as f64;
+            let h00 = grid.data[iy * cols + ix];
+            let h10 = grid.data[iy * cols + ix + 1];
+            let h01 = grid.data[(iy + 1) * cols + ix];
+            let h11 = grid.data[(iy + 1) * cols + ix + 1];
+            let h = h00 * (1.0 - fx) * (1.0 - fy)
+                + h10 * fx * (1.0 - fy)
+                + h01 * (1.0 - fx) * fy
+                + h11 * fx * fy;
+            // Bilinear gradient
+            let gx = (h10 - h00) * (1.0 - fy) + (h11 - h01) * fy;
+            let gy = (h01 - h00) * (1.0 - fx) + (h11 - h10) * fx;
+
+            vx = vx * inertia - gx * (1.0 - inertia);
+            vy = vy * inertia - gy * (1.0 - inertia);
+            let speed = (vx * vx + vy * vy).sqrt();
+            if speed < 1e-6 {
+                break;
+            }
+
+            let new_x = (x + vx / speed).clamp(0.0, (cols - 1) as f64 - 1e-6);
+            let new_y = (y + vy / speed).clamp(0.0, (rows - 1) as f64 - 1e-6);
+            let ix2 = new_x as usize;
+            let iy2 = new_y as usize;
+            let fx2 = new_x - ix2 as f64;
+            let fy2 = new_y - iy2 as f64;
+            let h_new = grid.data[iy2 * cols + ix2] * (1.0 - fx2) * (1.0 - fy2)
+                + grid.data[iy2 * cols + (ix2 + 1).min(cols - 1)] * fx2 * (1.0 - fy2)
+                + grid.data[(iy2 + 1).min(rows - 1) * cols + ix2] * (1.0 - fx2) * fy2
+                + grid.data[(iy2 + 1).min(rows - 1) * cols + (ix2 + 1).min(cols - 1)]
+                    * fx2
+                    * fy2;
+
+            let dh = h_new - h;
+            let capacity = ((-dh).max(min_slope) * speed * water * capacity_factor).max(0.0);
+            let (deposit, erode) = if sediment > capacity {
+                ((sediment - capacity) * deposition_rate, 0.0)
+            } else {
+                (0.0, ((capacity - sediment) * erosion_rate).min(0.1))
+            };
+            let delta = deposit - erode;
+            grid.data[iy * cols + ix] += delta * (1.0 - fx) * (1.0 - fy);
+            grid.data[iy * cols + ix + 1] += delta * fx * (1.0 - fy);
+            grid.data[(iy + 1) * cols + ix] += delta * (1.0 - fx) * fy;
+            grid.data[(iy + 1) * cols + ix + 1] += delta * fx * fy;
+
+            sediment += erode - deposit;
+            x = new_x;
+            y = new_y;
+            water *= 1.0 - evaporation_rate;
+            if water < 0.01 {
+                break;
+            }
+        }
+    }
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a Poisson disk sampling NLM. Binary values {0.0, 1.0}.
+///
+/// Uses Bridson's algorithm to place points such that no two are closer than
+/// `min_dist`. Cells at sampling locations are set to 1.0; all others 0.0.
+/// The resulting pattern has regular, inhibition-driven spacing, modelling
+/// processes such as territorial behaviour or tree canopy competition.
+///
+/// # Arguments
+///
+/// * `rows`     - Number of rows.
+/// * `cols`     - Number of columns.
+/// * `min_dist` - Minimum distance in cells between any two sample points.
+/// * `seed`     - Optional RNG seed for reproducible results.
+pub fn poisson_disk(rows: usize, cols: usize, min_dist: f64, seed: Option<u64>) -> Grid {
+    use std::f64::consts::PI;
+    let mut grid = Grid::new(rows, cols);
+    if rows == 0 || cols == 0 || min_dist <= 0.0 {
+        return grid;
+    }
+    let mut rng = make_rng(seed);
+
+    // Background acceleration grid; cell size = min_dist / sqrt(2).
+    let cell = (min_dist / 2.0_f64.sqrt()).max(1.0);
+    let gcols = (cols as f64 / cell).ceil() as usize + 1;
+    let grows = (rows as f64 / cell).ceil() as usize + 1;
+    // -1 = empty; otherwise stores the index into `samples`.
+    let mut spatial: Vec<i32> = vec![-1i32; grows * gcols];
+    let mut samples: Vec<(f64, f64)> = Vec::new();
+    let mut active: Vec<usize> = Vec::new();
+
+    // Seed the algorithm with one random point.
+    let r0 = rng.gen::<f64>() * rows as f64;
+    let c0 = rng.gen::<f64>() * cols as f64;
+    let gi = (r0 / cell) as usize;
+    let gj = (c0 / cell) as usize;
+    spatial[gi * gcols + gj] = 0;
+    samples.push((r0, c0));
+    active.push(0);
+
+    while !active.is_empty() {
+        let pick = rng.gen_range(0..active.len());
+        let (pr, pc) = samples[active[pick]];
+        let mut found = false;
+        for _ in 0..30 {
+            // Sample in annulus [min_dist, 2 * min_dist].
+            let r = min_dist * (1.0 + rng.gen::<f64>());
+            let angle = rng.gen::<f64>() * 2.0 * PI;
+            let nr = pr + r * angle.sin();
+            let nc = pc + r * angle.cos();
+            if nr < 0.0 || nr >= rows as f64 || nc < 0.0 || nc >= cols as f64 {
+                continue;
+            }
+            let gi = (nr / cell) as usize;
+            let gj = (nc / cell) as usize;
+            let mut ok = true;
+            'check: for di in 0..5usize {
+                for dj in 0..5usize {
+                    let ni = gi.wrapping_add(di).wrapping_sub(2);
+                    let nj = gj.wrapping_add(dj).wrapping_sub(2);
+                    if ni >= grows || nj >= gcols {
+                        continue;
+                    }
+                    let s = spatial[ni * gcols + nj];
+                    if s >= 0 {
+                        let (sr, sc) = samples[s as usize];
+                        let dr = nr - sr;
+                        let dc = nc - sc;
+                        if dr * dr + dc * dc < min_dist * min_dist {
+                            ok = false;
+                            break 'check;
+                        }
+                    }
+                }
+            }
+            if ok {
+                let new_idx = samples.len();
+                spatial[gi * gcols + gj] = new_idx as i32;
+                samples.push((nr, nc));
+                active.push(new_idx);
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            active.swap_remove(pick);
+        }
+    }
+
+    for (r, c) in &samples {
+        let ri = r.round() as usize;
+        let ci = c.round() as usize;
+        if ri < rows && ci < cols {
+            grid.data[ri * cols + ci] = 1.0;
+        }
+    }
+
+    grid
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1310,6 +1557,69 @@ mod tests {
     fn test_ising_model_seeded_determinism() {
         let a = ising_model(50, 50, 0.4, 100, Some(42));
         let b = ising_model(50, 50, 0.4, 100, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── levy_flight ───────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_levy_flight(#[case] rows: usize, #[case] cols: usize) {
+        let grid = levy_flight(rows, cols, 100, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_levy_flight_seeded_determinism() {
+        let a = levy_flight(50, 50, 100, Some(42));
+        let b = levy_flight(50, 50, 100, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── hydraulic_erosion ─────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(2, 2)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_hydraulic_erosion(#[case] rows: usize, #[case] cols: usize) {
+        let grid = hydraulic_erosion(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_hydraulic_erosion_seeded_determinism() {
+        let a = hydraulic_erosion(50, 50, 50, Some(42));
+        let b = hydraulic_erosion(50, 50, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── poisson_disk ──────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_poisson_disk(#[case] rows: usize, #[case] cols: usize) {
+        let grid = poisson_disk(rows, cols, 5.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert!(grid.data.iter().all(|&v| v == 0.0 || v == 1.0));
+    }
+
+    #[test]
+    fn test_poisson_disk_seeded_determinism() {
+        let a = poisson_disk(50, 50, 5.0, Some(42));
+        let b = poisson_disk(50, 50, 5.0, Some(42));
         assert_eq!(a.data, b.data);
     }
 }
