@@ -721,6 +721,86 @@ nlm_river_network(100, 100)
 nlm_hexagonal_voronoi(100, 100, n = 50L)
 ```
 
+### Julia bindings
+
+NLMrs is available as a Julia package. Every function returns a `Matrix{Float64}`.
+
+#### Install
+
+```julia
+# Requires Rust (https://rustup.rs) — builds the C library automatically.
+import Pkg
+Pkg.add(url="https://github.com/tom-draper/nlmrs", subdir="bindings/julia")
+```
+
+#### Usage
+
+```julia
+using NLMrs
+
+# All functions accept an optional seed keyword for reproducible output.
+m = midpoint_displacement(100, 100, h=0.8, seed=42)  # Matrix{Float64} (100, 100)
+```
+
+All parameters are keyword-friendly with sensible defaults:
+
+```julia
+# Gradient
+planar_gradient(100, 100, direction=45.0)
+edge_gradient(100, 100)
+distance_gradient(100, 100)
+wave_gradient(100, 100, period=2.5)
+landscape_gradient(100, 100, direction=45.0, aspect=2.0)
+
+# Noise
+perlin_noise(100, 100, scale=4.0)
+value_noise(100, 100, scale=4.0)
+worley_noise(100, 100, scale=4.0)
+fbm_noise(100, 100, scale=4.0, octaves=6, persistence=0.5, lacunarity=2.0)
+ridged_noise(100, 100, scale=4.0, octaves=6)
+billow_noise(100, 100, scale=4.0, octaves=6)
+hybrid_noise(100, 100, scale=4.0, octaves=6)
+turbulence(100, 100, scale=4.0, octaves=6)
+domain_warp(100, 100, scale=4.0, warp_strength=1.0)
+spectral_synthesis(100, 100, beta=2.0)
+fractal_brownian_surface(100, 100, h=0.5)
+simplex_noise(100, 100, scale=4.0)
+voronoi_distance(100, 100, n=50)
+sine_composite(100, 100, waves=8)
+curl_noise(100, 100, scale=4.0)
+gabor_noise(100, 100, scale=4.0, n=500)
+spot_noise(100, 100, n=200)
+anisotropic_noise(100, 100, scale=4.0, octaves=6, direction=45.0, stretch=4.0)
+tiled_noise(100, 100, scale=4.0)
+
+# Patch-based
+random(100, 100)
+random_element(100, 100, n=50000)
+hill_grow(100, 100, n=10000, runaway=true)
+midpoint_displacement(100, 100, h=1.0)
+random_cluster(100, 100, n=200)
+mosaic(100, 100, n=200)
+rectangular_cluster(100, 100, n=200)
+percolation(100, 100, p=0.5)
+binary_space_partitioning(100, 100, n=100)
+cellular_automaton(100, 100, p=0.45, iterations=5)
+neighbourhood_clustering(100, 100, k=5, iterations=10)
+reaction_diffusion(100, 100, iterations=1000, feed=0.055, kill=0.062)
+eden_growth(100, 100, n=2000)
+diffusion_limited_aggregation(100, 100, n=2000)
+invasion_percolation(100, 100, n=2000)
+gaussian_blobs(100, 100, n=50, sigma=5.0)
+ising_model(100, 100, beta=0.4, iterations=1000)
+hydraulic_erosion(100, 100, n=500)
+levy_flight(100, 100, n=1000)
+poisson_disk(100, 100, min_dist=5.0)
+gaussian_field(100, 100, sigma=10.0)
+brownian_motion(100, 100, n=5000)
+forest_fire(100, 100, p_tree=0.02, p_lightning=0.001, iterations=500)
+river_network(100, 100)
+hexagonal_voronoi(100, 100, n=50)
+```
+
 ### C bindings
 
 NLMrs exposes a C-compatible shared/static library, making it usable from any language with C FFI support (C++, Go, MATLAB, Fortran, etc.).
