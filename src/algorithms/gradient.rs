@@ -1,4 +1,3 @@
-use crate::array::rand_grid;
 use crate::grid::Grid;
 use crate::operation::{euclidean_distance_transform, invert, scale};
 use super::make_rng;
@@ -71,9 +70,16 @@ pub fn edge_gradient(rows: usize, cols: usize, direction: Option<f64>, seed: Opt
 ///
 /// Implementation ported from NLMpy.
 pub fn distance_gradient(rows: usize, cols: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(rows, cols);
+    }
     let mut rng = make_rng(seed);
-    let mut grid = rand_grid(rows, cols, &mut rng);
-    invert(&mut grid);
+    // All cells start as non-seed (infinity); one random cell is the source (0.0).
+    let data = vec![f64::INFINITY; rows * cols];
+    let mut grid = Grid { data, rows, cols };
+    let r = rng.gen_range(0..rows);
+    let c = rng.gen_range(0..cols);
+    grid[r][c] = 0.0;
     euclidean_distance_transform(&mut grid);
     scale(&mut grid);
     grid
