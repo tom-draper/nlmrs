@@ -6,9 +6,7 @@ A Rust crate for building **Neutral Landscape Models**.
 
 Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.com/ropensci/NLMR).
 
-## Usage
-
-NLMrs can be installed as a Rust crate, but language bindings also exist for Python, R, WASM and C.
+NLMrs is available as a Rust crate and can be installed as a CLI tool. Language bindings are also provided for Python, R, WASM, and C.
 
 ## Installation
 
@@ -415,7 +413,7 @@ Recursive fractal terrain generation: grid midpoints are displaced by decreasing
 
 ## Usage
 
-NLMrs can be installed as a Rust crate, but language bindings also exist for Python, R, WASM and C. 
+NLMrs is available as a Rust crate and can be installed as a CLI tool. Language bindings are also provided for Python, R, WASM, and C.
 
 ```bash
 cargo add nlmrs
