@@ -6,7 +6,7 @@ A Rust crate for building **Neutral Landscape Models**.
 
 Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.com/ropensci/NLMR).
 
-NLMrs is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, WASM, and C.
+NLMrs is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, Julia, WASM, and C.
 
 ## Installation
 
@@ -605,7 +605,7 @@ Spatial Lotka-Volterra PDE with diffusion. Two fields, prey (`u`) and predators 
 
 ## Usage
 
-NLMrs is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, WASM, and C.
+NLMrs is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, Julia, WASM, and C.
 
 ```bash
 cargo add nlmrs
