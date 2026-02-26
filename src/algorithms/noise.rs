@@ -963,6 +963,34 @@ pub fn tiled_noise(rows: usize, cols: usize, scale_factor: f64, seed: Option<u64
     grid
 }
 
+/// Returns a lognormal random field NLM with values ranging [0, 1).
+///
+/// Generates a Gaussian random field then applies an exponential transform,
+/// producing a right-skewed distribution typical of many ecological quantities
+/// (resource concentrations, population densities, precipitation). Because
+/// values are always positive and the mode is less than the mean, the field
+/// has a characteristic "hotspot" structure: rare but intense high-value
+/// patches embedded in a low-value background.
+///
+/// # Arguments
+///
+/// * `rows`  - Number of rows.
+/// * `cols`  - Number of columns.
+/// * `sigma` - Gaussian kernel standard deviation in cells (correlation length).
+/// * `seed`  - Optional RNG seed for reproducible results.
+pub fn lognormal_field(rows: usize, cols: usize, sigma: f64, seed: Option<u64>) -> Grid {
+    // Build a Gaussian random field, re-centre it to span [-3, 3], then
+    // exponentiate. The exponential of a normally-distributed variable is
+    // lognormally distributed. scale() normalises the result to [0, 1].
+    let mut grid = super::gaussian_field(rows, cols, sigma, seed);
+    for v in grid.data.iter_mut() {
+        // Map [0, 1] → [-3, 3] then exponentiate.
+        *v = (*v * 6.0 - 3.0).exp();
+    }
+    scale(&mut grid);
+    grid
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1354,6 +1382,27 @@ mod tests {
     fn test_tiled_noise_seeded_determinism() {
         let a = tiled_noise(50, 50, 4.0, Some(42));
         let b = tiled_noise(50, 50, 4.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── lognormal_field ───────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_lognormal_field(#[case] rows: usize, #[case] cols: usize) {
+        let grid = lognormal_field(rows, cols, 10.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_lognormal_field_seeded_determinism() {
+        let a = lognormal_field(50, 50, 10.0, Some(42));
+        let b = lognormal_field(50, 50, 10.0, Some(42));
         assert_eq!(a.data, b.data);
     }
 

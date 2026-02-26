@@ -1872,6 +1872,245 @@ pub fn hexagonal_voronoi(rows: usize, cols: usize, n: usize, seed: Option<u64>) 
     grid
 }
 
+/// Returns a Bak-Tang-Wiesenfeld sandpile NLM with values ranging [0, 1).
+///
+/// Adds `n` grains one at a time to random grid cells. When a cell
+/// accumulates 4 or more grains it "topples": it loses 4 grains and each
+/// of its 4 cardinal neighbours gains 1. Grains that fall off the grid
+/// boundary are lost. Toppling propagates until the grid is stable before
+/// the next grain is dropped. The resulting grain-count map, scaled to
+/// [0, 1), reveals self-similar avalanche structure characteristic of
+/// self-organized criticality.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of grains to drop.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn sandpile(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let mut grains: Vec<i64> = vec![0; rows * cols];
+    let mut queue: std::collections::VecDeque<usize> = std::collections::VecDeque::new();
+
+    for _ in 0..n {
+        let r = rng.gen_range(0..rows);
+        let c = rng.gen_range(0..cols);
+        let idx = r * cols + c;
+        grains[idx] += 1;
+        if grains[idx] >= 4 {
+            queue.push_back(idx);
+        }
+        while let Some(idx) = queue.pop_front() {
+            if grains[idx] < 4 {
+                continue;
+            }
+            grains[idx] -= 4;
+            let r = idx / cols;
+            let c = idx % cols;
+            let neighbors: [Option<usize>; 4] = [
+                if r > 0 { Some((r - 1) * cols + c) } else { None },
+                if r + 1 < rows { Some((r + 1) * cols + c) } else { None },
+                if c > 0 { Some(r * cols + c - 1) } else { None },
+                if c + 1 < cols { Some(r * cols + c + 1) } else { None },
+            ];
+            for nb in neighbors.into_iter().flatten() {
+                grains[nb] += 1;
+                if grains[nb] >= 4 {
+                    queue.push_back(nb);
+                }
+            }
+        }
+    }
+
+    let data: Vec<f64> = grains.iter().map(|&v| v as f64).collect();
+    let mut result = Grid { data, rows, cols };
+    scale(&mut result);
+    result
+}
+
+/// Returns a correlated random walk density NLM with values ranging [0, 1).
+///
+/// A single walker takes `n` steps. At each step the new heading is drawn
+/// from a wrapped normal distribution centred on the previous heading with
+/// standard deviation `1 / sqrt(kappa + 1)`. Setting `kappa = 0` gives a
+/// classic Brownian motion; increasing `kappa` produces straighter, more
+/// directional trajectories. The grid accumulates visit counts, which are
+/// scaled to [0, 1). Boundaries are reflecting.
+///
+/// # Arguments
+///
+/// * `rows`  - Number of rows.
+/// * `cols`  - Number of columns.
+/// * `n`     - Number of walk steps.
+/// * `kappa` - Directional persistence (0 = isotropic, higher = straighter).
+/// * `seed`  - Optional RNG seed for reproducible results.
+pub fn correlated_walk(
+    rows: usize,
+    cols: usize,
+    n: usize,
+    kappa: f64,
+    seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let mut data = vec![0.0f64; rows * cols];
+
+    let mut r = rng.gen_range(0..rows) as f64;
+    let mut c = rng.gen_range(0..cols) as f64;
+    let mut theta = rng.gen_range(0.0..2.0 * std::f64::consts::PI);
+    let sigma = 1.0 / (kappa + 1.0).sqrt();
+
+    let row_max = (rows - 1) as f64;
+    let col_max = (cols - 1) as f64;
+
+    for _ in 0..n {
+        let ri = r as usize;
+        let ci = c as usize;
+        data[ri * cols + ci] += 1.0;
+
+        // Box-Muller transform for a N(0, sigma) turn angle.
+        let u1 = rng.gen::<f64>().max(f64::MIN_POSITIVE);
+        let u2 = rng.gen::<f64>();
+        let turn =
+            (-2.0 * u1.ln()).sqrt() * (2.0 * std::f64::consts::PI * u2).cos() * sigma;
+        theta += turn;
+
+        let nr = r + theta.sin();
+        let nc = c + theta.cos();
+
+        // Reflecting boundary: fold back into [0, max].
+        let fold = |x: f64, max: f64| -> f64 {
+            let x = x.rem_euclid(2.0 * max);
+            if x > max { 2.0 * max - x } else { x }
+        };
+        r = fold(nr, row_max);
+        c = fold(nc, col_max);
+    }
+
+    let mut result = Grid { data, rows, cols };
+    scale(&mut result);
+    result
+}
+
+/// Returns a Schelling segregation NLM with values in {0.0, 0.5, 1.0}.
+///
+/// Initialises a grid where ~45 % of cells are type A (0.0), ~45 % are
+/// type B (1.0), and ~10 % are empty (0.5). In each iteration every
+/// unhappy cell — one where fewer than `tolerance` of its (up to 8)
+/// non-empty Moore neighbours share its type — is collected and then
+/// relocated to a random empty cell. The process runs for `iterations`
+/// sweeps, producing spatially segregated clusters typical of Schelling's
+/// model of residential segregation.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `tolerance`  - Minimum fraction of same-type neighbours for happiness (0–1).
+/// * `iterations` - Number of relocation sweeps.
+/// * `seed`       - Optional RNG seed for reproducible results.
+pub fn schelling(
+    rows: usize,
+    cols: usize,
+    tolerance: f64,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let n = rows * cols;
+
+    // -1 = empty, 0 = type A, 1 = type B
+    let mut state: Vec<i8> = (0..n)
+        .map(|_| {
+            let r: f64 = rng.gen();
+            if r < 0.45 { 0 } else if r < 0.90 { 1 } else { -1 }
+        })
+        .collect();
+
+    // Collect empty cells into an index list for O(1) random-empty lookup.
+    let mut empties: Vec<usize> = state
+        .iter()
+        .enumerate()
+        .filter(|(_, &v)| v == -1)
+        .map(|(i, _)| i)
+        .collect();
+
+    for _ in 0..iterations {
+        let mut unhappy: Vec<usize> = Vec::new();
+        for idx in 0..n {
+            let kind = state[idx];
+            if kind == -1 {
+                continue;
+            }
+            let r = idx / cols;
+            let c = idx % cols;
+            let mut same = 0usize;
+            let mut total = 0usize;
+            for dr in -1i64..=1 {
+                let nr = r as i64 + dr;
+                if nr < 0 || nr >= rows as i64 {
+                    continue;
+                }
+                for dc in -1i64..=1 {
+                    if dr == 0 && dc == 0 {
+                        continue;
+                    }
+                    let nc = c as i64 + dc;
+                    if nc < 0 || nc >= cols as i64 {
+                        continue;
+                    }
+                    let nb = state[nr as usize * cols + nc as usize];
+                    if nb != -1 {
+                        total += 1;
+                        if nb == kind {
+                            same += 1;
+                        }
+                    }
+                }
+            }
+            let frac = if total == 0 { 1.0 } else { same as f64 / total as f64 };
+            if frac < tolerance {
+                unhappy.push(idx);
+            }
+        }
+
+        if unhappy.is_empty() || empties.is_empty() {
+            break;
+        }
+
+        for &idx in &unhappy {
+            if empties.is_empty() {
+                break;
+            }
+            let pick = rng.gen_range(0..empties.len());
+            let dest = empties[pick];
+            // Swap agent into the empty slot; old position becomes empty.
+            state[dest] = state[idx];
+            state[idx] = -1;
+            empties[pick] = idx; // old position is now empty
+        }
+    }
+
+    let data: Vec<f64> = state
+        .iter()
+        .map(|&v| match v {
+            0 => 0.0,
+            1 => 1.0,
+            _ => 0.5,
+        })
+        .collect();
+    Grid { data, rows, cols }
+}
+
 #[cfg(test)]
 mod new_tests {
     use super::*;
@@ -1959,6 +2198,70 @@ mod new_tests {
     fn test_hexagonal_voronoi_seeded_determinism() {
         let a = hexagonal_voronoi(50, 50, 20, Some(42));
         let b = hexagonal_voronoi(50, 50, 20, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── sandpile ──────────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_sandpile(#[case] rows: usize, #[case] cols: usize) {
+        let grid = sandpile(rows, cols, 500, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_sandpile_seeded_determinism() {
+        let a = sandpile(50, 50, 500, Some(42));
+        let b = sandpile(50, 50, 500, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── correlated_walk ───────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_correlated_walk(#[case] rows: usize, #[case] cols: usize) {
+        let grid = correlated_walk(rows, cols, 500, 2.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_correlated_walk_seeded_determinism() {
+        let a = correlated_walk(50, 50, 500, 2.0, Some(42));
+        let b = correlated_walk(50, 50, 500, 2.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── schelling ─────────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_schelling(#[case] rows: usize, #[case] cols: usize) {
+        let grid = schelling(rows, cols, 0.5, 20, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_schelling_seeded_determinism() {
+        let a = schelling(50, 50, 0.5, 20, Some(42));
+        let b = schelling(50, 50, 0.5, 20, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

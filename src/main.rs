@@ -521,6 +521,52 @@ enum Commands {
         #[arg(long, default_value = "50")]
         n: usize,
     },
+    /// Archimedean spiral gradient emanating from the grid centre
+    SpiralGradient {
+        rows: usize,
+        cols: usize,
+        /// Number of full spiral rotations across the grid radius
+        #[arg(long, default_value = "3.0")]
+        turns: f64,
+    },
+    /// Lognormal random field — exponential-transformed Gaussian field
+    LognormalField {
+        rows: usize,
+        cols: usize,
+        /// Gaussian kernel standard deviation in cells (correlation length)
+        #[arg(long, default_value = "10.0")]
+        sigma: f64,
+    },
+    /// Bak-Tang-Wiesenfeld sandpile — self-organized criticality grain-count map
+    Sandpile {
+        rows: usize,
+        cols: usize,
+        /// Number of grains to drop
+        #[arg(long, default_value = "5000")]
+        n: usize,
+    },
+    /// Correlated random walk visit-density map
+    CorrelatedWalk {
+        rows: usize,
+        cols: usize,
+        /// Number of walk steps
+        #[arg(long, default_value = "5000")]
+        n: usize,
+        /// Directional persistence (0 = isotropic, higher = straighter)
+        #[arg(long, default_value = "2.0")]
+        kappa: f64,
+    },
+    /// Schelling segregation — self-organising binary spatial patches
+    Schelling {
+        rows: usize,
+        cols: usize,
+        /// Minimum fraction of same-type neighbours for a cell to be happy (0–1)
+        #[arg(long, default_value = "0.5")]
+        tolerance: f64,
+        /// Number of relocation sweeps
+        #[arg(long, default_value = "50")]
+        iterations: usize,
+    },
 }
 
 fn main() {
@@ -642,6 +688,19 @@ fn main() {
         Commands::RiverNetwork { rows, cols } => nlmrs::river_network(rows, cols, seed),
         Commands::HexagonalVoronoi { rows, cols, n } => {
             nlmrs::hexagonal_voronoi(rows, cols, n, seed)
+        }
+        Commands::SpiralGradient { rows, cols, turns } => {
+            nlmrs::spiral_gradient(rows, cols, turns, seed)
+        }
+        Commands::LognormalField { rows, cols, sigma } => {
+            nlmrs::lognormal_field(rows, cols, sigma, seed)
+        }
+        Commands::Sandpile { rows, cols, n } => nlmrs::sandpile(rows, cols, n, seed),
+        Commands::CorrelatedWalk { rows, cols, n, kappa } => {
+            nlmrs::correlated_walk(rows, cols, n, kappa, seed)
+        }
+        Commands::Schelling { rows, cols, tolerance, iterations } => {
+            nlmrs::schelling(rows, cols, tolerance, iterations, seed)
         }
     };
 

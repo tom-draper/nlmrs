@@ -170,6 +170,44 @@ pub fn landscape_gradient(
     grid
 }
 
+/// Returns a spiral gradient NLM with values ranging [0, 1).
+///
+/// Values increase along an Archimedean spiral radiating outward from the
+/// centre of the grid. `turns` controls how many full rotations span the
+/// grid radius — higher values produce tighter, more closely-wound spirals.
+///
+/// # Arguments
+///
+/// * `rows`  - Number of rows.
+/// * `cols`  - Number of columns.
+/// * `turns` - Number of spiral rotations across the grid radius.
+/// * `seed`  - Optional RNG seed (unused; provided for API consistency).
+pub fn spiral_gradient(rows: usize, cols: usize, turns: f64, _seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let cx = (cols as f64 - 1.0) / 2.0;
+    let cy = (rows as f64 - 1.0) / 2.0;
+    let max_r = cx.hypot(cy).max(1.0);
+
+    let data: Vec<f64> = (0..rows * cols)
+        .map(|idx| {
+            let i = idx / cols;
+            let j = idx % cols;
+            let dx = j as f64 - cx;
+            let dy = i as f64 - cy;
+            let r = dx.hypot(dy) / max_r;
+            let theta = dy.atan2(dx); // [-π, π]
+            let theta_norm = theta / (2.0 * std::f64::consts::PI) + 0.5; // [0, 1]
+            ((r * turns + theta_norm) % 1.0 + 1.0) % 1.0
+        })
+        .collect();
+
+    let mut result = Grid { data, rows, cols };
+    scale(&mut result);
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -275,5 +313,24 @@ mod tests {
         let a = landscape_gradient(50, 50, None, 2.0, Some(42));
         let b = landscape_gradient(50, 50, None, 2.0, Some(42));
         assert_eq!(a.data, b.data);
+    }
+
+    // ── spiral_gradient ───────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(2, 1)]
+    #[case(3, 2)]
+    #[case(5, 5)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    #[case(500, 1000)]
+    fn test_spiral_gradient(#[case] rows: usize, #[case] cols: usize) {
+        let grid = spiral_gradient(rows, cols, 3.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
     }
 }

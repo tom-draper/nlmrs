@@ -1049,6 +1049,108 @@ fn hexagonal_voronoi(
     to_numpy(py, grid)
 }
 
+/// Archimedean spiral gradient NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// turns : float
+///     Number of full spiral rotations across the grid radius (default 3.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, turns=3.0, seed=None))]
+fn spiral_gradient(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    turns: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::spiral_gradient(rows, cols, turns, seed));
+    to_numpy(py, grid)
+}
+
+/// Lognormal random field NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// sigma : float
+///     Gaussian kernel standard deviation in cells (default 10.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, sigma=10.0, seed=None))]
+fn lognormal_field(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    sigma: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::lognormal_field(rows, cols, sigma, seed));
+    to_numpy(py, grid)
+}
+
+/// Bak-Tang-Wiesenfeld sandpile NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of grains to drop (default 5000).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=5000, seed=None))]
+fn sandpile(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::sandpile(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Correlated random walk visit-density NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of walk steps (default 5000).
+/// kappa : float
+///     Directional persistence — 0 = isotropic Brownian, higher = straighter
+///     (default 2.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=5000, kappa=2.0, seed=None))]
+fn correlated_walk(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    kappa: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::correlated_walk(rows, cols, n, kappa, seed));
+    to_numpy(py, grid)
+}
+
+/// Schelling segregation NLM. Values in {0.0, 0.5, 1.0}.
+///
+/// Parameters
+/// ----------
+/// tolerance : float
+///     Minimum fraction of same-type neighbours for a cell to be happy (default 0.5).
+/// iterations : int
+///     Number of relocation sweeps (default 50).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, tolerance=0.5, iterations=50, seed=None))]
+fn schelling(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    tolerance: f64,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::schelling(rows, cols, tolerance, iterations, seed));
+    to_numpy(py, grid)
+}
+
 // ── Post-processing ──────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.
@@ -1164,6 +1266,11 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(forest_fire, m)?)?;
     m.add_function(wrap_pyfunction!(river_network, m)?)?;
     m.add_function(wrap_pyfunction!(hexagonal_voronoi, m)?)?;
+    m.add_function(wrap_pyfunction!(spiral_gradient, m)?)?;
+    m.add_function(wrap_pyfunction!(lognormal_field, m)?)?;
+    m.add_function(wrap_pyfunction!(sandpile, m)?)?;
+    m.add_function(wrap_pyfunction!(correlated_walk, m)?)?;
+    m.add_function(wrap_pyfunction!(schelling, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

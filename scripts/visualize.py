@@ -81,6 +81,11 @@ ALGORITHMS = [
     ("hydraulic_erosion",        "hydraulic_erosion",        {"n": 500}),
     ("levy_flight",              "levy_flight",              {"n": 1000}),
     ("poisson_disk",             "poisson_disk",             {"min_dist": 5.0}),
+    ("spiral_gradient",          "spiral_gradient",          {"turns": 4.0}),
+    ("lognormal_field",          "lognormal_field",          {"sigma": 10.0}),
+    ("sandpile",                 "sandpile",                 {"n": 5000}),
+    ("correlated_walk",          "correlated_walk",          {"n": 5000, "kappa": 2.0}),
+    ("schelling",                "schelling",                {"tolerance": 0.5, "iterations": 50}),
 ]
 
 
