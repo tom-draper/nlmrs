@@ -885,6 +885,170 @@ fn poisson_disk(
     to_numpy(py, grid)
 }
 
+/// Gabor noise NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Controls carrier frequency and envelope width (higher = finer features, default 4.0).
+/// n : int
+///     Number of Gabor kernels to place (more = smoother result, default 500).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, n=500, seed=None))]
+fn gabor_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::gabor_noise(rows, cols, scale, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Spot noise NLM — random oriented elliptical Gaussian blobs. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of spots to place (default 200).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=200, seed=None))]
+fn spot_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::spot_noise(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Anisotropic fBm NLM — noise stretched along a dominant axis. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Base noise frequency along the primary axis (default 4.0).
+/// octaves : int
+///     Number of noise layers to combine (default 6).
+/// direction : float
+///     Orientation of elongation in degrees [0, 360) (default 45.0).
+/// stretch : float
+///     Compression ratio for the perpendicular axis ≥ 1.0 (default 4.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, octaves=6, direction=45.0, stretch=4.0, seed=None))]
+fn anisotropic_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    octaves: usize,
+    direction: f64,
+    stretch: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::anisotropic_noise(rows, cols, scale, octaves, direction, stretch, seed));
+    to_numpy(py, grid)
+}
+
+/// Seamlessly tileable Perlin noise NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Number of noise cycles per tile (higher = more features, default 4.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, seed=None))]
+fn tiled_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::tiled_noise(rows, cols, scale, seed));
+    to_numpy(py, grid)
+}
+
+/// Brownian motion (Gaussian random walk) density NLM. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of walk steps (default 5000).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=5000, seed=None))]
+fn brownian_motion(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::brownian_motion(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Forest fire NLM — Drossel-Schwabl CA burn-history map. Values in [0, 1).
+///
+/// Parameters
+/// ----------
+/// p_tree : float
+///     Per-step probability an empty cell becomes a tree (default 0.02).
+/// p_lightning : float
+///     Per-step probability a tree ignites spontaneously (default 0.001).
+/// iterations : int
+///     Number of simulation steps (default 500).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, p_tree=0.02, p_lightning=0.001, iterations=500, seed=None))]
+fn forest_fire(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    p_tree: f64,
+    p_lightning: f64,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::forest_fire(rows, cols, p_tree, p_lightning, iterations, seed));
+    to_numpy(py, grid)
+}
+
+/// River network NLM — D8 flow accumulation on fBm terrain. Values in [0, 1).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, seed=None))]
+fn river_network(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::river_network(rows, cols, seed));
+    to_numpy(py, grid)
+}
+
+/// Hexagonal Voronoi NLM — BFS mosaic from a regular hexagonal seed lattice. Values in (0, 1].
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Approximate number of hexagonal cells (default 50).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=50, seed=None))]
+fn hexagonal_voronoi(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::hexagonal_voronoi(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
 // ── Post-processing ──────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.
@@ -992,6 +1156,14 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(hydraulic_erosion, m)?)?;
     m.add_function(wrap_pyfunction!(levy_flight, m)?)?;
     m.add_function(wrap_pyfunction!(poisson_disk, m)?)?;
+    m.add_function(wrap_pyfunction!(gabor_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(spot_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(anisotropic_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(tiled_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(brownian_motion, m)?)?;
+    m.add_function(wrap_pyfunction!(forest_fire, m)?)?;
+    m.add_function(wrap_pyfunction!(river_network, m)?)?;
+    m.add_function(wrap_pyfunction!(hexagonal_voronoi, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

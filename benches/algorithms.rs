@@ -487,6 +487,103 @@ fn bench_poisson_disk(c: &mut Criterion) {
     group.finish();
 }
 
+// ── gabor_noise ───────────────────────────────────────────────────────────────
+
+fn bench_gabor_noise(c: &mut Criterion) {
+    let mut group = c.benchmark_group("gabor_noise");
+    for &size in &[64usize, 128, 256] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::gabor_noise(size, size, 4.0, 500, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── spot_noise ────────────────────────────────────────────────────────────────
+
+fn bench_spot_noise(c: &mut Criterion) {
+    let mut group = c.benchmark_group("spot_noise");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::spot_noise(size, size, 200, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── anisotropic_noise ─────────────────────────────────────────────────────────
+
+fn bench_anisotropic_noise(c: &mut Criterion) {
+    let mut group = c.benchmark_group("anisotropic_noise");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::anisotropic_noise(size, size, 4.0, 6, 45.0, 4.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── tiled_noise ───────────────────────────────────────────────────────────────
+
+fn bench_tiled_noise(c: &mut Criterion) {
+    let mut group = c.benchmark_group("tiled_noise");
+    for &size in &[128usize, 256, 512, 1000] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::tiled_noise(size, size, 4.0, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── brownian_motion ───────────────────────────────────────────────────────────
+
+fn bench_brownian_motion(c: &mut Criterion) {
+    let mut group = c.benchmark_group("brownian_motion");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::brownian_motion(size, size, 5000, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── forest_fire ───────────────────────────────────────────────────────────────
+
+fn bench_forest_fire(c: &mut Criterion) {
+    let mut group = c.benchmark_group("forest_fire");
+    group.sample_size(20).measurement_time(Duration::from_secs(15));
+    for &size in &[64usize, 128, 256] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::forest_fire(size, size, 0.02, 0.001, 500, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── river_network ─────────────────────────────────────────────────────────────
+
+fn bench_river_network(c: &mut Criterion) {
+    let mut group = c.benchmark_group("river_network");
+    for &size in &[128usize, 256, 512] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::river_network(size, size, Some(42)));
+        });
+    }
+    group.finish();
+}
+
+// ── hexagonal_voronoi ─────────────────────────────────────────────────────────
+
+fn bench_hexagonal_voronoi(c: &mut Criterion) {
+    let mut group = c.benchmark_group("hexagonal_voronoi");
+    for &size in &[128usize, 256, 512, 1000] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            b.iter(|| nlmrs::hexagonal_voronoi(size, size, 50, Some(42)));
+        });
+    }
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_midpoint_displacement,
@@ -527,5 +624,13 @@ criterion_group!(
     bench_hydraulic_erosion,
     bench_levy_flight,
     bench_poisson_disk,
+    bench_gabor_noise,
+    bench_spot_noise,
+    bench_anisotropic_noise,
+    bench_tiled_noise,
+    bench_brownian_motion,
+    bench_forest_fire,
+    bench_river_network,
+    bench_hexagonal_voronoi,
 );
 criterion_main!(benches);

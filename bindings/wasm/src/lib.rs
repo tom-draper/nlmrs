@@ -726,6 +726,54 @@ pub fn poisson_disk(rows: u32, cols: u32, min_dist: f64, seed: Option<u32>) -> W
     grid_to_wasm(grid)
 }
 
+#[wasm_bindgen]
+pub fn gabor_noise(rows: u32, cols: u32, scale: f64, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::gabor_noise(rows as usize, cols as usize, scale, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+#[wasm_bindgen]
+pub fn spot_noise(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::spot_noise(rows as usize, cols as usize, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+#[wasm_bindgen]
+pub fn anisotropic_noise(rows: u32, cols: u32, scale: f64, octaves: u32, direction: f64, stretch: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::anisotropic_noise(rows as usize, cols as usize, scale, octaves as usize, direction, stretch, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+#[wasm_bindgen]
+pub fn tiled_noise(rows: u32, cols: u32, scale: f64, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::tiled_noise(rows as usize, cols as usize, scale, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+#[wasm_bindgen]
+pub fn brownian_motion(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::brownian_motion(rows as usize, cols as usize, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+#[wasm_bindgen]
+pub fn forest_fire(rows: u32, cols: u32, p_tree: f64, p_lightning: f64, iterations: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::forest_fire(rows as usize, cols as usize, p_tree, p_lightning, iterations as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+#[wasm_bindgen]
+pub fn river_network(rows: u32, cols: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::river_network(rows as usize, cols as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
+#[wasm_bindgen]
+pub fn hexagonal_voronoi(rows: u32, cols: u32, n: u32, seed: Option<u32>) -> WasmGrid {
+    let grid = nlmrs::hexagonal_voronoi(rows as usize, cols as usize, n as usize, seed_from_js(seed));
+    grid_to_wasm(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.

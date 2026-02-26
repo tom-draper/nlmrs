@@ -1017,6 +1017,139 @@ nlm_poisson_disk <- function(rows, cols, min_dist = 5.0, seed = NULL) {
                  if (is.null(seed)) NULL else as.double(seed))
 }
 
+#' Gabor noise NLM
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param scale Controls carrier frequency and envelope width (default 4.0).
+#' @param n Number of Gabor kernels to place (default 500L).
+#' @param seed Integer seed for reproducibility (default NULL).
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_gabor_noise(50, 50, scale = 4.0, n = 500L, seed = 1L)
+nlm_gabor_noise <- function(rows, cols, scale = 4.0, n = 500L, seed = NULL) {
+  r_gabor_noise(as.integer(rows), as.integer(cols),
+                as.double(scale), as.integer(n),
+                if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Spot noise NLM
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param n Number of elliptical spots to place (default 200L).
+#' @param seed Integer seed for reproducibility (default NULL).
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_spot_noise(50, 50, n = 200L, seed = 1L)
+nlm_spot_noise <- function(rows, cols, n = 200L, seed = NULL) {
+  r_spot_noise(as.integer(rows), as.integer(cols),
+               as.integer(n),
+               if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Anisotropic fBm NLM
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param scale Base noise frequency along primary axis (default 4.0).
+#' @param octaves Number of noise layers (default 6L).
+#' @param direction Orientation of elongation in degrees (default 45.0).
+#' @param stretch Compression ratio for perpendicular axis >= 1.0 (default 4.0).
+#' @param seed Integer seed for reproducibility (default NULL).
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_anisotropic_noise(50, 50, direction = 45.0, stretch = 4.0, seed = 1L)
+nlm_anisotropic_noise <- function(rows, cols, scale = 4.0, octaves = 6L, direction = 45.0, stretch = 4.0, seed = NULL) {
+  r_anisotropic_noise(as.integer(rows), as.integer(cols),
+                      as.double(scale), as.integer(octaves),
+                      as.double(direction), as.double(stretch),
+                      if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Tiled noise NLM
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param scale Number of noise cycles per tile (default 4.0).
+#' @param seed Integer seed for reproducibility (default NULL).
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_tiled_noise(50, 50, scale = 4.0, seed = 1L)
+nlm_tiled_noise <- function(rows, cols, scale = 4.0, seed = NULL) {
+  r_tiled_noise(as.integer(rows), as.integer(cols),
+                as.double(scale),
+                if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Brownian motion density NLM
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param n Number of walk steps (default 5000L).
+#' @param seed Integer seed for reproducibility (default NULL).
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_brownian_motion(50, 50, n = 5000L, seed = 1L)
+nlm_brownian_motion <- function(rows, cols, n = 5000L, seed = NULL) {
+  r_brownian_motion(as.integer(rows), as.integer(cols),
+                    as.integer(n),
+                    if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Forest fire NLM
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param p_tree Per-step probability an empty cell grows a tree (default 0.02).
+#' @param p_lightning Per-step probability a tree ignites spontaneously (default 0.001).
+#' @param iterations Number of simulation steps (default 500L).
+#' @param seed Integer seed for reproducibility (default NULL).
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_forest_fire(50, 50, p_tree = 0.02, p_lightning = 0.001, seed = 1L)
+nlm_forest_fire <- function(rows, cols, p_tree = 0.02, p_lightning = 0.001, iterations = 500L, seed = NULL) {
+  r_forest_fire(as.integer(rows), as.integer(cols),
+                as.double(p_tree), as.double(p_lightning), as.integer(iterations),
+                if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' River network NLM
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param seed Integer seed for reproducibility (default NULL).
+#' @return A numeric matrix with values in \eqn{[0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_river_network(50, 50, seed = 1L)
+nlm_river_network <- function(rows, cols, seed = NULL) {
+  r_river_network(as.integer(rows), as.integer(cols),
+                  if (is.null(seed)) NULL else as.double(seed))
+}
+
+#' Hexagonal Voronoi NLM
+#'
+#' @param rows Number of rows.
+#' @param cols Number of columns.
+#' @param n Approximate number of hexagonal cells (default 50L).
+#' @param seed Integer seed for reproducibility (default NULL).
+#' @return A numeric matrix with values in \eqn{(0, 1]}.
+#' @export
+#' @examples
+#' m <- nlm_hexagonal_voronoi(50, 50, n = 50L, seed = 1L)
+nlm_hexagonal_voronoi <- function(rows, cols, n = 50L, seed = NULL) {
+  r_hexagonal_voronoi(as.integer(rows), as.integer(cols),
+                      as.integer(n),
+                      if (is.null(seed)) NULL else as.double(seed))
+}
+
 # ── Post-processing ───────────────────────────────────────────────────────────
 
 #' Classify a landscape matrix into discrete classes

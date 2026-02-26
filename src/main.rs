@@ -442,6 +442,85 @@ enum Commands {
         #[arg(long, default_value = "5.0")]
         min_dist: f64,
     },
+    /// Gabor noise — oriented sinusoidal kernel superposition
+    GaborNoise {
+        rows: usize,
+        cols: usize,
+        /// Controls carrier frequency and envelope width (higher = finer features)
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+        /// Number of Gabor kernels to place
+        #[arg(long, default_value = "500")]
+        n: usize,
+    },
+    /// Spot noise — random anisotropic elliptical Gaussian blobs
+    SpotNoise {
+        rows: usize,
+        cols: usize,
+        /// Number of spots to place
+        #[arg(long, default_value = "200")]
+        n: usize,
+    },
+    /// Anisotropic noise — fBm stretched along a dominant axis
+    AnisotropicNoise {
+        rows: usize,
+        cols: usize,
+        /// Base noise frequency along the primary axis
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+        /// Number of noise layers to combine
+        #[arg(long, default_value = "6")]
+        octaves: usize,
+        /// Orientation of elongation in degrees [0, 360)
+        #[arg(long, default_value = "45.0")]
+        direction: f64,
+        /// Compression ratio for the perpendicular axis (≥ 1.0)
+        #[arg(long, default_value = "4.0")]
+        stretch: f64,
+    },
+    /// Tiled noise — seamlessly repeating Perlin noise via 4-D torus mapping
+    TiledNoise {
+        rows: usize,
+        cols: usize,
+        /// Number of noise cycles per tile (higher = more features)
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+    },
+    /// Brownian motion — Gaussian random-walk visit density
+    BrownianMotion {
+        rows: usize,
+        cols: usize,
+        /// Number of walk steps
+        #[arg(long, default_value = "5000")]
+        n: usize,
+    },
+    /// Forest fire — Drossel-Schwabl cellular automaton burn-history map
+    ForestFire {
+        rows: usize,
+        cols: usize,
+        /// Per-step probability an empty cell becomes a tree
+        #[arg(long, default_value = "0.02")]
+        p_tree: f64,
+        /// Per-step probability a tree ignites spontaneously
+        #[arg(long, default_value = "0.001")]
+        p_lightning: f64,
+        /// Number of simulation steps
+        #[arg(long, default_value = "500")]
+        iterations: usize,
+    },
+    /// River network — D8 flow accumulation on fBm terrain
+    RiverNetwork {
+        rows: usize,
+        cols: usize,
+    },
+    /// Hexagonal Voronoi — BFS mosaic from a regular hexagonal seed lattice
+    HexagonalVoronoi {
+        rows: usize,
+        cols: usize,
+        /// Approximate number of hexagonal cells
+        #[arg(long, default_value = "50")]
+        n: usize,
+    },
 }
 
 fn main() {
@@ -547,6 +626,22 @@ fn main() {
         Commands::LevyFlight { rows, cols, n } => nlmrs::levy_flight(rows, cols, n, seed),
         Commands::PoissonDisk { rows, cols, min_dist } => {
             nlmrs::poisson_disk(rows, cols, min_dist, seed)
+        }
+        Commands::GaborNoise { rows, cols, scale, n } => {
+            nlmrs::gabor_noise(rows, cols, scale, n, seed)
+        }
+        Commands::SpotNoise { rows, cols, n } => nlmrs::spot_noise(rows, cols, n, seed),
+        Commands::AnisotropicNoise { rows, cols, scale, octaves, direction, stretch } => {
+            nlmrs::anisotropic_noise(rows, cols, scale, octaves, direction, stretch, seed)
+        }
+        Commands::TiledNoise { rows, cols, scale } => nlmrs::tiled_noise(rows, cols, scale, seed),
+        Commands::BrownianMotion { rows, cols, n } => nlmrs::brownian_motion(rows, cols, n, seed),
+        Commands::ForestFire { rows, cols, p_tree, p_lightning, iterations } => {
+            nlmrs::forest_fire(rows, cols, p_tree, p_lightning, iterations, seed)
+        }
+        Commands::RiverNetwork { rows, cols } => nlmrs::river_network(rows, cols, seed),
+        Commands::HexagonalVoronoi { rows, cols, n } => {
+            nlmrs::hexagonal_voronoi(rows, cols, n, seed)
         }
     };
 

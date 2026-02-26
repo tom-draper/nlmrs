@@ -718,6 +718,251 @@ pub fn curl_noise(rows: usize, cols: usize, scale_factor: f64, seed: Option<u64>
     grid
 }
 
+/// Returns a Gabor noise NLM with values ranging [0, 1).
+///
+/// Sums `n` randomly placed, randomly oriented Gabor kernels — each the product
+/// of a Gaussian envelope and a cosine carrier — producing coherent, anisotropic
+/// textures with a controllable spatial frequency.  More kernels yield a smoother
+/// result (central-limit theorem averaging).
+///
+/// # Arguments
+///
+/// * `rows`         - Number of rows.
+/// * `cols`         - Number of columns.
+/// * `scale_factor` - Controls carrier frequency and envelope width (higher = finer features).
+/// * `n`            - Number of kernels to place.
+/// * `seed`         - Optional RNG seed for reproducible results.
+pub fn gabor_noise(rows: usize, cols: usize, scale_factor: f64, n: usize, seed: Option<u64>) -> Grid {
+    use std::f64::consts::TAU;
+    if rows == 0 || cols == 0 {
+        return Grid::new(rows, cols);
+    }
+    let mut rng = make_rng(seed);
+    let max_dim = rows.max(cols) as f64;
+    let sigma = max_dim / (2.0 * scale_factor.max(0.1));
+    let freq = scale_factor / max_dim;
+    let sigma_sq = sigma * sigma;
+    let support_r_sq = (3.0 * sigma).powi(2);
+
+    // Precompute (cx, cy, cos_θ, sin_θ, phase) for every kernel.
+    let kernels: Vec<(f64, f64, f64, f64, f64)> = (0..n.max(1))
+        .map(|_| {
+            let cx = rng.gen::<f64>() * cols as f64;
+            let cy = rng.gen::<f64>() * rows as f64;
+            let theta = rng.gen::<f64>() * std::f64::consts::PI;
+            let phase = rng.gen::<f64>() * TAU;
+            (cx, cy, theta.cos(), theta.sin(), phase)
+        })
+        .collect();
+
+    let mut data = vec![0.0f64; rows * cols];
+    let fill = |(idx, cell): (usize, &mut f64)| {
+        let x = (idx % cols) as f64;
+        let y = (idx / cols) as f64;
+        let mut val = 0.0f64;
+        for &(cx, cy, cos_t, sin_t, phase) in &kernels {
+            let dx = x - cx;
+            let dy = y - cy;
+            if dx * dx + dy * dy > support_r_sq {
+                continue;
+            }
+            let xp = dx * cos_t + dy * sin_t;
+            let yp = -dx * sin_t + dy * cos_t;
+            val += (-(xp * xp + yp * yp) / (2.0 * sigma_sq)).exp()
+                * (TAU * freq * xp + phase).cos();
+        }
+        *cell = val;
+    };
+    #[cfg(feature = "parallel")]
+    data.par_iter_mut().enumerate().for_each(fill);
+    #[cfg(not(feature = "parallel"))]
+    data.iter_mut().enumerate().for_each(fill);
+
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a spot noise NLM with values ranging [0, 1).
+///
+/// Places `n` randomly oriented elliptical Gaussian spots at random positions
+/// and accumulates their contributions.  Unlike `gaussian_blobs` (circular,
+/// uniform width), each spot has an independent orientation and aspect ratio,
+/// producing anisotropic brush-stroke-like textures.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of spots to place.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn spot_noise(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(rows, cols);
+    }
+    let mut rng = make_rng(seed);
+    let base = rows.max(cols) as f64 / 8.0;
+
+    // (cx, cy, cos_θ, sin_θ, 1/(2σ_maj²), 1/(2σ_min²))
+    let spots: Vec<(f64, f64, f64, f64, f64, f64)> = (0..n.max(1))
+        .map(|_| {
+            let cx = rng.gen::<f64>() * cols as f64;
+            let cy = rng.gen::<f64>() * rows as f64;
+            let theta = rng.gen::<f64>() * std::f64::consts::PI;
+            let s_maj = base * rng.gen_range(0.5f64..2.0);
+            let s_min = s_maj * rng.gen_range(0.2f64..0.6);
+            (cx, cy, theta.cos(), theta.sin(),
+             1.0 / (2.0 * s_maj * s_maj),
+             1.0 / (2.0 * s_min * s_min))
+        })
+        .collect();
+
+    let mut data = vec![0.0f64; rows * cols];
+    let fill = |(idx, cell): (usize, &mut f64)| {
+        let x = (idx % cols) as f64;
+        let y = (idx / cols) as f64;
+        let mut val = 0.0f64;
+        for &(cx, cy, cos_t, sin_t, inv2sx, inv2sy) in &spots {
+            let dx = x - cx;
+            let dy = y - cy;
+            let xp = dx * cos_t + dy * sin_t;
+            let yp = -dx * sin_t + dy * cos_t;
+            val += (-(xp * xp * inv2sx + yp * yp * inv2sy)).exp();
+        }
+        *cell = val;
+    };
+    #[cfg(feature = "parallel")]
+    data.par_iter_mut().enumerate().for_each(fill);
+    #[cfg(not(feature = "parallel"))]
+    data.iter_mut().enumerate().for_each(fill);
+
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns an anisotropic fBm NLM with values ranging [0, 1).
+///
+/// Applies a directional stretch to the noise coordinate space before sampling
+/// fBm, creating elongated features aligned with `direction`.  A `stretch` of
+/// 4.0 compresses the perpendicular axis 4× relative to the primary axis,
+/// producing ridge-like or streak-like textures.
+///
+/// # Arguments
+///
+/// * `rows`         - Number of rows.
+/// * `cols`         - Number of columns.
+/// * `scale_factor` - Base noise frequency along the primary axis.
+/// * `octaves`      - Number of noise layers to combine.
+/// * `direction`    - Orientation of elongation in degrees [0, 360).
+/// * `stretch`      - Compression ratio for the perpendicular axis (≥ 1.0).
+/// * `seed`         - Optional RNG seed for reproducible results.
+pub fn anisotropic_noise(
+    rows: usize,
+    cols: usize,
+    scale_factor: f64,
+    octaves: usize,
+    direction: f64,
+    stretch: f64,
+    seed: Option<u64>,
+) -> Grid {
+    use noise::{NoiseFn, Perlin};
+    let seed_val = perlin_seed(seed);
+    let oct = octaves.max(1);
+    let generators: Vec<Perlin> = (0..oct)
+        .map(|o| Perlin::new(seed_val.wrapping_add(o as u32)))
+        .collect();
+
+    let angle = direction.to_radians();
+    let cos_a = angle.cos();
+    let sin_a = angle.sin();
+    let stretch = stretch.max(1.0);
+
+    // Build normalised (freq, amp) pairs using standard FBM parameters.
+    let freq_amp: Vec<(f64, f64)> = {
+        let mut v = Vec::with_capacity(oct);
+        let mut amp = 1.0f64;
+        let mut freq = scale_factor;
+        let mut total = 0.0f64;
+        for _ in 0..oct {
+            v.push((freq, amp));
+            total += amp;
+            amp *= 0.5;
+            freq *= 2.0;
+        }
+        let inv = if total > 0.0 { 1.0 / total } else { 0.0 };
+        for (_, a) in &mut v { *a *= inv; }
+        v
+    };
+
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+    let mut grid = Grid::new(rows, cols);
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let ny = i as f64 * inv_rows;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let nx = j as f64 * inv_cols;
+            // Rotate into the anisotropy frame, then scale with stretch.
+            let xr =  nx * cos_a + ny * sin_a;
+            let yr = -nx * sin_a + ny * cos_a;
+            let mut value = 0.0f64;
+            for (k, gen) in generators.iter().enumerate() {
+                let (freq, amp) = freq_amp[k];
+                value += gen.get([xr * freq, yr * freq * stretch]) * amp;
+            }
+            *cell = value;
+        }
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a seamlessly tileable Perlin noise NLM with values ranging [0, 1).
+///
+/// Maps the 2-D grid coordinates onto a torus in 4-D via the standard
+/// `(cos θ, sin θ)` embedding, then samples 4-D Perlin noise.  The result
+/// tiles perfectly: the value at the left edge matches the right edge, and
+/// the top matches the bottom.
+///
+/// # Arguments
+///
+/// * `rows`         - Number of rows.
+/// * `cols`         - Number of columns.
+/// * `scale_factor` - Number of noise cycles per tile (higher = more features).
+/// * `seed`         - Optional RNG seed for reproducible results.
+pub fn tiled_noise(rows: usize, cols: usize, scale_factor: f64, seed: Option<u64>) -> Grid {
+    use noise::{NoiseFn, Perlin};
+    use std::f64::consts::TAU;
+    if rows == 0 || cols == 0 {
+        return Grid::new(rows, cols);
+    }
+    let seed_val = perlin_seed(seed);
+    let perlin = Perlin::new(seed_val);
+    let r = scale_factor;
+    let inv_cols = TAU / cols as f64;
+    let inv_rows = TAU / rows as f64;
+
+    let mut data = vec![0.0f64; rows * cols];
+    let fill = |(idx, cell): (usize, &mut f64)| {
+        let tx = (idx % cols) as f64 * inv_cols;
+        let ty = (idx / cols) as f64 * inv_rows;
+        *cell = perlin.get([tx.cos() * r, tx.sin() * r, ty.cos() * r, ty.sin() * r]);
+    };
+    #[cfg(feature = "parallel")]
+    data.par_iter_mut().enumerate().for_each(fill);
+    #[cfg(not(feature = "parallel"))]
+    data.iter_mut().enumerate().for_each(fill);
+
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1027,4 +1272,89 @@ mod tests {
         let b = curl_noise(50, 50, 4.0, Some(42));
         assert_eq!(a.data, b.data);
     }
+
+    // ── gabor_noise ───────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_gabor_noise(#[case] rows: usize, #[case] cols: usize) {
+        let grid = gabor_noise(rows, cols, 4.0, 200, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_gabor_noise_seeded_determinism() {
+        let a = gabor_noise(50, 50, 4.0, 200, Some(42));
+        let b = gabor_noise(50, 50, 4.0, 200, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── spot_noise ────────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_spot_noise(#[case] rows: usize, #[case] cols: usize) {
+        let grid = spot_noise(rows, cols, 100, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_spot_noise_seeded_determinism() {
+        let a = spot_noise(50, 50, 100, Some(42));
+        let b = spot_noise(50, 50, 100, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── anisotropic_noise ─────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_anisotropic_noise(#[case] rows: usize, #[case] cols: usize) {
+        let grid = anisotropic_noise(rows, cols, 4.0, 6, 45.0, 4.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_anisotropic_noise_seeded_determinism() {
+        let a = anisotropic_noise(50, 50, 4.0, 6, 45.0, 4.0, Some(42));
+        let b = anisotropic_noise(50, 50, 4.0, 6, 45.0, 4.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── tiled_noise ───────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_tiled_noise(#[case] rows: usize, #[case] cols: usize) {
+        let grid = tiled_noise(rows, cols, 4.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_tiled_noise_seeded_determinism() {
+        let a = tiled_noise(50, 50, 4.0, Some(42));
+        let b = tiled_noise(50, 50, 4.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
 }

@@ -1,7 +1,7 @@
 use crate::array::{diamond_square, rand_grid, rand_sub_grid};
 use crate::grid::Grid;
 use crate::operation::{interpolate, scale};
-use super::make_rng;
+use super::{make_rng, perlin_seed};
 use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
@@ -1620,6 +1620,345 @@ mod tests {
     fn test_poisson_disk_seeded_determinism() {
         let a = poisson_disk(50, 50, 5.0, Some(42));
         let b = poisson_disk(50, 50, 5.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+}
+
+// ── New algorithms ────────────────────────────────────────────────────────────
+
+/// Returns a Brownian motion (Gaussian random walk) density NLM with values ranging [0, 1).
+///
+/// A single particle starts at a random cell and takes `n` isotropic Gaussian
+/// steps (standard deviation ~1 cell) wrapping toroidally.  Each cell accumulates
+/// the number of visits; the result is normalised to [0, 1].  Unlike Lévy flight,
+/// Gaussian steps produce locally concentrated, diffusive paths without long jumps.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of walk steps (more steps = smoother, denser density field).
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn brownian_motion(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(rows, cols);
+    }
+    let mut rng = make_rng(seed);
+    let mut grid = Grid::new(rows, cols);
+    let mut row = rng.gen_range(0..rows) as f64;
+    let mut col = rng.gen_range(0..cols) as f64;
+
+    for _ in 0..n {
+        // Box-Muller transform: isotropic Gaussian step with σ = 1 cell.
+        let u1: f64 = rng.gen::<f64>().max(f64::EPSILON);
+        let u2: f64 = rng.gen::<f64>();
+        let mag = (-2.0 * u1.ln()).sqrt();
+        let angle = std::f64::consts::TAU * u2;
+        row = (row + mag * angle.sin()).rem_euclid(rows as f64);
+        col = (col + mag * angle.cos()).rem_euclid(cols as f64);
+        grid[row as usize][col as usize] += 1.0;
+    }
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a forest fire NLM with values ranging [0, 1).
+///
+/// Simulates the Drossel-Schwabl forest fire cellular automaton for `iterations`
+/// steps, tracking cumulative burn counts per cell.  Empty cells grow trees with
+/// probability `p_tree`; trees ignite from 4-connected burning neighbours or with
+/// spontaneous lightning probability `p_lightning`.  The normalised burn map encodes
+/// heterogeneous landscape structure driven by fire disturbance.
+///
+/// # Arguments
+///
+/// * `rows`        - Number of rows.
+/// * `cols`        - Number of columns.
+/// * `p_tree`      - Per-step probability an empty cell becomes a tree (default 0.02).
+/// * `p_lightning` - Per-step probability a tree ignites spontaneously (default 0.001).
+/// * `iterations`  - Number of simulation steps (default 500).
+/// * `seed`        - Optional RNG seed for reproducible results.
+pub fn forest_fire(
+    rows: usize,
+    cols: usize,
+    p_tree: f64,
+    p_lightning: f64,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(rows, cols);
+    }
+    let mut rng = make_rng(seed);
+    // 0 = empty, 1 = tree, 2 = fire
+    let mut state = vec![0u8; rows * cols];
+    for s in state.iter_mut() {
+        if rng.gen::<f64>() < p_tree { *s = 1; }
+    }
+    let mut burn_count = vec![0u32; rows * cols];
+
+    for _ in 0..iterations {
+        let mut next = state.clone();
+        for i in 0..rows {
+            for j in 0..cols {
+                match state[i * cols + j] {
+                    0 => {
+                        if rng.gen::<f64>() < p_tree { next[i * cols + j] = 1; }
+                    }
+                    1 => {
+                        let nbr_fire =
+                            (i > 0 && state[(i - 1) * cols + j] == 2)
+                            || (i + 1 < rows && state[(i + 1) * cols + j] == 2)
+                            || (j > 0 && state[i * cols + j - 1] == 2)
+                            || (j + 1 < cols && state[i * cols + j + 1] == 2);
+                        if nbr_fire || rng.gen::<f64>() < p_lightning {
+                            next[i * cols + j] = 2;
+                            burn_count[i * cols + j] += 1;
+                        }
+                    }
+                    _ => { next[i * cols + j] = 0; } // fire → empty (burned out)
+                }
+            }
+        }
+        state = next;
+    }
+
+    let mut grid = Grid::new(rows, cols);
+    for (cell, &count) in grid.data.iter_mut().zip(burn_count.iter()) {
+        *cell = count as f64;
+    }
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a river network NLM with values ranging [0, 1).
+///
+/// Generates a random fBm elevation model, routes flow downhill via the D8
+/// algorithm (steepest of 8 neighbours), and accumulates drainage area by
+/// topological sort.  The log-transformed flow accumulation is normalised to
+/// [0, 1]: high values correspond to main channels; low values to headwater ridges.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn river_network(rows: usize, cols: usize, seed: Option<u64>) -> Grid {
+    use noise::{Fbm, MultiFractal, NoiseFn, Perlin};
+    use std::collections::VecDeque;
+    if rows == 0 || cols == 0 {
+        return Grid::new(rows, cols);
+    }
+
+    // Generate fBm elevation model inline.
+    let seed_val = perlin_seed(seed);
+    let fbm = Fbm::<Perlin>::new(seed_val)
+        .set_octaves(6)
+        .set_persistence(0.5)
+        .set_lacunarity(2.0);
+    let inv_r = 3.0 / rows as f64;
+    let inv_c = 3.0 / cols as f64;
+    let mut elev: Vec<f64> = (0..rows * cols)
+        .map(|idx| {
+            let i = idx / cols;
+            let j = idx % cols;
+            fbm.get([j as f64 * inv_c, i as f64 * inv_r])
+        })
+        .collect();
+
+    // Normalise elevation to [0, 1].
+    let (mn, mx) = elev.iter().fold(
+        (f64::INFINITY, f64::NEG_INFINITY),
+        |(a, b), &v| (a.min(v), b.max(v)),
+    );
+    let range = (mx - mn).max(1e-10);
+    elev.iter_mut().for_each(|v| *v = (*v - mn) / range);
+
+    // D8 flow direction: index of steepest-descent neighbour, or usize::MAX at sinks.
+    let mut flow_dir = vec![usize::MAX; rows * cols];
+    for i in 0..rows {
+        for j in 0..cols {
+            let z = elev[i * cols + j];
+            let mut best_z = z;
+            let mut best_nb = usize::MAX;
+            for di in -1i32..=1 {
+                for dj in -1i32..=1 {
+                    if di == 0 && dj == 0 { continue; }
+                    let ni = i as i32 + di;
+                    let nj = j as i32 + dj;
+                    if ni < 0 || ni >= rows as i32 || nj < 0 || nj >= cols as i32 { continue; }
+                    let nz = elev[ni as usize * cols + nj as usize];
+                    if nz < best_z { best_z = nz; best_nb = ni as usize * cols + nj as usize; }
+                }
+            }
+            flow_dir[i * cols + j] = best_nb;
+        }
+    }
+
+    // Flow accumulation via topological sort (Kahn's algorithm).
+    let mut in_degree = vec![0u32; rows * cols];
+    for &dst in &flow_dir {
+        if dst != usize::MAX { in_degree[dst] += 1; }
+    }
+    let mut queue: VecDeque<usize> =
+        (0..rows * cols).filter(|&i| in_degree[i] == 0).collect();
+    let mut accum = vec![1u32; rows * cols];
+    while let Some(idx) = queue.pop_front() {
+        if flow_dir[idx] != usize::MAX {
+            let dst = flow_dir[idx];
+            accum[dst] += accum[idx];
+            in_degree[dst] -= 1;
+            if in_degree[dst] == 0 { queue.push_back(dst); }
+        }
+    }
+
+    let mut grid = Grid::new(rows, cols);
+    for (cell, &acc) in grid.data.iter_mut().zip(accum.iter()) {
+        *cell = (acc as f64).ln();
+    }
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a hexagonal Voronoi NLM with values ranging in (0, 1].
+///
+/// Seeds are placed on a slightly jittered regular hexagonal lattice, sized to
+/// produce approximately `n` cells.  BFS nearest-seed fill assigns every cell the
+/// value of its closest seed.  Compared to `mosaic` (purely random seeds) the
+/// result has more regular, honeycomb-like patch sizes.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Approximate number of hexagonal cells.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn hexagonal_voronoi(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(rows, cols);
+    }
+    let mut rng = make_rng(seed);
+    let n = n.max(1);
+
+    // Hex lattice spacing for approximately n cells.
+    // Area of a regular hexagon with circumradius r: A = (3√3/2) r²
+    let hex_r = ((rows * cols) as f64 / (n as f64 * 3.0 * 3_f64.sqrt() / 2.0))
+        .sqrt()
+        .max(1.0);
+    let hex_w = 3_f64.sqrt() * hex_r; // column stride
+    let hex_h = 1.5 * hex_r;          // row stride
+
+    let mut grid = Grid::new(rows, cols);
+    let mut row_f = 0.0f64;
+    let mut row_idx = 0usize;
+    while row_f < rows as f64 + hex_h {
+        let offset = if row_idx % 2 == 0 { 0.0 } else { hex_w / 2.0 };
+        let mut col_f = -hex_w / 2.0 + offset;
+        while col_f < cols as f64 + hex_w {
+            let jr = rng.gen_range(-hex_r * 0.1..hex_r * 0.1);
+            let jc = rng.gen_range(-hex_w * 0.1..hex_w * 0.1);
+            let ri = ((row_f + jr) as isize).clamp(0, rows as isize - 1) as usize;
+            let ci = ((col_f + jc) as isize).clamp(0, cols as isize - 1) as usize;
+            if grid[ri][ci] == 0.0 {
+                grid[ri][ci] = rng.gen::<f64>() * 0.999 + 0.001;
+            }
+            col_f += hex_w;
+        }
+        row_f += hex_h;
+        row_idx += 1;
+    }
+    interpolate(&mut grid);
+    grid
+}
+
+#[cfg(test)]
+mod new_tests {
+    use super::*;
+    use super::super::{nan_count, zero_to_one_count};
+    use rstest::rstest;
+
+    // ── brownian_motion ───────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_brownian_motion(#[case] rows: usize, #[case] cols: usize) {
+        let grid = brownian_motion(rows, cols, 500, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_brownian_motion_seeded_determinism() {
+        let a = brownian_motion(50, 50, 500, Some(42));
+        let b = brownian_motion(50, 50, 500, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── forest_fire ───────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_forest_fire(#[case] rows: usize, #[case] cols: usize) {
+        let grid = forest_fire(rows, cols, 0.05, 0.01, 100, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_forest_fire_seeded_determinism() {
+        let a = forest_fire(50, 50, 0.05, 0.01, 100, Some(42));
+        let b = forest_fire(50, 50, 0.05, 0.01, 100, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── river_network ─────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_river_network(#[case] rows: usize, #[case] cols: usize) {
+        let grid = river_network(rows, cols, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_river_network_seeded_determinism() {
+        let a = river_network(50, 50, Some(42));
+        let b = river_network(50, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── hexagonal_voronoi ─────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_hexagonal_voronoi(#[case] rows: usize, #[case] cols: usize) {
+        let grid = hexagonal_voronoi(rows, cols, 20, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_hexagonal_voronoi_seeded_determinism() {
+        let a = hexagonal_voronoi(50, 50, 20, Some(42));
+        let b = hexagonal_voronoi(50, 50, 20, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

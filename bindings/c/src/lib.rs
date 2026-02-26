@@ -639,3 +639,59 @@ pub extern "C" fn nlmrs_poisson_disk(
 ) -> NlmGrid {
     NlmGrid::from_grid(nlmrs::poisson_disk(rows, cols, min_dist, opt_seed(seed)))
 }
+
+#[no_mangle]
+pub extern "C" fn nlmrs_gabor_noise(
+    rows: usize, cols: usize, scale: f64, n: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::gabor_noise(rows, cols, scale, n, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_spot_noise(
+    rows: usize, cols: usize, n: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::spot_noise(rows, cols, n, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_anisotropic_noise(
+    rows: usize, cols: usize, scale: f64, octaves: usize, direction: f64, stretch: f64, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::anisotropic_noise(rows, cols, scale, octaves, direction, stretch, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_tiled_noise(
+    rows: usize, cols: usize, scale: f64, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::tiled_noise(rows, cols, scale, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_brownian_motion(
+    rows: usize, cols: usize, n: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::brownian_motion(rows, cols, n, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_forest_fire(
+    rows: usize, cols: usize, p_tree: f64, p_lightning: f64, iterations: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::forest_fire(rows, cols, p_tree, p_lightning, iterations, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_river_network(
+    rows: usize, cols: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::river_network(rows, cols, opt_seed(seed)))
+}
+
+#[no_mangle]
+pub extern "C" fn nlmrs_hexagonal_voronoi(
+    rows: usize, cols: usize, n: usize, seed: *const u64,
+) -> NlmGrid {
+    NlmGrid::from_grid(nlmrs::hexagonal_voronoi(rows, cols, n, opt_seed(seed)))
+}

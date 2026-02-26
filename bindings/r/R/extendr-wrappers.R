@@ -184,6 +184,38 @@ r_poisson_disk <- function(rows, cols, min_dist = 5.0, seed = NULL) {
   .Call(wrap__r_poisson_disk, rows, cols, min_dist, seed)
 }
 
+r_gabor_noise <- function(rows, cols, scale = 4.0, n = 500L, seed = NULL) {
+  .Call(wrap__r_gabor_noise, rows, cols, scale, n, seed)
+}
+
+r_spot_noise <- function(rows, cols, n = 200L, seed = NULL) {
+  .Call(wrap__r_spot_noise, rows, cols, n, seed)
+}
+
+r_anisotropic_noise <- function(rows, cols, scale = 4.0, octaves = 6L, direction = 45.0, stretch = 4.0, seed = NULL) {
+  .Call(wrap__r_anisotropic_noise, rows, cols, scale, octaves, direction, stretch, seed)
+}
+
+r_tiled_noise <- function(rows, cols, scale = 4.0, seed = NULL) {
+  .Call(wrap__r_tiled_noise, rows, cols, scale, seed)
+}
+
+r_brownian_motion <- function(rows, cols, n = 5000L, seed = NULL) {
+  .Call(wrap__r_brownian_motion, rows, cols, n, seed)
+}
+
+r_forest_fire <- function(rows, cols, p_tree = 0.02, p_lightning = 0.001, iterations = 500L, seed = NULL) {
+  .Call(wrap__r_forest_fire, rows, cols, p_tree, p_lightning, iterations, seed)
+}
+
+r_river_network <- function(rows, cols, seed = NULL) {
+  .Call(wrap__r_river_network, rows, cols, seed)
+}
+
+r_hexagonal_voronoi <- function(rows, cols, n = 50L, seed = NULL) {
+  .Call(wrap__r_hexagonal_voronoi, rows, cols, n, seed)
+}
+
 r_classify <- function(m, n) {
   .Call(wrap__r_classify, m, n)
 }

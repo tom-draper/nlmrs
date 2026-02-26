@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "nlmrs"
-description = "Fast Rust implementation of Neutral Landscape Models"
+description = "A high-performance library for building Neutral Landscape Models"
 readme = "README.md"
 requires-python = ">=3.8"
 dynamic = ["version"]

@@ -457,6 +457,62 @@ fn r_poisson_disk(rows: i32, cols: i32, min_dist: f64, seed: Nullable<f64>) -> R
     grid_to_rmatrix(grid)
 }
 
+/// Gabor noise NLM. Values in [0, 1).
+#[extendr]
+fn r_gabor_noise(rows: i32, cols: i32, scale: f64, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::gabor_noise(rows as usize, cols as usize, scale, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Spot noise NLM. Values in [0, 1).
+#[extendr]
+fn r_spot_noise(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::spot_noise(rows as usize, cols as usize, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Anisotropic fBm NLM. Values in [0, 1).
+#[extendr]
+fn r_anisotropic_noise(rows: i32, cols: i32, scale: f64, octaves: i32, direction: f64, stretch: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::anisotropic_noise(rows as usize, cols as usize, scale, octaves as usize, direction, stretch, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Tiled noise NLM. Values in [0, 1).
+#[extendr]
+fn r_tiled_noise(rows: i32, cols: i32, scale: f64, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::tiled_noise(rows as usize, cols as usize, scale, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Brownian motion density NLM. Values in [0, 1).
+#[extendr]
+fn r_brownian_motion(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::brownian_motion(rows as usize, cols as usize, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Forest fire NLM. Values in [0, 1).
+#[extendr]
+fn r_forest_fire(rows: i32, cols: i32, p_tree: f64, p_lightning: f64, iterations: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::forest_fire(rows as usize, cols as usize, p_tree, p_lightning, iterations as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// River network NLM. Values in [0, 1).
+#[extendr]
+fn r_river_network(rows: i32, cols: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::river_network(rows as usize, cols as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
+/// Hexagonal Voronoi NLM. Values in (0, 1].
+#[extendr]
+fn r_hexagonal_voronoi(rows: i32, cols: i32, n: i32, seed: Nullable<f64>) -> RMatrix<f64> {
+    let grid = nlmrs::hexagonal_voronoi(rows as usize, cols as usize, n as usize, seed_from_r(seed));
+    grid_to_rmatrix(grid)
+}
+
 // ── Post-processing ───────────────────────────────────────────────────────────
 
 /// Convert a column-major R matrix to a row-major Grid.
@@ -594,6 +650,14 @@ extendr_module! {
     fn r_hydraulic_erosion;
     fn r_levy_flight;
     fn r_poisson_disk;
+    fn r_gabor_noise;
+    fn r_spot_noise;
+    fn r_anisotropic_noise;
+    fn r_tiled_noise;
+    fn r_brownian_motion;
+    fn r_forest_fire;
+    fn r_river_network;
+    fn r_hexagonal_voronoi;
     fn r_classify;
     fn r_threshold;
 }
