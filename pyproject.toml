@@ -10,7 +10,9 @@ requires-python = ">=3.8"
 dynamic = ["version"]
 license = { text = "MIT" }
 keywords = ["landscape", "ecology", "nlm", "spatial", "terrain", "procedural"]
+authors = [{ name = "Tom Draper", email = "tomjdraper1@gmail.com" }]
 classifiers = [
+    "Development Status :: 4 - Beta",
     "Programming Language :: Rust",
     "Programming Language :: Python :: 3",
     "Intended Audience :: Science/Research",
@@ -19,6 +21,11 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = ["numpy"]
+
+[project.urls]
+Homepage = "https://github.com/tom-draper/nlmrs"
+Repository = "https://github.com/tom-draper/nlmrs"
+Issues = "https://github.com/tom-draper/nlmrs/issues"
 
 [tool.maturin]
 # Rust feature to enable when building the Python extension.

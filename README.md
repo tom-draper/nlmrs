@@ -52,7 +52,7 @@ Deterministic spatial fields derived from direction, distance, or position.
 
 Linear ramp at a given `direction` angle, increasing uniformly from 0 to 1 across the grid.
 
-<img src="examples/planar_gradient.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/planar_gradient.png" alt="" width=300 />
 
 #### Edge Gradient
 
@@ -60,7 +60,7 @@ Linear ramp at a given `direction` angle, increasing uniformly from 0 to 1 acros
 
 Symmetric version of the planar gradient: values peak at 1.0 along the central axis and fall to 0.0 at both edges.
 
-<img src="examples/edge_gradient.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/edge_gradient.png" alt="" width=300 />
 
 #### Distance Gradient
 
@@ -68,7 +68,7 @@ Symmetric version of the planar gradient: values peak at 1.0 along the central a
 
 Euclidean distance transform from random seed cells, producing a smooth radial falloff from 0 at the seeds outward to 1 at the most distant point.
 
-<img src="examples/distance_gradient.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/distance_gradient.png" alt="" width=300 />
 
 #### Wave Gradient
 
@@ -76,7 +76,7 @@ Euclidean distance transform from random seed cells, producing a smooth radial f
 
 Sinusoidal wave oriented at a given `direction` angle, cycling repeatedly from 0 to 1 and back at the specified `period`.
 
-<img src="examples/wave_gradient.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/wave_gradient.png" alt="" width=300 />
 
 ### Noise
 
@@ -88,7 +88,7 @@ Continuous stochastic fields, from single-layer lattice noise to multi-octave fr
 
 Smooth gradient noise built from dot products of random gradient vectors at lattice points, producing continuous, natural-looking variation.
 
-<img src="examples/perlin.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/perlin.png" alt="" width=300 />
 
 *Source: [Perlin (1985)](https://doi.org/10.1145/325165.325247)*
 
@@ -98,7 +98,7 @@ Smooth gradient noise built from dot products of random gradient vectors at latt
 
 Interpolated lattice noise that is smoother and more rounded than Perlin noise.
 
-<img src="examples/value_noise.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/value_noise.png" alt="" width=300 />
 
 #### Worley Noise
 
@@ -106,7 +106,7 @@ Interpolated lattice noise that is smoother and more rounded than Perlin noise.
 
 Cell noise built from distances to random feature points, producing cellular, cracked-earth, or mosaic-like patterns.
 
-<img src="examples/worley.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/worley.png" alt="" width=300 />
 
 *Source: [Worley (1996)](https://doi.org/10.1145/237170.237267)*
 
@@ -116,7 +116,7 @@ Cell noise built from distances to random feature points, producing cellular, cr
 
 White noise smoothed by a Gaussian blur kernel with standard deviation `sigma`, producing spatially correlated fields where patch size scales directly with `sigma`.
 
-<img src="examples/gaussian_field.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/gaussian_field.png" alt="" width=300 />
 
 #### fBm Noise
 
@@ -124,7 +124,7 @@ White noise smoothed by a Gaussian blur kernel with standard deviation `sigma`, 
 
 Fractal Brownian motion layers multiple octaves of Perlin noise for more natural-looking terrain detail.
 
-<img src="examples/fbm.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/fbm.png" alt="" width=300 />
 
 *Source: [Mandelbrot & Van Ness (1968)](https://doi.org/10.1137/1010093); [Voss (1985)](https://doi.org/10.1007/978-3-642-84574-1_34)*
 
@@ -134,7 +134,7 @@ Fractal Brownian motion layers multiple octaves of Perlin noise for more natural
 
 Multi-octave noise where each octave is inverted and folded, producing sharp mountain ridges and valleys.
 
-<img src="examples/ridged.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/ridged.png" alt="" width=300 />
 
 *Source: [Musgrave, Kolb & Mace (1989)](https://doi.org/10.1145/74334.74337)*
 
@@ -144,7 +144,7 @@ Multi-octave noise where each octave is inverted and folded, producing sharp mou
 
 Multi-octave noise with absolute-value folding applied before accumulation, producing rounded billowing clouds or rolling dune shapes.
 
-<img src="examples/billow.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/billow.png" alt="" width=300 />
 
 *Source: Ebert et al., Texturing and Modeling: A Procedural Approach (2002)*
 
@@ -154,7 +154,7 @@ Multi-octave noise with absolute-value folding applied before accumulation, prod
 
 Hybrid multifractal noise combines fBm-style layering with a multiplicative weighting that amplifies high-frequency detail near peaks.
 
-<img src="examples/hybrid_noise.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/hybrid_noise.png" alt="" width=300 />
 
 *Source: [Musgrave, Kolb & Mace (1989)](https://doi.org/10.1145/74334.74337)*
 
@@ -164,7 +164,7 @@ Hybrid multifractal noise combines fBm-style layering with a multiplicative weig
 
 fBm with absolute-value folding per octave, producing sharp ridges and a storm-cloud appearance.
 
-<img src="examples/turbulence.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/turbulence.png" alt="" width=300 />
 
 *Source: [Perlin (1985)](https://doi.org/10.1145/325165.325247)*
 
@@ -174,7 +174,7 @@ fBm with absolute-value folding per octave, producing sharp ridges and a storm-c
 
 Perlin noise sampled at coordinates displaced by a second Perlin field, producing organic swirling patterns.
 
-<img src="examples/domain_warp.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/domain_warp.png" alt="" width=300 />
 
 *Source: [Quilez (2002)](https://iquilezles.org/articles/warp/)*
 
@@ -184,7 +184,7 @@ Perlin noise sampled at coordinates displaced by a second Perlin field, producin
 
 Generates correlated noise in the frequency domain by scaling each component's amplitude by `f^(-beta/2)`, giving a power spectrum proportional to `1/f^beta`. Higher `beta` produces smoother, more spatially correlated landscapes.
 
-<img src="examples/spectral_synthesis.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/spectral_synthesis.png" alt="" width=300 />
 
 *Source: [Peitgen & Saupe (1988)](https://link.springer.com/book/9780387966694)*
 
@@ -194,7 +194,7 @@ Generates correlated noise in the frequency domain by scaling each component's a
 
 An open-source alternative to Perlin noise with fewer directional artefacts.
 
-<img src="examples/simplex_noise.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/simplex_noise.png" alt="" width=300 />
 
 #### Voronoi Distance
 
@@ -202,7 +202,7 @@ An open-source alternative to Perlin noise with fewer directional artefacts.
 
 Scatters `n` random feature points across the grid and fills each cell with the Euclidean distance to the nearest point, producing smooth conical gradients centred on each point.
 
-<img src="examples/voronoi_distance.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/voronoi_distance.png" alt="" width=300 />
 
 #### Sine Composite
 
@@ -210,7 +210,7 @@ Scatters `n` random feature points across the grid and fills each cell with the 
 
 Superposes `waves` sinusoidal plane waves, each with a random orientation, frequency, and phase. The interference of multiple waves produces standing-wave patterns whose complexity grows with the number of waves.
 
-<img src="examples/sine_composite.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/sine_composite.png" alt="" width=300 />
 
 #### Curl Noise
 
@@ -218,7 +218,7 @@ Superposes `waves` sinusoidal plane waves, each with a random orientation, frequ
 
 Computes the curl (gradient rotated 90 degrees) of a Perlin potential field using finite differences, producing a divergence-free velocity field. Sample coordinates of a second Perlin generator are warped by this field, yielding swirling, flow-aligned patterns without directional clumping.
 
-<img src="examples/curl_noise.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/curl_noise.png" alt="" width=300 />
 
 ### Patch
 
@@ -230,7 +230,7 @@ Discrete spatial patterns built from random processes, clustering, or hierarchic
 
 Independent uniform random values at each cell, with no spatial structure.
 
-<img src="examples/random.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/random.png" alt="" width=300 />
 
 #### Percolation
 
@@ -238,7 +238,7 @@ Independent uniform random values at each cell, with no spatial structure.
 
 Binary Bernoulli lattice where each cell is independently set to 1 with probability `p`, producing binary habitat maps. The critical percolation threshold for 4-connectivity is approximately 0.593.
 
-<img src="examples/percolation.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/percolation.png" alt="" width=300 />
 
 *Source: [Gardner et al. (1987)](https://doi.org/10.1007/BF02275052)*
 
@@ -248,7 +248,7 @@ Binary Bernoulli lattice where each cell is independently set to 1 with probabil
 
 Places `n` labelled seed cells at random positions, then fills all remaining cells with the value of the nearest seed using nearest-neighbour interpolation.
 
-<img src="examples/random_element.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/random_element.png" alt="" width=300 />
 
 *Source: [Etherington, Holland & O'Sullivan (2015)](https://doi.org/10.1111/2041-210X.12308)*
 
@@ -258,7 +258,7 @@ Places `n` labelled seed cells at random positions, then fills all remaining cel
 
 Discrete Voronoi map where each region is a flat colour determined by its nearest seed point, producing a stained-glass or territory effect.
 
-<img src="examples/mosaic.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/mosaic.png" alt="" width=300 />
 
 #### Random Cluster
 
@@ -266,7 +266,7 @@ Discrete Voronoi map where each region is a flat colour determined by its neares
 
 Applies `n` random fault-line cuts across the grid, accumulating the field on each side, then rescales. Produces spatially clustered landscapes with the linear structural elements characteristic of geological fault patterns.
 
-<img src="examples/random_cluster.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/random_cluster.png" alt="" width=300 />
 
 *Source: [Saura & Martínez-Millán (2000)](https://doi.org/10.1023/A:1008107902848)*
 
@@ -276,7 +276,7 @@ Applies `n` random fault-line cuts across the grid, accumulating the field on ea
 
 Overlapping random axis-aligned rectangles accumulated and scaled, producing blocky clustered patches.
 
-<img src="examples/rectangular_cluster.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/rectangular_cluster.png" alt="" width=300 />
 
 #### Binary Space Partitioning
 
@@ -284,7 +284,7 @@ Overlapping random axis-aligned rectangles accumulated and scaled, producing blo
 
 Hierarchical rectilinear partition: the largest rectangle is repeatedly split along its longest dimension until `n` leaf regions remain, each assigned a random value. Produces structured blocky landscapes.
 
-<img src="examples/binary_space_partitioning.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/binary_space_partitioning.png" alt="" width=300 />
 
 *Source: [Etherington, Morgan & O'Sullivan (2022)](https://doi.org/10.1007/s10980-022-01452-6)*
 
@@ -294,7 +294,7 @@ Hierarchical rectilinear partition: the largest rectangle is repeatedly split al
 
 Initialises a grid with `k` random classes then repeatedly applies a majority-vote rule: each cell adopts the most common class in its 3×3 Moore neighbourhood. More iterations produce larger, smoother organic patches.
 
-<img src="examples/neighbourhood_clustering.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/neighbourhood_clustering.png" alt="" width=300 />
 
 #### Cellular Automaton
 
@@ -302,7 +302,7 @@ Initialises a grid with `k` random classes then repeatedly applies a majority-vo
 
 Random binary grid evolved by Conway-style birth/survival rules: a dead cell is born if it has at least `birth_threshold` live neighbours; a live cell survives if it has at least `survival_threshold`. Produces cave-like binary landscapes.
 
-<img src="examples/cellular_automaton.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/cellular_automaton.png" alt="" width=300 />
 
 #### Reaction-Diffusion
 
@@ -310,7 +310,7 @@ Random binary grid evolved by Conway-style birth/survival rules: a dead cell is 
 
 Gray-Scott reaction-diffusion model where two chemicals (A and B) diffuse and react across the grid. Different `feed`/`kill` combinations produce spots, stripes, labyrinths, and other Turing-pattern morphologies.
 
-<img src="examples/reaction_diffusion.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/reaction_diffusion.png" alt="" width=300 />
 
 #### Eden Growth
 
@@ -318,7 +318,7 @@ Gray-Scott reaction-diffusion model where two chemicals (A and B) diffuse and re
 
 Compact cluster grown from the grid centre by randomly selecting a boundary cell at each step. Produces irregular blob shapes with fractal perimeters.
 
-<img src="examples/eden_growth.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/eden_growth.png" alt="" width=300 />
 
 #### Fractal Brownian Surface
 
@@ -326,7 +326,7 @@ Compact cluster grown from the grid centre by randomly selecting a boundary cell
 
 Spectral synthesis parameterised by the Hurst exponent `h` ∈ (0, 1), which has direct ecological meaning. `h` near 0 is rough; `h` near 1 is smooth. Related to `spectral_synthesis` by β = 2h + 2.
 
-<img src="examples/fractal_brownian_surface.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/fractal_brownian_surface.png" alt="" width=300 />
 
 #### Landscape Gradient
 
@@ -334,7 +334,7 @@ Spectral synthesis parameterised by the Hurst exponent `h` ∈ (0, 1), which has
 
 Elliptical gradient centred at the grid midpoint. `direction` orients the major axis; `aspect` controls elongation (1.0 = circular). More flexible than `distance_gradient`.
 
-<img src="examples/landscape_gradient.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/landscape_gradient.png" alt="" width=300 />
 
 #### Diffusion-Limited Aggregation
 
@@ -342,7 +342,7 @@ Elliptical gradient centred at the grid midpoint. `direction` orients the major 
 
 Random-walking particles released from a spawn ring stick when adjacent to the growing cluster, producing intricate branching fractal structures.
 
-<img src="examples/diffusion_limited_aggregation.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/diffusion_limited_aggregation.png" alt="" width=300 />
 
 #### Invasion Percolation
 
@@ -350,7 +350,7 @@ Random-walking particles released from a spawn ring stick when adjacent to the g
 
 Grows a cluster from the grid centre by always invading the boundary cell with the lowest random weight, producing fractal-like connected binary patches.
 
-<img src="examples/invasion_percolation.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/invasion_percolation.png" alt="" width=300 />
 
 #### Gaussian Blobs
 
@@ -358,7 +358,7 @@ Grows a cluster from the grid centre by always invading the boundary cell with t
 
 Places random Gaussian kernel centres and accumulates their contributions across the grid, then rescales to [0, 1]. Produces smooth blob-like elevation fields.
 
-<img src="examples/gaussian_blobs.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/gaussian_blobs.png" alt="" width=300 />
 
 #### Ising Model
 
@@ -366,7 +366,7 @@ Places random Gaussian kernel centres and accumulates their contributions across
 
 Simulates a 2D Ising spin lattice via Glauber dynamics. Near the critical inverse temperature (β ≈ 0.44) the model produces scale-free, patchy binary patterns reminiscent of habitat mosaics.
 
-<img src="examples/ising_model.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/ising_model.png" alt="" width=300 />
 
 #### Hydraulic Erosion
 
@@ -374,7 +374,7 @@ Simulates a 2D Ising spin lattice via Glauber dynamics. Near the critical invers
 
 Generates a random initial heightmap, then simulates `n` water droplets flowing downhill. Each droplet carries sediment, eroding steeper terrain and depositing on flatter areas. The result resembles naturally worn terrain with drainage channels, alluvial fans, and rounded ridges.
 
-<img src="examples/hydraulic_erosion.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/hydraulic_erosion.png" alt="" width=300 />
 
 #### Levy Flight
 
@@ -382,7 +382,7 @@ Generates a random initial heightmap, then simulates `n` water droplets flowing 
 
 Simulates a Levy flight: a random walk where step lengths follow a power-law (heavy-tailed) distribution. The resulting visit-density map has clustered hotspots with occasional long-range jumps, modelling dispersal or foraging patterns.
 
-<img src="examples/levy_flight.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/levy_flight.png" alt="" width=300 />
 
 #### Poisson Disk
 
@@ -390,7 +390,7 @@ Simulates a Levy flight: a random walk where step lengths follow a power-law (he
 
 Uses Bridson's algorithm to place points such that no two are closer than `min_dist`. The resulting inhibition pattern has regular, even spacing compared to random point placement, modelling processes such as territorial behaviour or tree canopy competition.
 
-<img src="examples/poisson_disk.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/poisson_disk.png" alt="" width=300 />
 
 #### Hill Grow
 
@@ -398,7 +398,7 @@ Uses Bridson's algorithm to place points such that no two are closer than `min_d
 
 Iteratively stamps a smooth convolution kernel at randomly selected cells, building up hill-like mounds. With `runaway=True`, taller cells attract more growth, causing hills to cluster into ridges.
 
-<img src="examples/hill_grow.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/hill_grow.png" alt="" width=300 />
 
 *Source: [Etherington, Holland & O'Sullivan (2015)](https://doi.org/10.1111/2041-210X.12308)*
 
@@ -408,7 +408,7 @@ Iteratively stamps a smooth convolution kernel at randomly selected cells, build
 
 Recursive fractal terrain generation: grid midpoints are displaced by decreasing random amounts at each subdivision step, with `h` controlling the roughness (0 = rough, 1 = smooth).
 
-<img src="examples/midpoint_displacement.png" alt="" width=300 />
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/midpoint_displacement.png" alt="" width=300 />
 
 *Source: [Fournier, Fussell & Carpenter (1982)](https://doi.org/10.1145/358523.358553)*
 
