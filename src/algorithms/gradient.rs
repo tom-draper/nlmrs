@@ -170,6 +170,62 @@ pub fn landscape_gradient(
     grid
 }
 
+/// Returns a concentric rings NLM with values ranging [0, 1).
+///
+/// Concentric sinusoidal bands radiate outward from the grid centre.
+/// `frequency` controls how many full rings span the grid radius.
+///
+/// # Arguments
+///
+/// * `rows`      - Number of rows.
+/// * `cols`      - Number of columns.
+/// * `frequency` - Number of concentric ring pairs across the grid radius.
+/// * `seed`      - Optional RNG seed (unused; provided for API consistency).
+pub fn concentric_rings(rows: usize, cols: usize, frequency: f64, _seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let cx = (cols as f64 - 1.0) / 2.0;
+    let cy = (rows as f64 - 1.0) / 2.0;
+    let max_r = cx.hypot(cy).max(1.0);
+
+    let data: Vec<f64> = (0..rows * cols)
+        .map(|idx| {
+            let dx = (idx % cols) as f64 - cx;
+            let dy = (idx / cols) as f64 - cy;
+            let r = dx.hypot(dy) / max_r;
+            (r * frequency * std::f64::consts::PI).sin() * 0.5 + 0.5
+        })
+        .collect();
+
+    let mut result = Grid { data, rows, cols };
+    scale(&mut result);
+    result
+}
+
+/// Returns a checkerboard NLM with binary values {0.0, 1.0}.
+///
+/// Deterministic alternating pattern of axis-aligned squares with side
+/// length `scale` cells. A canonical control landscape for ecological
+/// studies and spatial autocorrelation analysis.
+///
+/// # Arguments
+///
+/// * `rows`  - Number of rows.
+/// * `cols`  - Number of columns.
+/// * `scale` - Side length of each square in cells (≥ 1).
+/// * `seed`  - Optional RNG seed (unused; provided for API consistency).
+pub fn checkerboard(rows: usize, cols: usize, scale: usize, _seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let s = scale.max(1);
+    let data: Vec<f64> = (0..rows * cols)
+        .map(|idx| if ((idx / cols) / s + (idx % cols) / s) % 2 == 0 { 0.0 } else { 1.0 })
+        .collect();
+    Grid { data, rows, cols }
+}
+
 /// Returns a spiral gradient NLM with values ranging [0, 1).
 ///
 /// Values increase along an Archimedean spiral radiating outward from the
@@ -313,6 +369,36 @@ mod tests {
         let a = landscape_gradient(50, 50, None, 2.0, Some(42));
         let b = landscape_gradient(50, 50, None, 2.0, Some(42));
         assert_eq!(a.data, b.data);
+    }
+
+    // ── concentric_rings ──────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_concentric_rings(#[case] rows: usize, #[case] cols: usize) {
+        let grid = concentric_rings(rows, cols, 4.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    // ── checkerboard ──────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_checkerboard(#[case] rows: usize, #[case] cols: usize) {
+        let grid = checkerboard(rows, cols, 5, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
     }
 
     // ── spiral_gradient ───────────────────────────────────────────────────────

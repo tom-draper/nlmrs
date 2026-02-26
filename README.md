@@ -6,7 +6,7 @@ A Rust crate for building **Neutral Landscape Models**.
 
 Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.com/ropensci/NLMR).
 
-NLMrs is available as a Rust crate and can be installed as a CLI tool. Language bindings are also provided for Python, R, WASM, and C.
+NLMrs is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, WASM, and C.
 
 ## Installation
 
@@ -60,6 +60,14 @@ Symmetric version of the planar gradient: values peak at 1.0 along the central a
 
 <img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/edge_gradient.png" alt="" width=300 />
 
+#### Checkerboard
+
+`checkerboard(rows: 100, cols: 100, scale: 10, seed: 42)`
+
+Deterministic alternating binary pattern of axis-aligned squares with side length `scale` cells. Canonical control landscape for spatial autocorrelation analysis.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/checkerboard.png" alt="" width=300 />
+
 #### Distance Gradient
 
 `distance_gradient(rows: 100, cols: 100, seed: 42)`
@@ -68,14 +76,6 @@ Euclidean distance transform from random seed cells, producing a smooth radial f
 
 <img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/distance_gradient.png" alt="" width=300 />
 
-#### Wave Gradient
-
-`wave_gradient(rows: 100, cols: 100, period: 3.0, seed: 42)`
-
-Sinusoidal wave oriented at a given `direction` angle, cycling repeatedly from 0 to 1 and back at the specified `period`.
-
-<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/wave_gradient.png" alt="" width=300 />
-
 #### Landscape Gradient
 
 `landscape_gradient(rows: 100, cols: 100, direction: 45.0, aspect: 2.0, seed: 42)`
@@ -83,6 +83,22 @@ Sinusoidal wave oriented at a given `direction` angle, cycling repeatedly from 0
 Elliptical gradient centred at the grid midpoint. `direction` orients the major axis; `aspect` controls elongation (1.0 = circular). More flexible than `distance_gradient`.
 
 <img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/landscape_gradient.png" alt="" width=300 />
+
+#### Concentric Rings
+
+`concentric_rings(rows: 100, cols: 100, frequency: 5.0, seed: 42)`
+
+Sinusoidal rings centred at the grid midpoint. `frequency` controls how many oscillations span the grid radius — higher values produce tighter, more closely-spaced rings.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/concentric_rings.png" alt="" width=300 />
+
+#### Wave Gradient
+
+`wave_gradient(rows: 100, cols: 100, period: 3.0, seed: 42)`
+
+Sinusoidal wave oriented at a given `direction` angle, cycling repeatedly from 0 to 1 and back at the specified `period`.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/wave_gradient.png" alt="" width=300 />
 
 #### Spiral Gradient
 
@@ -123,6 +139,22 @@ Cell noise built from distances to random feature points, producing cellular, cr
 <img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/worley.png" alt="" width=300 />
 
 *Source: [Worley (1996)](https://doi.org/10.1145/237170.237267)*
+
+#### Voronoi Crease
+
+`voronoi_crease(rows: 100, cols: 100, n: 30, seed: 42)`
+
+F2-F1 Worley noise: the difference between distances to the two nearest seed points. Values peak at Voronoi cell boundaries and fall off toward cell centres, highlighting the skeleton of the Voronoi diagram.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/voronoi_crease.png" alt="" width=300 />
+
+#### Perlin-Worley Noise
+
+`perlin_worley(rows: 100, cols: 100, scale: 4.0, seed: 42)`
+
+Hybrid of Perlin and Worley noise computed on the same cell grid. Perlin values are blended with inverted Worley distances, producing fluffy, cloud-like structures with soft cellular interiors.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/perlin_worley.png" alt="" width=300 />
 
 #### fBm Noise
 
@@ -518,10 +550,62 @@ Places seed points on a slightly jittered hexagonal lattice and uses nearest-nei
 
 <img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/hexagonal_voronoi.png" alt="" width=300 />
 
+#### Fault Uplift
+
+`fault_uplift(rows: 100, cols: 100, n: 50, seed: 42)`
+
+Places `n` random fault lines across the grid and adds an exponential ridge of elevation along each one. Superimposing many ridges produces a crumpled, tectonically-inspired terrain with narrow elevated seams.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/fault_uplift.png" alt="" width=300 />
+
+#### Triangular Tessellation
+
+`triangular_tessellation(rows: 100, cols: 100, n: 30, seed: 42)`
+
+Scatters `n` random points and computes their Delaunay triangulation via the Bowyer-Watson algorithm. Each triangle is assigned a uniform random value, producing a mosaic of flat-shaded triangles with straight edges.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/triangular_tessellation.png" alt="" width=300 />
+
+#### Physarum
+
+`physarum(rows: 100, cols: 100, n: 1000, iterations: 300, seed: 42)`
+
+Agent-based simulation of _Physarum polycephalum_ (slime mould). Agents sense a chemical trail at ±45° ahead and steer toward the strongest signal, then deposit trail at their new position. Trail diffuses and decays at each step. The emergent network of reinforced paths resembles efficient transport networks.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/physarum.png" alt="" width=300 />
+
+*Source: [Jones (2010)](https://doi.org/10.1142/S0219525910002640)*
+
+#### Cahn-Hilliard
+
+`cahn_hilliard(rows: 100, cols: 100, iterations: 2000, seed: 42)`
+
+Numerically integrates the Cahn-Hilliard PDE for spinodal decomposition: ∂u/∂t = ∇²(u³ - u - ε²∇²u). Starting from small random perturbations, a binary mixture spontaneously phase-separates into smooth, rounded domains that coarsen over time.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/cahn_hilliard.png" alt="" width=300 />
+
+#### Crystal Growth
+
+`crystal_growth(rows: 100, cols: 100, iterations: 300, seed: 42)`
+
+Reiter's (1996) hexagonal cellular automaton model of snowflake growth. A single frozen seed at the centre absorbs water vapour from receptive cells (those adjacent to the crystal), which freeze when their accumulated level reaches 1. The result is a six-fold symmetric crystal with intricate branching arms.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/crystal_growth.png" alt="" width=300 />
+
+*Source: [Reiter (1996)](https://doi.org/10.1016/0097-8493(95)00104-2)*
+
+#### Predator-Prey
+
+`predator_prey(rows: 100, cols: 100, iterations: 500, seed: 42)`
+
+Spatial Lotka-Volterra PDE with diffusion. Two fields — prey (`u`) and predators (`v`) — interact via classic predation kinetics while diffusing across the grid. Initialised near the coexistence equilibrium with small noise, the system self-organises into travelling waves and spiral patterns.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/predator_prey.png" alt="" width=300 />
+
 
 ## Usage
 
-NLMrs is available as a Rust crate and can be installed as a CLI tool. Language bindings are also provided for Python, R, WASM, and C.
+NLMrs is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, WASM, and C.
 
 ```bash
 cargo add nlmrs

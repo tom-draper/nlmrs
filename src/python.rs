@@ -1151,6 +1151,199 @@ fn schelling(
     to_numpy(py, grid)
 }
 
+/// Concentric sinusoidal rings NLM. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// frequency : float
+///     Number of ring oscillations across the grid radius (default 5.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, frequency=5.0, seed=None))]
+fn concentric_rings(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    frequency: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::concentric_rings(rows, cols, frequency, seed));
+    to_numpy(py, grid)
+}
+
+/// Deterministic alternating checkerboard NLM. Values in {0.0, 1.0}.
+///
+/// Parameters
+/// ----------
+/// scale : int
+///     Side length of each square in cells (default 10).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=10, seed=None))]
+fn checkerboard(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::checkerboard(rows, cols, scale, seed));
+    to_numpy(py, grid)
+}
+
+/// Voronoi crease (F2-F1) NLM. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of Voronoi seed points (default 30).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=30, seed=None))]
+fn voronoi_crease(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::voronoi_crease(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Combined Perlin-Worley noise NLM. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Spatial frequency scale (default 4.0).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, seed=None))]
+fn perlin_worley(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::perlin_worley(rows, cols, scale, seed));
+    to_numpy(py, grid)
+}
+
+/// Fault uplift ridges NLM. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of random fault lines (default 50).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=50, seed=None))]
+fn fault_uplift(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::fault_uplift(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Triangular tessellation (Delaunay) NLM. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of seed points; produces ~2n triangles (default 30).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=30, seed=None))]
+fn triangular_tessellation(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::triangular_tessellation(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Physarum slime mould transport network NLM. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of agents (default 1000).
+/// iterations : int
+///     Number of simulation steps (default 300).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=1000, iterations=300, seed=None))]
+fn physarum(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::physarum(rows, cols, n, iterations, seed));
+    to_numpy(py, grid)
+}
+
+/// Cahn-Hilliard spinodal decomposition NLM. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// iterations : int
+///     Number of PDE time steps (default 2000).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, iterations=2000, seed=None))]
+fn cahn_hilliard(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::cahn_hilliard(rows, cols, iterations, seed));
+    to_numpy(py, grid)
+}
+
+/// Crystal growth NLM (Reiter's snowflake model). Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// iterations : int
+///     Number of growth steps (default 300).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, iterations=300, seed=None))]
+fn crystal_growth(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::crystal_growth(rows, cols, iterations, seed));
+    to_numpy(py, grid)
+}
+
+/// Predator-prey spatial pattern (Lotka-Volterra PDE). Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// iterations : int
+///     Number of PDE time steps (default 500).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, iterations=500, seed=None))]
+fn predator_prey(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::predator_prey(rows, cols, iterations, seed));
+    to_numpy(py, grid)
+}
+
 // ── Post-processing ──────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.
@@ -1271,6 +1464,16 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(sandpile, m)?)?;
     m.add_function(wrap_pyfunction!(correlated_walk, m)?)?;
     m.add_function(wrap_pyfunction!(schelling, m)?)?;
+    m.add_function(wrap_pyfunction!(concentric_rings, m)?)?;
+    m.add_function(wrap_pyfunction!(checkerboard, m)?)?;
+    m.add_function(wrap_pyfunction!(voronoi_crease, m)?)?;
+    m.add_function(wrap_pyfunction!(perlin_worley, m)?)?;
+    m.add_function(wrap_pyfunction!(fault_uplift, m)?)?;
+    m.add_function(wrap_pyfunction!(triangular_tessellation, m)?)?;
+    m.add_function(wrap_pyfunction!(physarum, m)?)?;
+    m.add_function(wrap_pyfunction!(cahn_hilliard, m)?)?;
+    m.add_function(wrap_pyfunction!(crystal_growth, m)?)?;
+    m.add_function(wrap_pyfunction!(predator_prey, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

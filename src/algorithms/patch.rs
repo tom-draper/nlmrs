@@ -6,6 +6,92 @@ use rand::Rng;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+// ── Private helpers ──────────────────────────────────────────────────────────
+
+/// 4-point Laplacian with periodic (toroidal) boundary conditions.
+fn laplacian_periodic(v: &[f64], i: usize, j: usize, rows: usize, cols: usize) -> f64 {
+    let get = |ri: isize, ci: isize| -> f64 {
+        v[ri.rem_euclid(rows as isize) as usize * cols
+            + ci.rem_euclid(cols as isize) as usize]
+    };
+    let ri = i as isize;
+    let ci = j as isize;
+    get(ri - 1, ci) + get(ri + 1, ci) + get(ri, ci - 1) + get(ri, ci + 1)
+        - 4.0 * get(ri, ci)
+}
+
+/// True if point `d` lies inside the circumcircle of counter-clockwise triangle (a, b, c).
+fn circumcircle_contains(
+    ax: f64, ay: f64, bx: f64, by: f64, cx: f64, cy: f64,
+    dx: f64, dy: f64,
+) -> bool {
+    let ax = ax - dx; let ay = ay - dy;
+    let bx = bx - dx; let by = by - dy;
+    let cx = cx - dx; let cy = cy - dy;
+    let det = ax * (by * (cx * cx + cy * cy) - cy * (bx * bx + by * by))
+            - ay * (bx * (cx * cx + cy * cy) - cx * (bx * bx + by * by))
+            + (ax * ax + ay * ay) * (bx * cy - by * cx);
+    det > 0.0
+}
+
+/// True if point `p` lies inside or on the edge of triangle (a, b, c).
+fn point_in_tri(
+    px: f64, py: f64,
+    ax: f64, ay: f64, bx: f64, by: f64, cx: f64, cy: f64,
+) -> bool {
+    let sign = |p1x: f64, p1y: f64, p2x: f64, p2y: f64, p3x: f64, p3y: f64| -> f64 {
+        (p1x - p3x) * (p2y - p3y) - (p2x - p3x) * (p1y - p3y)
+    };
+    let d1 = sign(px, py, ax, ay, bx, by);
+    let d2 = sign(px, py, bx, by, cx, cy);
+    let d3 = sign(px, py, cx, cy, ax, ay);
+    let has_neg = d1 < 0.0 || d2 < 0.0 || d3 < 0.0;
+    let has_pos = d1 > 0.0 || d2 > 0.0 || d3 > 0.0;
+    !(has_neg && has_pos)
+}
+
+/// Bowyer-Watson incremental Delaunay triangulation.
+/// Returns triangles as index triples into `pts`.
+fn bowyer_watson(pts: &[(f64, f64)]) -> Vec<[usize; 3]> {
+    let n = pts.len();
+    if n < 3 { return vec![]; }
+
+    // Extend point list with super-triangle vertices.
+    let mut all: Vec<(f64, f64)> = pts.to_vec();
+    all.push((-10.0, -10.0));    // n
+    all.push((10.0,  -10.0));    // n+1
+    all.push((0.0,   10.0));     // n+2
+
+    let mut tris: Vec<[usize; 3]> = vec![[n, n + 1, n + 2]];
+
+    for (pi, &(px, py)) in pts.iter().enumerate() {
+        let (bad, good): (Vec<[usize; 3]>, Vec<[usize; 3]>) = tris.into_iter().partition(|&[a, b, c]| {
+            let (ax, ay) = all[a]; let (bx, by) = all[b]; let (cx, cy) = all[c];
+            circumcircle_contains(ax, ay, bx, by, cx, cy, px, py)
+        });
+
+        // Boundary edges of the polygonal hole.
+        let mut boundary: Vec<[usize; 2]> = Vec::new();
+        for &tri in &bad {
+            let edges = [[tri[0], tri[1]], [tri[1], tri[2]], [tri[2], tri[0]]];
+            for edge in edges {
+                let shared = bad.iter().any(|other| {
+                    *other != tri && other.contains(&edge[0]) && other.contains(&edge[1])
+                });
+                if !shared { boundary.push(edge); }
+            }
+        }
+
+        tris = good;
+        for edge in boundary {
+            tris.push([edge[0], edge[1], pi]);
+        }
+    }
+
+    tris.retain(|&[a, b, c]| a < n && b < n && c < n);
+    tris
+}
+
 /// Returns a spatially random NLM with values ranging [0, 1).
 ///
 /// # Arguments
@@ -1872,6 +1958,441 @@ pub fn hexagonal_voronoi(rows: usize, cols: usize, n: usize, seed: Option<u64>) 
     grid
 }
 
+/// Returns a fault uplift terrain NLM with values ranging [0, 1).
+///
+/// Generates `n` random geological fault lines. Along each fault the
+/// terrain forms a smooth scarp: elevation rises sharply at the fault
+/// line and decays exponentially away from it on both sides, producing
+/// a network of linear ridges with realistic topographic relief.
+/// Unlike `random_cluster` (which creates broad plateau/basin regions),
+/// this generates narrow ridge features aligned along fault traces.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of fault lines.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn fault_uplift(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let mut data = vec![0.0f64; rows * cols];
+
+    let inv_r = 1.0 / rows as f64;
+    let inv_c = 1.0 / cols as f64;
+    // Ridge half-width in normalised units (~5% of grid).
+    let width = 0.05f64;
+
+    for _ in 0..n {
+        let px: f64 = rng.gen();
+        let py: f64 = rng.gen();
+        let theta: f64 = rng.gen_range(0.0..std::f64::consts::PI);
+        let (nnx, nny) = (theta.cos(), theta.sin());
+
+        for idx in 0..rows * cols {
+            let cy = (idx / cols) as f64 * inv_r;
+            let cx = (idx % cols) as f64 * inv_c;
+            // Perpendicular distance to the fault line.
+            let d = ((cx - px) * nnx + (cy - py) * nny).abs();
+            data[idx] += (-d / width).exp();
+        }
+    }
+
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a triangular tessellation NLM with values ranging [0, 1).
+///
+/// Scatters `n` random points and computes their Delaunay triangulation
+/// via the Bowyer-Watson algorithm. Each triangle is then assigned a
+/// uniform random value, producing a mosaic of flat-shaded triangles.
+/// Unlike `mosaic` (Voronoi polygons) or `hexagonal_voronoi`, all
+/// regions have exactly three straight edges.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of seed points (triangles ≈ 2n).
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn triangular_tessellation(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let n = n.max(3);
+
+    // Points in [0, 1] × [0, 1] normalised space.
+    let pts: Vec<(f64, f64)> = (0..n).map(|_| (rng.gen::<f64>(), rng.gen::<f64>())).collect();
+    let tris = bowyer_watson(&pts);
+    let values: Vec<f64> = (0..tris.len()).map(|_| rng.gen::<f64>()).collect();
+
+    let inv_r = 1.0 / rows as f64;
+    let inv_c = 1.0 / cols as f64;
+
+    let data: Vec<f64> = (0..rows * cols)
+        .map(|idx| {
+            let py = (idx / cols) as f64 * inv_r;
+            let px = (idx % cols) as f64 * inv_c;
+
+            // Find which triangle contains this pixel.
+            if let Some(ti) = tris.iter().position(|&[a, b, c]| {
+                let (ax, ay) = pts[a]; let (bx, by) = pts[b]; let (cx, cy) = pts[c];
+                point_in_tri(px, py, ax, ay, bx, by, cx, cy)
+            }) {
+                return values[ti];
+            }
+
+            // Fallback: colour by nearest point's first triangle.
+            let nearest = pts
+                .iter()
+                .enumerate()
+                .min_by(|&(_, &(ax, ay)), &(_, &(bx, by))| {
+                    (px - ax).hypot(py - ay)
+                        .partial_cmp(&((px - bx).hypot(py - by)))
+                        .unwrap()
+                })
+                .map(|(i, _)| i)
+                .unwrap_or(0);
+            tris.iter()
+                .position(|t| t.contains(&nearest))
+                .map(|ti| values[ti])
+                .unwrap_or(0.0)
+        })
+        .collect();
+
+    Grid { data, rows, cols }
+}
+
+/// Returns a Physarum (slime mould) network NLM with values ranging [0, 1).
+///
+/// Simulates the *Physarum polycephalum* transport-network algorithm
+/// (Jones 2010): `n` agents deposit a chemo-attractant trail, sense
+/// concentrations ahead-left and ahead-right, and steer toward the
+/// stronger signal. After each step the trail is blurred and decayed.
+/// The accumulated trail map reveals the characteristic vein-like
+/// network patterns used to model ecological corridors and road networks.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `n`          - Number of agents.
+/// * `iterations` - Number of simulation steps.
+/// * `seed`       - Optional RNG seed for reproducible results.
+pub fn physarum(
+    rows: usize,
+    cols: usize,
+    n: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let mut trail = vec![0.0f64; rows * cols];
+
+    let mut pos: Vec<(f64, f64)> = (0..n)
+        .map(|_| (rng.gen_range(0.0..rows as f64), rng.gen_range(0.0..cols as f64)))
+        .collect();
+    let mut heading: Vec<f64> = (0..n)
+        .map(|_| rng.gen_range(0.0..2.0 * std::f64::consts::PI))
+        .collect();
+
+    let sensor_dist = (rows.min(cols) as f64 * 0.08).max(2.0);
+    let sensor_angle = std::f64::consts::FRAC_PI_4;
+    let step_size = 1.0f64;
+    let deposit = 1.0f64;
+    let decay = 0.92f64;
+    let turn_speed = std::f64::consts::FRAC_PI_4;
+    let row_max = (rows - 1) as f64;
+    let col_max = (cols - 1) as f64;
+
+    let fold = |x: f64, max: f64| -> f64 {
+        let x = x.rem_euclid(2.0 * max);
+        if x > max { 2.0 * max - x } else { x }
+    };
+    let sample = |trail: &[f64], r: f64, c: f64| -> f64 {
+        let ri = (r as isize).clamp(0, rows as isize - 1) as usize;
+        let ci = (c as isize).clamp(0, cols as isize - 1) as usize;
+        trail[ri * cols + ci]
+    };
+
+    let mut new_pos = pos.clone();
+    let mut new_heading = heading.clone();
+
+    for _ in 0..iterations {
+        // Sense and rotate.
+        for i in 0..n {
+            let (r, c) = pos[i];
+            let h = heading[i];
+            let fl = sample(&trail, r + (h + sensor_angle).sin() * sensor_dist,
+                                   c + (h + sensor_angle).cos() * sensor_dist);
+            let fc = sample(&trail, r + h.sin() * sensor_dist,
+                                   c + h.cos() * sensor_dist);
+            let fr = sample(&trail, r + (h - sensor_angle).sin() * sensor_dist,
+                                   c + (h - sensor_angle).cos() * sensor_dist);
+            new_heading[i] = if fc >= fl && fc >= fr {
+                h
+            } else if fl > fr {
+                h + turn_speed
+            } else if fr > fl {
+                h - turn_speed
+            } else {
+                h + if rng.gen_bool(0.5) { turn_speed } else { -turn_speed }
+            };
+        }
+
+        // Move and deposit.
+        for i in 0..n {
+            let (r, c) = pos[i];
+            let h = new_heading[i];
+            new_pos[i] = (fold(r + h.sin() * step_size, row_max),
+                          fold(c + h.cos() * step_size, col_max));
+            let ri = new_pos[i].0 as usize;
+            let ci = new_pos[i].1 as usize;
+            if ri < rows && ci < cols {
+                trail[ri * cols + ci] += deposit;
+            }
+        }
+
+        // Diffuse and decay.
+        let old = trail.clone();
+        for idx in 0..rows * cols {
+            let ri = idx / cols;
+            let ci = idx % cols;
+            let mut sum = 0.0;
+            let mut cnt = 0u32;
+            for dr in -1i64..=1 {
+                let nr = (ri as i64 + dr).clamp(0, rows as i64 - 1) as usize;
+                for dc in -1i64..=1 {
+                    let nc = (ci as i64 + dc).clamp(0, cols as i64 - 1) as usize;
+                    sum += old[nr * cols + nc];
+                    cnt += 1;
+                }
+            }
+            trail[idx] = (sum / cnt as f64) * decay;
+        }
+
+        std::mem::swap(&mut pos, &mut new_pos);
+        std::mem::swap(&mut heading, &mut new_heading);
+    }
+
+    let mut result = Grid { data: trail, rows, cols };
+    scale(&mut result);
+    result
+}
+
+/// Returns a Cahn-Hilliard phase-separation NLM with values ranging [0, 1).
+///
+/// Numerically integrates the Cahn-Hilliard PDE, which models spinodal
+/// decomposition: a uniform mixture separates into two pure phases (e.g.,
+/// two habitat types, oil and water). The resulting spatial pattern
+/// transitions from fine-grained mixed to coarse blob-and-matrix as
+/// `iterations` increases — a smooth, two-phase field distinct from
+/// `reaction_diffusion`.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `iterations` - Number of integration steps.
+/// * `seed`       - Optional RNG seed for reproducible results.
+pub fn cahn_hilliard(rows: usize, cols: usize, iterations: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+
+    // Small random perturbations around zero (the unstable mixed state).
+    let mut u: Vec<f64> = (0..rows * cols).map(|_| rng.gen_range(-0.05..0.05)).collect();
+    let mut mu = vec![0.0f64; rows * cols];
+    let mut u_next = vec![0.0f64; rows * cols];
+
+    let eps2 = 0.01f64; // interface width parameter
+    let dt = 0.05f64;
+
+    for _ in 0..iterations {
+        // Chemical potential: μ = u³ - u - ε²∇²u
+        for idx in 0..rows * cols {
+            let i = idx / cols;
+            let j = idx % cols;
+            let ui = u[idx];
+            mu[idx] = ui * ui * ui - ui - eps2 * laplacian_periodic(&u, i, j, rows, cols);
+        }
+        // Update: u += dt * ∇²μ
+        for idx in 0..rows * cols {
+            let i = idx / cols;
+            let j = idx % cols;
+            u_next[idx] = u[idx] + dt * laplacian_periodic(&mu, i, j, rows, cols);
+        }
+        std::mem::swap(&mut u, &mut u_next);
+    }
+
+    let mut grid = Grid { data: u, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a crystal growth NLM with values ranging [0, 1).
+///
+/// Simulates Reiter's (1996) snowflake cellular automaton on a
+/// hexagonal lattice. A single frozen seed at the centre grows by
+/// absorbing water vapour from surrounding cells; receptive cells (those
+/// adjacent to the crystal) accumulate vapour at rate `gamma` and freeze
+/// when their level reaches 1.  The background vapour density `beta`
+/// and the number of `iterations` control the final crystal complexity
+/// and size.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `iterations` - Number of growth steps.
+/// * `seed`       - Optional RNG seed (unused; growth is deterministic).
+pub fn crystal_growth(rows: usize, cols: usize, iterations: usize, _seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let beta = 0.4f64;    // background vapour density
+    let alpha = 0.9f64;   // diffusion weight for non-receptive cells
+    let gamma = 0.001f64; // vapour added to receptive cells per step
+
+    let mut u = vec![beta; rows * cols];
+    let mut frozen = vec![false; rows * cols];
+
+    let cr = rows / 2;
+    let cc = cols / 2;
+    frozen[cr * cols + cc] = true;
+    u[cr * cols + cc] = 0.0;
+
+    // 6-connectivity using offset-row hex grid.
+    let hex_nb = |i: usize, j: usize| -> [(isize, isize); 6] {
+        if i % 2 == 0 {
+            [(-1,-1),(-1,0),(0,-1),(0,1),(1,-1),(1,0)]
+        } else {
+            [(-1,0),(-1,1),(0,-1),(0,1),(1,0),(1,1)]
+        }
+        .map(|(dr, dc)| (i as isize + dr, j as isize + dc))
+    };
+
+    let mut u_next = u.clone();
+    for _ in 0..iterations {
+        for i in 0..rows {
+            for j in 0..cols {
+                let idx = i * cols + j;
+                if frozen[idx] { continue; }
+
+                let nb: Vec<(usize, usize)> = hex_nb(i, j)
+                    .iter()
+                    .filter(|&&(ni, nj)| ni >= 0 && ni < rows as isize && nj >= 0 && nj < cols as isize)
+                    .map(|&(ni, nj)| (ni as usize, nj as usize))
+                    .collect();
+
+                let has_frozen_nb = nb.iter().any(|&(ni, nj)| frozen[ni * cols + nj]);
+
+                if has_frozen_nb {
+                    u_next[idx] = u[idx] + gamma;
+                    if u_next[idx] >= 1.0 {
+                        frozen[idx] = true;
+                        u_next[idx] = 0.0;
+                    }
+                } else {
+                    let non_frozen: Vec<_> = nb.iter()
+                        .filter(|&&(ni, nj)| !frozen[ni * cols + nj])
+                        .copied()
+                        .collect();
+                    let avg = if non_frozen.is_empty() {
+                        u[idx]
+                    } else {
+                        non_frozen.iter().map(|&(ni, nj)| u[ni * cols + nj]).sum::<f64>()
+                            / non_frozen.len() as f64
+                    };
+                    u_next[idx] = (1.0 - alpha) * u[idx] + alpha * avg;
+                }
+            }
+        }
+        std::mem::swap(&mut u, &mut u_next);
+    }
+
+    let data: Vec<f64> = (0..rows * cols)
+        .map(|idx| if frozen[idx] { 1.0 } else { u[idx] / beta })
+        .collect();
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a predator-prey (Lotka-Volterra) NLM with values ranging [0, 1).
+///
+/// Numerically integrates the spatially explicit Lotka-Volterra system
+/// with diffusion. Prey (u) grows logistically and is consumed by
+/// predators (v); predators grow from predation and die at a constant
+/// rate.  Diffusion disperses both populations across the grid.  Near
+/// Turing-instability parameter regimes the system spontaneously
+/// develops travelling waves and spatial spirals, producing dynamical
+/// spatial patterns useful as ecological null models.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `iterations` - Number of integration steps.
+/// * `seed`       - Optional RNG seed for reproducible results.
+pub fn predator_prey(rows: usize, cols: usize, iterations: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+
+    // Lotka-Volterra parameters.
+    let r = 1.0f64;    // prey growth rate
+    let k = 1.0f64;    // prey carrying capacity
+    let a = 1.0f64;    // predation rate
+    let b = 0.5f64;    // predator growth efficiency
+    let d = 0.3f64;    // predator death rate
+    let du = 0.05f64;  // prey diffusivity
+    let dv = 0.5f64;   // predator diffusivity
+    let dt = 0.05f64;
+
+    // Equilibrium: u* = d/b, v* = r/a*(1 - u*/k)
+    let u_eq = d / b;
+    let v_eq = (r / a) * (1.0 - u_eq / k);
+
+    let mut u: Vec<f64> = (0..rows * cols)
+        .map(|_| (u_eq + rng.gen_range(-0.1..0.1)).max(0.0))
+        .collect();
+    let mut v: Vec<f64> = (0..rows * cols)
+        .map(|_| (v_eq + rng.gen_range(-0.1..0.1)).max(0.0))
+        .collect();
+    let mut u_next = u.clone();
+    let mut v_next = v.clone();
+
+    for _ in 0..iterations {
+        for idx in 0..rows * cols {
+            let i = idx / cols;
+            let j = idx % cols;
+            let ui = u[idx].max(0.0);
+            let vi = v[idx].max(0.0);
+            let lap_u = laplacian_periodic(&u, i, j, rows, cols);
+            let lap_v = laplacian_periodic(&v, i, j, rows, cols);
+            u_next[idx] = (ui + dt * (r * ui * (1.0 - ui / k) - a * ui * vi + du * lap_u)).max(0.0);
+            v_next[idx] = (vi + dt * (b * ui * vi - d * vi + dv * lap_v)).max(0.0);
+        }
+        std::mem::swap(&mut u, &mut u_next);
+        std::mem::swap(&mut v, &mut v_next);
+    }
+
+    let mut grid = Grid { data: u, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
 /// Returns a Bak-Tang-Wiesenfeld sandpile NLM with values ranging [0, 1).
 ///
 /// Adds `n` grains one at a time to random grid cells. When a cell
@@ -2262,6 +2783,130 @@ mod new_tests {
     fn test_schelling_seeded_determinism() {
         let a = schelling(50, 50, 0.5, 20, Some(42));
         let b = schelling(50, 50, 0.5, 20, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── fault_uplift ──────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_fault_uplift(#[case] rows: usize, #[case] cols: usize) {
+        let grid = fault_uplift(rows, cols, 20, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_fault_uplift_seeded_determinism() {
+        let a = fault_uplift(50, 50, 20, Some(42));
+        let b = fault_uplift(50, 50, 20, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── triangular_tessellation ───────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_triangular_tessellation(#[case] rows: usize, #[case] cols: usize) {
+        let grid = triangular_tessellation(rows, cols, 20, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_triangular_tessellation_seeded_determinism() {
+        let a = triangular_tessellation(50, 50, 20, Some(42));
+        let b = triangular_tessellation(50, 50, 20, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── physarum ─────────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(10, 10)]
+    #[case(50, 50)]
+    #[case(100, 100)]
+    fn test_physarum(#[case] rows: usize, #[case] cols: usize) {
+        let grid = physarum(rows, cols, 100, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_physarum_seeded_determinism() {
+        let a = physarum(50, 50, 100, 50, Some(42));
+        let b = physarum(50, 50, 100, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── cahn_hilliard ─────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_cahn_hilliard(#[case] rows: usize, #[case] cols: usize) {
+        let grid = cahn_hilliard(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_cahn_hilliard_seeded_determinism() {
+        let a = cahn_hilliard(50, 50, 50, Some(42));
+        let b = cahn_hilliard(50, 50, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── crystal_growth ────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_crystal_growth(#[case] rows: usize, #[case] cols: usize) {
+        let grid = crystal_growth(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    // ── predator_prey ─────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_predator_prey(#[case] rows: usize, #[case] cols: usize) {
+        let grid = predator_prey(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_predator_prey_seeded_determinism() {
+        let a = predator_prey(50, 50, 50, Some(42));
+        let b = predator_prey(50, 50, 50, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

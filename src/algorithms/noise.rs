@@ -963,6 +963,137 @@ pub fn tiled_noise(rows: usize, cols: usize, scale_factor: f64, seed: Option<u64
     grid
 }
 
+/// Returns a Voronoi crease NLM with values ranging [0, 1).
+///
+/// Computes the F2−F1 Worley metric for each cell: the difference between
+/// the distance to the second-nearest feature point and the nearest. This
+/// highlights the ridge-like boundaries between Voronoi cells, producing
+/// a network of glowing ridges distinct from the smooth cones of
+/// `voronoi_distance` (F1 only).
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of random feature points.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn voronoi_crease(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let n = n.max(2);
+    let points: Vec<(f64, f64)> = (0..n)
+        .map(|_| (rng.gen::<f64>() * rows as f64, rng.gen::<f64>() * cols as f64))
+        .collect();
+
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let pr = i as f64 + 0.5;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let pc = j as f64 + 0.5;
+            let mut f1 = f64::INFINITY;
+            let mut f2 = f64::INFINITY;
+            for &(sr, sc) in &points {
+                let d = (pr - sr * rows as f64 * inv_rows).hypot(pc - sc * cols as f64 * inv_cols);
+                if d < f1 {
+                    f2 = f1;
+                    f1 = d;
+                } else if d < f2 {
+                    f2 = d;
+                }
+            }
+            *cell = f2 - f1;
+        }
+    };
+
+    let mut grid = Grid::new(rows, cols);
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a Perlin-Worley noise NLM with values ranging [0, 1).
+///
+/// Combines Perlin gradient noise with a Worley (cellular) distance field:
+/// the Perlin amplitude is suppressed near Worley feature points and
+/// amplified far from them, carving hollow cave-like voids into an
+/// otherwise smooth Perlin landscape. The technique is widely used in
+/// real-time cloud and terrain rendering.
+///
+/// # Arguments
+///
+/// * `rows`         - Number of rows.
+/// * `cols`         - Number of columns.
+/// * `scale_factor` - Frequency for both the Perlin and Worley components.
+/// * `seed`         - Optional RNG seed for reproducible results.
+pub fn perlin_worley(rows: usize, cols: usize, scale_factor: f64, seed: Option<u64>) -> Grid {
+    use noise::{NoiseFn, Perlin};
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let seed_val = perlin_seed(seed);
+    let perlin = Perlin::new(seed_val);
+    let mut rng = make_rng(seed);
+
+    // Build a grid-of-cells Worley layout so both noise types share the same scale.
+    let cells = (scale_factor as usize).max(2);
+    let inv_cells = 1.0 / cells as f64;
+    // One random point per cell (row-major: pts[row][col])
+    let pts: Vec<Vec<(f64, f64)>> = (0..cells)
+        .map(|_| (0..cells).map(|_| (rng.gen::<f64>(), rng.gen::<f64>())).collect())
+        .collect();
+
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+    let max_cell_d = inv_cells * std::f64::consts::SQRT_2;
+
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let fy = i as f64 * inv_rows;
+        let ci_base = (fy / inv_cells) as i64;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let fx = j as f64 * inv_cols;
+            let ri_base = (fx / inv_cells) as i64;
+
+            // Worley F1 over 3×3 neighbourhood of cells
+            let mut f1 = f64::INFINITY;
+            for dci in -1i64..=1 {
+                let nc = ci_base + dci;
+                if nc < 0 || nc >= cells as i64 { continue; }
+                for dri in -1i64..=1 {
+                    let nr = ri_base + dri;
+                    if nr < 0 || nr >= cells as i64 { continue; }
+                    let (px, py) = pts[nc as usize][nr as usize];
+                    let px_g = (nr as f64 + px) * inv_cells;
+                    let py_g = (nc as f64 + py) * inv_cells;
+                    let d = (fx - px_g).hypot(fy - py_g);
+                    if d < f1 { f1 = d; }
+                }
+            }
+            let worley = (f1 / max_cell_d).min(1.0); // [0, 1]: 0 near seeds
+            let p = perlin.get([fx * scale_factor, fy * scale_factor]) * 0.5 + 0.5; // [0, 1]
+
+            // Carve: suppress Perlin near seeds, amplify far away.
+            // result = max(0, perlin - (1 - worley))
+            *cell = (p - (1.0 - worley)).max(0.0);
+        }
+    };
+
+    let mut grid = Grid::new(rows, cols);
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
 /// Returns a lognormal random field NLM with values ranging [0, 1).
 ///
 /// Generates a Gaussian random field then applies an exponential transform,
@@ -1382,6 +1513,48 @@ mod tests {
     fn test_tiled_noise_seeded_determinism() {
         let a = tiled_noise(50, 50, 4.0, Some(42));
         let b = tiled_noise(50, 50, 4.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── voronoi_crease ────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_voronoi_crease(#[case] rows: usize, #[case] cols: usize) {
+        let grid = voronoi_crease(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_voronoi_crease_seeded_determinism() {
+        let a = voronoi_crease(50, 50, 50, Some(42));
+        let b = voronoi_crease(50, 50, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── perlin_worley ─────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_perlin_worley(#[case] rows: usize, #[case] cols: usize) {
+        let grid = perlin_worley(rows, cols, 4.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_perlin_worley_seeded_determinism() {
+        let a = perlin_worley(50, 50, 4.0, Some(42));
+        let b = perlin_worley(50, 50, 4.0, Some(42));
         assert_eq!(a.data, b.data);
     }
 

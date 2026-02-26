@@ -567,6 +567,89 @@ enum Commands {
         #[arg(long, default_value = "50")]
         iterations: usize,
     },
+    /// Concentric sinusoidal rings
+    ConcentricRings {
+        rows: usize,
+        cols: usize,
+        /// Number of ring oscillations across the radius
+        #[arg(long, default_value = "5.0")]
+        frequency: f64,
+    },
+    /// Deterministic alternating checkerboard
+    Checkerboard {
+        rows: usize,
+        cols: usize,
+        /// Side length of each square in cells
+        #[arg(long, default_value = "10")]
+        scale: usize,
+    },
+    /// Voronoi crease (F2-F1) — highlights cell boundaries
+    VoronoiCrease {
+        rows: usize,
+        cols: usize,
+        /// Number of Voronoi seed points
+        #[arg(long, default_value = "30")]
+        n: usize,
+    },
+    /// Combined Perlin-Worley noise
+    PerlinWorley {
+        rows: usize,
+        cols: usize,
+        /// Spatial frequency scale
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+    },
+    /// Fault uplift ridges from random fault lines
+    FaultUplift {
+        rows: usize,
+        cols: usize,
+        /// Number of fault lines
+        #[arg(long, default_value = "50")]
+        n: usize,
+    },
+    /// Triangular tessellation via Delaunay triangulation
+    TriangularTessellation {
+        rows: usize,
+        cols: usize,
+        /// Number of seed points (triangles ≈ 2n)
+        #[arg(long, default_value = "30")]
+        n: usize,
+    },
+    /// Physarum slime mould transport network
+    Physarum {
+        rows: usize,
+        cols: usize,
+        /// Number of agents
+        #[arg(long, default_value = "1000")]
+        n: usize,
+        /// Number of simulation steps
+        #[arg(long, default_value = "300")]
+        iterations: usize,
+    },
+    /// Cahn-Hilliard spinodal decomposition
+    CahnHilliard {
+        rows: usize,
+        cols: usize,
+        /// Number of PDE time steps
+        #[arg(long, default_value = "2000")]
+        iterations: usize,
+    },
+    /// Crystal growth (Reiter's snowflake model)
+    CrystalGrowth {
+        rows: usize,
+        cols: usize,
+        /// Number of growth steps
+        #[arg(long, default_value = "300")]
+        iterations: usize,
+    },
+    /// Predator-prey spatial pattern (Lotka-Volterra PDE)
+    PredatorPrey {
+        rows: usize,
+        cols: usize,
+        /// Number of PDE time steps
+        #[arg(long, default_value = "500")]
+        iterations: usize,
+    },
 }
 
 fn main() {
@@ -701,6 +784,32 @@ fn main() {
         }
         Commands::Schelling { rows, cols, tolerance, iterations } => {
             nlmrs::schelling(rows, cols, tolerance, iterations, seed)
+        }
+        Commands::ConcentricRings { rows, cols, frequency } => {
+            nlmrs::concentric_rings(rows, cols, frequency, seed)
+        }
+        Commands::Checkerboard { rows, cols, scale } => {
+            nlmrs::checkerboard(rows, cols, scale, seed)
+        }
+        Commands::VoronoiCrease { rows, cols, n } => nlmrs::voronoi_crease(rows, cols, n, seed),
+        Commands::PerlinWorley { rows, cols, scale } => {
+            nlmrs::perlin_worley(rows, cols, scale, seed)
+        }
+        Commands::FaultUplift { rows, cols, n } => nlmrs::fault_uplift(rows, cols, n, seed),
+        Commands::TriangularTessellation { rows, cols, n } => {
+            nlmrs::triangular_tessellation(rows, cols, n, seed)
+        }
+        Commands::Physarum { rows, cols, n, iterations } => {
+            nlmrs::physarum(rows, cols, n, iterations, seed)
+        }
+        Commands::CahnHilliard { rows, cols, iterations } => {
+            nlmrs::cahn_hilliard(rows, cols, iterations, seed)
+        }
+        Commands::CrystalGrowth { rows, cols, iterations } => {
+            nlmrs::crystal_growth(rows, cols, iterations, seed)
+        }
+        Commands::PredatorPrey { rows, cols, iterations } => {
+            nlmrs::predator_prey(rows, cols, iterations, seed)
         }
     };
 
