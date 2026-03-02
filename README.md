@@ -810,7 +810,7 @@ nlmrs_free(g1);
 nlmrs_free(g2);
 ```
 
-All 49 algorithms are available as `nlmrs_<name>`. The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
+The header `include/nlmrs.h` is generated automatically by `cbindgen` during the build.
 
 ### WASM bindings
 
@@ -840,7 +840,7 @@ const value = flat[r * grid.cols + c];
 grid.free();  // release Rust memory
 ```
 
-All 49 algorithms are available. Seeds are passed as plain integers. Omit the seed argument for random output.
+Seeds are passed as plain integers. Omit the seed argument for random output.
 
 ## Contributions
 
