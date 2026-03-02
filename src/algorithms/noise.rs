@@ -1122,6 +1122,132 @@ pub fn lognormal_field(rows: usize, cols: usize, sigma: f64, seed: Option<u64>) 
     grid
 }
 
+/// Returns a heterogeneous multifractal terrain NLM with values ranging [0, 1).
+///
+/// Implements Musgrave's heterogeneous multifractal: each successive octave's
+/// amplitude is modulated by the accumulated signal from all previous octaves.
+/// High-amplitude regions attract progressively finer detail, producing terrain
+/// with sharp ridgelines and coherent plateaus that standard fBm cannot capture.
+///
+/// # Arguments
+///
+/// * `rows`         - Number of rows.
+/// * `cols`         - Number of columns.
+/// * `scale_factor` - Spatial frequency of the base noise layer.
+/// * `octaves`      - Number of noise layers to combine.
+/// * `seed`         - Optional RNG seed for reproducible results.
+pub fn multifractal_terrain(
+    rows: usize,
+    cols: usize,
+    scale_factor: f64,
+    octaves: usize,
+    seed: Option<u64>,
+) -> Grid {
+    use noise::{NoiseFn, Perlin};
+
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+
+    let lacunarity = 2.0f64;
+    let persistence = 0.5f64;
+    let offset = 1.0f64;
+    let seed_val = perlin_seed(seed);
+    let generators: Vec<Perlin> = (0..octaves.max(1))
+        .map(|o| Perlin::new(seed_val.wrapping_add(o as u32)))
+        .collect();
+
+    let mut grid = Grid::new(rows, cols);
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+
+    let fill_row = |(i, row): (usize, &mut [f64])| {
+        let base_y = i as f64 * inv_rows * scale_factor;
+        for (j, cell) in row.iter_mut().enumerate() {
+            let base_x = j as f64 * inv_cols * scale_factor;
+            let mut value = 0.0f64;
+            let mut weight = 1.0f64;
+            let mut freq = 1.0f64;
+            let mut amp = 1.0f64;
+            for gen in &generators {
+                let signal = gen.get([base_x * freq, base_y * freq]);
+                value += weight * amp * signal;
+                weight = ((value + offset) * 0.5).clamp(0.0, 1.0);
+                freq *= lacunarity;
+                amp *= persistence;
+            }
+            *cell = value;
+        }
+    };
+    #[cfg(feature = "parallel")]
+    grid.data.par_chunks_mut(cols).enumerate().for_each(fill_row);
+    #[cfg(not(feature = "parallel"))]
+    grid.data.chunks_mut(cols).enumerate().for_each(fill_row);
+
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a spectral blue noise NLM with values ranging [0, 1).
+///
+/// Blue noise is generated in the frequency domain by assigning each
+/// frequency component a random phase and an amplitude proportional to
+/// the frequency magnitude `|k|` (spectral exponent β = -2). This boosts
+/// high frequencies and suppresses low frequencies, producing patterns
+/// where neighbouring cells are anti-correlated — an even, non-clumping
+/// spatial distribution unlike white or pink noise.
+///
+/// Uses the same 2-D IFFT pipeline as `spectral_synthesis`.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn blue_noise(rows: usize, cols: usize, seed: Option<u64>) -> Grid {
+    use rustfft::{FftPlanner, num_complex::Complex};
+
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+
+    let mut rng = make_rng(seed);
+    let mut freq: Vec<Complex<f64>> = vec![Complex::new(0.0f64, 0.0); rows * cols];
+
+    for i in 0..rows {
+        let fi = if i <= rows / 2 { i as f64 } else { i as f64 - rows as f64 };
+        for j in 0..cols {
+            if i == 0 && j == 0 {
+                continue; // DC stays 0 — zero mean
+            }
+            let fj = if j <= cols / 2 { j as f64 } else { j as f64 - cols as f64 };
+            let f_mag = (fi * fi + fj * fj).sqrt();
+            let phase = rng.gen::<f64>() * 2.0 * std::f64::consts::PI;
+            freq[i * cols + j] = Complex::new(f_mag * phase.cos(), f_mag * phase.sin());
+        }
+    }
+
+    let mut planner = FftPlanner::<f64>::new();
+    let ifft_row = planner.plan_fft_inverse(cols);
+    let ifft_col = planner.plan_fft_inverse(rows);
+
+    for row in freq.chunks_mut(cols) {
+        ifft_row.process(row);
+    }
+
+    let mut col_buf = vec![Complex::new(0.0f64, 0.0); rows];
+    for j in 0..cols {
+        for i in 0..rows { col_buf[i] = freq[i * cols + j]; }
+        ifft_col.process(&mut col_buf);
+        for i in 0..rows { freq[i * cols + j] = col_buf[i]; }
+    }
+
+    let data: Vec<f64> = freq.iter().map(|c| c.re).collect();
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1576,6 +1702,48 @@ mod tests {
     fn test_lognormal_field_seeded_determinism() {
         let a = lognormal_field(50, 50, 10.0, Some(42));
         let b = lognormal_field(50, 50, 10.0, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── multifractal_terrain ──────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_multifractal_terrain(#[case] rows: usize, #[case] cols: usize) {
+        let grid = multifractal_terrain(rows, cols, 4.0, 6, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_multifractal_terrain_seeded_determinism() {
+        let a = multifractal_terrain(50, 50, 4.0, 6, Some(42));
+        let b = multifractal_terrain(50, 50, 4.0, 6, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── blue_noise ────────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_blue_noise(#[case] rows: usize, #[case] cols: usize) {
+        let grid = blue_noise(rows, cols, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_blue_noise_seeded_determinism() {
+        let a = blue_noise(50, 50, Some(42));
+        let b = blue_noise(50, 50, Some(42));
         assert_eq!(a.data, b.data);
     }
 

@@ -650,6 +650,73 @@ enum Commands {
         #[arg(long, default_value = "500")]
         iterations: usize,
     },
+    /// Radial sweep — clockwise angle from grid centre
+    RadialSweep {
+        rows: usize,
+        cols: usize,
+    },
+    /// Musgrave heterogeneous multifractal terrain
+    MultifractalTerrain {
+        rows: usize,
+        cols: usize,
+        /// Base noise frequency (higher = more features)
+        #[arg(long, default_value = "4.0")]
+        scale: f64,
+        /// Number of octaves
+        #[arg(long, default_value = "6")]
+        octaves: usize,
+    },
+    /// Spectral blue noise (high-frequency energy, uniform point distribution)
+    BlueNoise {
+        rows: usize,
+        cols: usize,
+    },
+    /// Spatial SIR epidemic model (reaction-diffusion PDE)
+    SirEpidemic {
+        rows: usize,
+        cols: usize,
+        /// Infection rate
+        #[arg(long, default_value = "0.3")]
+        beta: f64,
+        /// Recovery rate
+        #[arg(long, default_value = "0.1")]
+        gamma: f64,
+        /// Number of PDE time steps
+        #[arg(long, default_value = "200")]
+        iterations: usize,
+    },
+    /// Thermal erosion of a Perlin heightmap via talus-slope diffusion
+    ThermalErosion {
+        rows: usize,
+        cols: usize,
+        /// Number of erosion passes
+        #[arg(long, default_value = "50")]
+        n: usize,
+    },
+    /// Space colonisation — auxin-based vascular branching network
+    SpaceColonization {
+        rows: usize,
+        cols: usize,
+        /// Number of auxin attractors
+        #[arg(long, default_value = "200")]
+        n: usize,
+    },
+    /// Substrate — Jared Tarbell crack propagation
+    Substrate {
+        rows: usize,
+        cols: usize,
+        /// Number of simulation steps
+        #[arg(long, default_value = "10")]
+        n: usize,
+    },
+    /// Conway's Game of Life visit-density map
+    GameOfLife {
+        rows: usize,
+        cols: usize,
+        /// Number of generations
+        #[arg(long, default_value = "200")]
+        iterations: usize,
+    },
 }
 
 fn main() {
@@ -810,6 +877,22 @@ fn main() {
         }
         Commands::PredatorPrey { rows, cols, iterations } => {
             nlmrs::predator_prey(rows, cols, iterations, seed)
+        }
+        Commands::RadialSweep { rows, cols } => nlmrs::radial_sweep(rows, cols, seed),
+        Commands::MultifractalTerrain { rows, cols, scale, octaves } => {
+            nlmrs::multifractal_terrain(rows, cols, scale, octaves, seed)
+        }
+        Commands::BlueNoise { rows, cols } => nlmrs::blue_noise(rows, cols, seed),
+        Commands::SirEpidemic { rows, cols, beta, gamma, iterations } => {
+            nlmrs::sir_epidemic(rows, cols, beta, gamma, iterations, seed)
+        }
+        Commands::ThermalErosion { rows, cols, n } => nlmrs::thermal_erosion(rows, cols, n, seed),
+        Commands::SpaceColonization { rows, cols, n } => {
+            nlmrs::space_colonization(rows, cols, n, seed)
+        }
+        Commands::Substrate { rows, cols, n } => nlmrs::substrate(rows, cols, n, seed),
+        Commands::GameOfLife { rows, cols, iterations } => {
+            nlmrs::game_of_life(rows, cols, iterations, seed)
         }
     };
 

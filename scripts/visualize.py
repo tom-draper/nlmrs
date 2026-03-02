@@ -92,10 +92,18 @@ ALGORITHMS = [
     ("crystal_growth",           "crystal_growth",           {"iterations": 300}),
     ("predator_prey",            "predator_prey",            {"iterations": 500}),
     ("spiral_gradient",          "spiral_gradient",          {"turns": 4.0}),
+    ("radial_sweep",             "radial_sweep",             {}),
     ("lognormal_field",          "lognormal_field",          {"sigma": 10.0}),
+    ("multifractal_terrain",     "multifractal_terrain",     {"scale": 4.0, "octaves": 6}),
+    ("blue_noise",               "blue_noise",               {}),
     ("sandpile",                 "sandpile",                 {"n": 5000}),
     ("correlated_walk",          "correlated_walk",          {"n": 5000, "kappa": 2.0}),
     ("schelling",                "schelling",                {"tolerance": 0.5, "iterations": 50}),
+    ("sir_epidemic",             "sir_epidemic",             {"beta": 0.3, "gamma": 0.1, "iterations": 200}),
+    ("thermal_erosion",          "thermal_erosion",          {"n": 50}),
+    ("space_colonization",       "space_colonization",       {"n": 200}),
+    ("substrate",                "substrate",                {"n": 10}),
+    ("game_of_life",             "game_of_life",             {"iterations": 200}),
 ]
 
 

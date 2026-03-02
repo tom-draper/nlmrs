@@ -1344,6 +1344,155 @@ fn predator_prey(
     to_numpy(py, grid)
 }
 
+/// Radial sweep — clockwise angle from grid centre. Values in [0, 1].
+#[pyfunction]
+#[pyo3(signature = (rows, cols, seed=None))]
+fn radial_sweep(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::radial_sweep(rows, cols, seed));
+    to_numpy(py, grid)
+}
+
+/// Musgrave heterogeneous multifractal terrain. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// scale : float
+///     Base noise frequency (default 4.0).
+/// octaves : int
+///     Number of octaves (default 6).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, scale=4.0, octaves=6, seed=None))]
+fn multifractal_terrain(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    scale: f64,
+    octaves: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::multifractal_terrain(rows, cols, scale, octaves, seed));
+    to_numpy(py, grid)
+}
+
+/// Spectral blue noise (high-frequency energy, uniform point distribution). Values in [0, 1].
+#[pyfunction]
+#[pyo3(signature = (rows, cols, seed=None))]
+fn blue_noise(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::blue_noise(rows, cols, seed));
+    to_numpy(py, grid)
+}
+
+/// Spatial SIR epidemic model (reaction-diffusion PDE). Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// beta : float
+///     Infection rate (default 0.3).
+/// gamma : float
+///     Recovery rate (default 0.1).
+/// iterations : int
+///     Number of PDE time steps (default 200).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, beta=0.3, gamma=0.1, iterations=200, seed=None))]
+fn sir_epidemic(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    beta: f64,
+    gamma: f64,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::sir_epidemic(rows, cols, beta, gamma, iterations, seed));
+    to_numpy(py, grid)
+}
+
+/// Thermal erosion of a Perlin heightmap via talus-slope diffusion. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of erosion passes (default 50).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=50, seed=None))]
+fn thermal_erosion(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::thermal_erosion(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Space colonisation — auxin-based vascular branching network. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of auxin attractors (default 200).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=200, seed=None))]
+fn space_colonization(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::space_colonization(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Substrate — Jared Tarbell crack propagation. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Number of simulation steps (default 10).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=10, seed=None))]
+fn substrate(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::substrate(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
+/// Conway's Game of Life visit-density map. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// iterations : int
+///     Number of generations (default 200).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, iterations=200, seed=None))]
+fn game_of_life(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::game_of_life(rows, cols, iterations, seed));
+    to_numpy(py, grid)
+}
+
 // ── Post-processing ──────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.
@@ -1474,6 +1623,14 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(cahn_hilliard, m)?)?;
     m.add_function(wrap_pyfunction!(crystal_growth, m)?)?;
     m.add_function(wrap_pyfunction!(predator_prey, m)?)?;
+    m.add_function(wrap_pyfunction!(radial_sweep, m)?)?;
+    m.add_function(wrap_pyfunction!(multifractal_terrain, m)?)?;
+    m.add_function(wrap_pyfunction!(blue_noise, m)?)?;
+    m.add_function(wrap_pyfunction!(sir_epidemic, m)?)?;
+    m.add_function(wrap_pyfunction!(thermal_erosion, m)?)?;
+    m.add_function(wrap_pyfunction!(space_colonization, m)?)?;
+    m.add_function(wrap_pyfunction!(substrate, m)?)?;
+    m.add_function(wrap_pyfunction!(game_of_life, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

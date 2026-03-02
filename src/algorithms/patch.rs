@@ -2632,6 +2632,401 @@ pub fn schelling(
     Grid { data, rows, cols }
 }
 
+/// Returns a spatial SIR epidemic NLM with values ranging [0, 1).
+///
+/// Numerically integrates the spatially-explicit SIR reaction-diffusion PDE:
+///
+///   dS/dt = -β·S·I + D_S·∇²S
+///   dI/dt =  β·S·I - γ·I + D_I·∇²I
+///   dR/dt =  γ·I
+///
+/// The grid is initialised with S≈1 everywhere and a small infection seed
+/// I=0.1 at the centre. Periodic boundaries are used. The output is the
+/// recovered field R, which maps the spatial footprint of the epidemic wave.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `beta`       - Transmission rate.
+/// * `gamma`      - Recovery rate.
+/// * `iterations` - Number of forward-Euler integration steps.
+/// * `seed`       - Optional RNG seed (unused; provided for API consistency).
+pub fn sir_epidemic(
+    rows: usize,
+    cols: usize,
+    beta: f64,
+    gamma: f64,
+    iterations: usize,
+    _seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let n = rows * cols;
+    let dt  = 0.5f64;
+    let d_s = 0.1f64;
+    let d_i = 0.5f64;
+
+    let mut s = vec![1.0f64; n];
+    let mut inf = vec![0.0f64; n];
+    let mut r = vec![0.0f64; n];
+
+    let centre = (rows / 2) * cols + (cols / 2);
+    inf[centre] = 0.1;
+    s[centre]   = 0.9;
+
+    let mut s_next = s.clone();
+    let mut i_next = inf.clone();
+    let mut r_next = r.clone();
+
+    for _ in 0..iterations {
+        for idx in 0..n {
+            let row = idx / cols;
+            let col = idx % cols;
+            let si = s[idx].max(0.0);
+            let ii = inf[idx].max(0.0);
+            let ri = r[idx];
+            let lap_s = laplacian_periodic(&s, row, col, rows, cols);
+            let lap_i = laplacian_periodic(&inf, row, col, rows, cols);
+            let infection = beta * si * ii;
+            s_next[idx] = (si + dt * (-infection + d_s * lap_s)).max(0.0);
+            i_next[idx] = (ii + dt * (infection - gamma * ii + d_i * lap_i)).max(0.0);
+            r_next[idx] = (ri + dt * gamma * ii).clamp(0.0, 1.0);
+        }
+        std::mem::swap(&mut s, &mut s_next);
+        std::mem::swap(&mut inf, &mut i_next);
+        std::mem::swap(&mut r, &mut r_next);
+    }
+
+    let mut grid = Grid { data: r, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a thermally eroded heightmap NLM with values ranging [0, 1).
+///
+/// Initialises a multi-octave Perlin heightmap and applies `n` passes of
+/// talus-slope erosion: any cell whose height exceeds a neighbour's by more
+/// than the talus angle donates a fraction of the surplus, simulating rock-fall
+/// and scree formation. Uses four-connectivity with non-periodic boundaries.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of erosion passes.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn thermal_erosion(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    use noise::{NoiseFn, Perlin};
+
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+
+    let seed_val = perlin_seed(seed);
+    let inv_rows = 1.0 / rows as f64;
+    let inv_cols = 1.0 / cols as f64;
+    let scale_f  = 4.0f64;
+    let lacunarity = 2.0f64;
+    let persistence = 0.5f64;
+    let n_oct = 6usize;
+
+    let generators: Vec<(Perlin, f64, f64)> = {
+        let mut v = Vec::new();
+        let mut freq = scale_f;
+        let mut amp  = 1.0f64;
+        let mut total = 0.0f64;
+        for o in 0..n_oct {
+            v.push((Perlin::new(seed_val.wrapping_add(o as u32)), freq, amp));
+            total += amp;
+            amp  *= persistence;
+            freq *= lacunarity;
+        }
+        let inv = 1.0 / total;
+        v.into_iter().map(|(g, f, a)| (g, f, a * inv)).collect()
+    };
+
+    let mut height: Vec<f64> = (0..rows * cols)
+        .map(|idx| {
+            let nx = (idx % cols) as f64 * inv_cols;
+            let ny = (idx / cols) as f64 * inv_rows;
+            generators.iter().map(|(g, f, a)| g.get([nx * f, ny * f]) * a).sum::<f64>()
+        })
+        .collect();
+
+    let talus    = 0.4 / rows.max(cols) as f64;
+    let fraction = 0.5f64;
+    let mut next = height.clone();
+
+    for _ in 0..n {
+        next.copy_from_slice(&height);
+        for idx in 0..rows * cols {
+            let r = idx / cols;
+            let c = idx % cols;
+            let h = height[idx];
+            let neighbours: [Option<usize>; 4] = [
+                if r > 0        { Some((r - 1) * cols + c) } else { None },
+                if r + 1 < rows { Some((r + 1) * cols + c) } else { None },
+                if c > 0        { Some(r * cols + c - 1)   } else { None },
+                if c + 1 < cols { Some(r * cols + c + 1)   } else { None },
+            ];
+            for ni in neighbours.into_iter().flatten() {
+                let diff = h - height[ni];
+                if diff > talus {
+                    let transfer = fraction * (diff - talus);
+                    next[idx] -= transfer;
+                    next[ni]  += transfer;
+                }
+            }
+        }
+        std::mem::swap(&mut height, &mut next);
+    }
+
+    let mut grid = Grid { data: height, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a space colonisation vascular network NLM with values ranging [0, 1).
+///
+/// Models plant vascular development: `n` auxin (attractor) points are placed
+/// in the upper 80% of the grid. A root node at the bottom centre grows
+/// step-by-step toward nearby auxin points, consuming them when close enough.
+/// New nodes branch when they are attracted by multiple auxin simultaneously.
+/// The output encodes the visit density of the resulting branching network.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of auxin attractor points.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn space_colonization(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+
+    let aux_row_max = (rows as f64 * 0.8).max(1.0);
+    let mut auxin: Vec<(f64, f64)> = (0..n)
+        .map(|_| (rng.gen_range(0.0..aux_row_max), rng.gen_range(0.0..cols as f64)))
+        .collect();
+
+    let mut nodes: Vec<(f64, f64)> = vec![(rows as f64 - 1.0, cols as f64 / 2.0)];
+    let mut data = vec![0.0f64; rows * cols];
+
+    let influence_r = (rows.max(cols) as f64) * 0.4;
+    let kill_dist   = (rows.max(cols) as f64) * 0.04;
+    let step_size   = 1.5f64;
+    let max_iter    = n * 20 + 100;
+    let max_nodes   = rows * cols;
+
+    let mark = |data: &mut Vec<f64>, r: f64, c: f64| {
+        let ri = (r as usize).min(rows - 1);
+        let ci = (c as usize).min(cols - 1);
+        data[ri * cols + ci] += 1.0;
+    };
+    mark(&mut data, nodes[0].0, nodes[0].1);
+
+    'outer: for _ in 0..max_iter {
+        if auxin.is_empty() || nodes.len() >= max_nodes {
+            break;
+        }
+        let n_nodes = nodes.len();
+        let mut new_nodes: Vec<(f64, f64)> = Vec::new();
+
+        for ni in 0..n_nodes {
+            let (nr, nc) = nodes[ni];
+            let mut dir_r = 0.0f64;
+            let mut dir_c = 0.0f64;
+            let mut count = 0usize;
+
+            for &(ar, ac) in &auxin {
+                let dr = ar - nr;
+                let dc = ac - nc;
+                let dist = (dr * dr + dc * dc).sqrt();
+                if dist < influence_r && dist > 0.0 {
+                    dir_r += dr / dist;
+                    dir_c += dc / dist;
+                    count += 1;
+                }
+            }
+            if count == 0 {
+                continue;
+            }
+
+            let len = (dir_r * dir_r + dir_c * dir_c).sqrt().max(1e-12);
+            let new_r = (nr + step_size * dir_r / len).clamp(0.0, rows as f64 - 1.0);
+            let new_c = (nc + step_size * dir_c / len).clamp(0.0, cols as f64 - 1.0);
+            new_nodes.push((new_r, new_c));
+        }
+
+        if new_nodes.is_empty() {
+            break;
+        }
+
+        for &(nr, nc) in &new_nodes {
+            mark(&mut data, nr, nc);
+            nodes.push((nr, nc));
+            auxin.retain(|&(ar, ac)| {
+                let dr = ar - nr;
+                let dc = ac - nc;
+                (dr * dr + dc * dc).sqrt() >= kill_dist
+            });
+            if auxin.is_empty() {
+                break 'outer;
+            }
+            if nodes.len() >= max_nodes {
+                break 'outer;
+            }
+        }
+    }
+
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a crack-propagation substrate NLM with values ranging [0, 1).
+///
+/// Simulates Jared Tarbell's Substrate algorithm: `n` crack seeds propagate
+/// across the grid in their initial random directions, deviating slightly at
+/// each step. When a crack reaches an occupied cell it stops, potentially
+/// spawning a perpendicular child. Active cracks also occasionally branch.
+/// The output encodes the visit density of all crack paths.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Number of initial crack seeds.
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn substrate(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let mut data     = vec![0.0f64; rows * cols];
+    let mut occupied = vec![false;  rows * cols];
+
+    let mut cracks: Vec<(f64, f64, f64)> = (0..n.max(1))
+        .map(|_| {
+            let r = rng.gen_range(0.0..rows as f64);
+            let c = rng.gen_range(0.0..cols as f64);
+            let a = rng.gen_range(0.0..std::f64::consts::TAU);
+            (r, c, a)
+        })
+        .collect();
+
+    let p_spawn  = 0.002f64;
+    let max_iter = rows * cols * 2 + 1000;
+    let max_cracks = 2000usize;
+
+    for _ in 0..max_iter {
+        if cracks.is_empty() {
+            break;
+        }
+        let mut new_cracks: Vec<(f64, f64, f64)> = Vec::new();
+        let mut to_remove: Vec<usize> = Vec::new();
+        let num_cracks = cracks.len();
+
+        for (idx, (r, c, angle)) in cracks.iter_mut().enumerate() {
+            // Small random Gaussian angular deviation (Box-Muller).
+            let u1 = rng.gen::<f64>().max(f64::MIN_POSITIVE);
+            let u2 = rng.gen::<f64>();
+            *angle += (-2.0 * u1.ln()).sqrt()
+                * (2.0 * std::f64::consts::PI * u2).cos()
+                * 0.05;
+
+            *r += angle.sin();
+            *c += angle.cos();
+
+            if *r < 0.0 || *r >= rows as f64 || *c < 0.0 || *c >= cols as f64 {
+                to_remove.push(idx);
+                continue;
+            }
+
+            let ri = *r as usize;
+            let ci = *c as usize;
+            let cell = ri * cols + ci;
+
+            if occupied[cell] {
+                to_remove.push(idx);
+                if num_cracks + new_cracks.len() < max_cracks {
+                    new_cracks.push((*r, *c, *angle + std::f64::consts::FRAC_PI_2));
+                }
+                continue;
+            }
+
+            occupied[cell] = true;
+            data[cell] += 1.0;
+
+            if rng.gen::<f64>() < p_spawn && num_cracks + new_cracks.len() < max_cracks {
+                new_cracks.push((*r, *c, *angle + std::f64::consts::FRAC_PI_2));
+            }
+        }
+
+        for &i in to_remove.iter().rev() {
+            cracks.swap_remove(i);
+        }
+        cracks.extend(new_cracks);
+    }
+
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a Conway's Game of Life activity-density NLM with values ranging [0, 1).
+///
+/// Cells are randomly initialised alive with probability 0.45 and evolved
+/// for `iterations` steps under the standard B3/S23 rules. The output is
+/// the proportion of steps each cell spent alive, normalised to [0, 1).
+/// Toroidal (periodic) boundary conditions are used.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `iterations` - Number of simulation steps.
+/// * `seed`       - Optional RNG seed for reproducible results.
+pub fn game_of_life(rows: usize, cols: usize, iterations: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+
+    let mut state: Vec<bool> = (0..rows * cols).map(|_| rng.gen::<f64>() < 0.45).collect();
+    let mut next  = state.clone();
+    let mut visits: Vec<f64> = state.iter().map(|&b| if b { 1.0 } else { 0.0 }).collect();
+
+    for _ in 0..iterations {
+        for idx in 0..rows * cols {
+            let r = (idx / cols) as i64;
+            let c = (idx % cols) as i64;
+            let mut alive_nb = 0u8;
+            for dr in -1i64..=1 {
+                for dc in -1i64..=1 {
+                    if dr == 0 && dc == 0 { continue; }
+                    let nr = (r + dr).rem_euclid(rows as i64) as usize;
+                    let nc = (c + dc).rem_euclid(cols as i64) as usize;
+                    if state[nr * cols + nc] { alive_nb += 1; }
+                }
+            }
+            next[idx] = matches!((state[idx], alive_nb), (true, 2) | (true, 3) | (false, 3));
+        }
+        std::mem::swap(&mut state, &mut next);
+        for (v, &alive) in visits.iter_mut().zip(state.iter()) {
+            if alive { *v += 1.0; }
+        }
+    }
+
+    let mut grid = Grid { data: visits, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
 #[cfg(test)]
 mod new_tests {
     use super::*;
@@ -2907,6 +3302,115 @@ mod new_tests {
     fn test_predator_prey_seeded_determinism() {
         let a = predator_prey(50, 50, 50, Some(42));
         let b = predator_prey(50, 50, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── sir_epidemic ──────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_sir_epidemic(#[case] rows: usize, #[case] cols: usize) {
+        let grid = sir_epidemic(rows, cols, 0.3, 0.1, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_sir_epidemic_determinism() {
+        let a = sir_epidemic(50, 50, 0.3, 0.1, 50, None);
+        let b = sir_epidemic(50, 50, 0.3, 0.1, 50, None);
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── thermal_erosion ───────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_thermal_erosion(#[case] rows: usize, #[case] cols: usize) {
+        let grid = thermal_erosion(rows, cols, 10, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_thermal_erosion_seeded_determinism() {
+        let a = thermal_erosion(50, 50, 10, Some(42));
+        let b = thermal_erosion(50, 50, 10, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── space_colonization ────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_space_colonization(#[case] rows: usize, #[case] cols: usize) {
+        let grid = space_colonization(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_space_colonization_seeded_determinism() {
+        let a = space_colonization(50, 50, 50, Some(42));
+        let b = space_colonization(50, 50, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── substrate ─────────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_substrate(#[case] rows: usize, #[case] cols: usize) {
+        let grid = substrate(rows, cols, 5, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_substrate_seeded_determinism() {
+        let a = substrate(50, 50, 5, Some(42));
+        let b = substrate(50, 50, 5, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── game_of_life ──────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_game_of_life(#[case] rows: usize, #[case] cols: usize) {
+        let grid = game_of_life(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_game_of_life_seeded_determinism() {
+        let a = game_of_life(50, 50, 50, Some(42));
+        let b = game_of_life(50, 50, 50, Some(42));
         assert_eq!(a.data, b.data);
     }
 }

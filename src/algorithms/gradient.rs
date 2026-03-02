@@ -264,6 +264,37 @@ pub fn spiral_gradient(rows: usize, cols: usize, turns: f64, _seed: Option<u64>)
     result
 }
 
+/// Returns a radial sweep NLM with values ranging [0, 1).
+///
+/// Each cell's value is the normalised clockwise angle from the grid centre,
+/// mapped from `atan2(dy, dx)` into `[0, 1)`. Produces a smooth rotation
+/// field useful as a directional covariate or combined with radial algorithms.
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `seed` - Optional RNG seed (unused; provided for API consistency).
+pub fn radial_sweep(rows: usize, cols: usize, _seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let cx = (cols as f64 - 1.0) / 2.0;
+    let cy = (rows as f64 - 1.0) / 2.0;
+
+    let data: Vec<f64> = (0..rows * cols)
+        .map(|idx| {
+            let dx = (idx % cols) as f64 - cx;
+            let dy = (idx / cols) as f64 - cy;
+            (dy.atan2(dx) + std::f64::consts::PI) / (2.0 * std::f64::consts::PI)
+        })
+        .collect();
+
+    let mut result = Grid { data, rows, cols };
+    scale(&mut result);
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -414,6 +445,21 @@ mod tests {
     #[case(500, 1000)]
     fn test_spiral_gradient(#[case] rows: usize, #[case] cols: usize) {
         let grid = spiral_gradient(rows, cols, 3.0, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    // ── radial_sweep ──────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_radial_sweep(#[case] rows: usize, #[case] cols: usize) {
+        let grid = radial_sweep(rows, cols, None);
         assert_eq!(grid.rows, rows);
         assert_eq!(grid.cols, cols);
         assert_eq!(nan_count(&grid), 0);
