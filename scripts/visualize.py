@@ -13,9 +13,10 @@
 Generate a PNG for every NLM algorithm using the nlmrs Python bindings.
 
 Usage:
-    uv run scripts/visualize.py [output_dir]
+    uv run scripts/visualize.py [output_dir] [algorithm ...]
 
 Output PNGs are written to `output_dir` (default: examples/).
+Pass one or more algorithm names to generate only those PNGs.
 uv builds the nlmrs extension automatically from the local source.
 """
 
@@ -123,10 +124,29 @@ def save_png(grid: np.ndarray, out_path: str):
 
 
 def main():
-    out_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(REPO_ROOT, "examples")
+    args = sys.argv[1:]
+
+    # First positional arg is out_dir if it contains a path separator or doesn't
+    # match any known algorithm name; otherwise treat all args as algorithm names.
+    algo_stems = {stem for stem, _, _ in ALGORITHMS}
+    if args and (os.sep in args[0] or args[0] not in algo_stems):
+        out_dir, filters = args[0], args[1:]
+    else:
+        out_dir, filters = os.path.join(REPO_ROOT, "examples"), args
+
     os.makedirs(out_dir, exist_ok=True)
 
-    for stem, fn_name, kwargs in ALGORITHMS:
+    if filters:
+        unknown = [f for f in filters if f not in algo_stems]
+        if unknown:
+            print(f"Unknown algorithm(s): {', '.join(unknown)}")
+            print(f"Available: {', '.join(sorted(algo_stems))}")
+            sys.exit(1)
+        subset = [a for a in ALGORITHMS if a[0] in filters]
+    else:
+        subset = ALGORITHMS
+
+    for stem, fn_name, kwargs in subset:
         png_path = os.path.join(out_dir, f"{stem}.png")
         title    = stem.replace("_", " ").title()
 
@@ -136,7 +156,7 @@ def main():
         save_png(grid, png_path)
         print(f"→ {os.path.relpath(png_path)}")
 
-    print(f"\nDone. {len(ALGORITHMS)} PNGs saved to {out_dir}/")
+    print(f"\nDone. {len(subset)} PNGs saved to {out_dir}/")
 
 
 if __name__ == "__main__":
