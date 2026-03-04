@@ -1,4 +1,4 @@
-# Build script for NLMrs.jl — compiles the nlmrs-c Rust crate from source.
+# Build script for nlmrs.jl — compiles the nlmrs-c Rust crate from source.
 # Runs automatically on `Pkg.add` / `Pkg.build`.
 # Requires Rust and Cargo to be installed: https://rustup.rs
 
@@ -32,4 +32,4 @@ open(joinpath(@__DIR__, "deps.jl"), "w") do f
     println(f, "const _libpath = $(repr(libpath))")
 end
 
-println("NLMrs: built $libpath")
+println("nlmrs: built $libpath")

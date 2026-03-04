@@ -1,4 +1,4 @@
-# NLMrs
+# nlmrs
 
 A Rust crate for building **Neutral Landscape Models**.
 
@@ -6,7 +6,7 @@ A Rust crate for building **Neutral Landscape Models**.
 
 Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.com/ropensci/NLMR).
 
-NLMrs is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, Julia, WASM, and C.
+`nlmrs` is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, Julia, WASM, and C.
 
 ## Installation
 
@@ -685,7 +685,7 @@ Spatial cyclic dominance model with three competing species (0, 1, 2). Each gene
 
 ## Usage
 
-NLMrs is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, Julia, WASM, and C.
+`nlmrs` is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, Julia, WASM, and C.
 
 ```bash
 cargo add nlmrs
@@ -754,7 +754,7 @@ Available operations: `add`, `add_value`, `multiply`, `multiply_value`, `invert`
 
 ### Python bindings
 
-NLMrs is available as a Python package. Every function returns a 2D numpy array.
+`nlmrs` is available as a Python package. Every function returns a 2D numpy array.
 
 #### Install
 
@@ -792,7 +792,7 @@ nlmrs.threshold(grid, t=0.5) # binarise at threshold t
 
 ### R bindings
 
-NLMrs is available as an R package via the [extendr](https://extendr.github.io/) framework. Every function returns a numeric matrix.
+`nlmrs` is available as an R package via the [extendr](https://extendr.github.io/) framework. Every function returns a numeric matrix.
 
 #### Install
 
@@ -813,7 +813,7 @@ image(m, col = terrain.colors(256))
 
 ### Julia bindings
 
-NLMrs is available as a Julia package. Every function returns a `Matrix{Float64}`.
+`nlmrs` is available as a Julia package. Every function returns a `Matrix{Float64}`.
 
 #### Install
 
@@ -826,7 +826,7 @@ Pkg.add(url="https://github.com/tom-draper/nlmrs", subdir="bindings/julia")
 #### Usage
 
 ```julia
-using NLMrs
+using nlmrs
 
 # All functions accept an optional seed keyword for reproducible output.
 m = midpoint_displacement(100, 100, h=0.8, seed=42)  # Matrix{Float64} (100, 100)
@@ -834,7 +834,7 @@ m = midpoint_displacement(100, 100, h=0.8, seed=42)  # Matrix{Float64} (100, 100
 
 ### C bindings
 
-NLMrs exposes a C-compatible shared/static library, making it usable from any language with C FFI support (C++, Go, MATLAB, Fortran, etc.).
+`nlmrs` exposes a C-compatible shared/static library, making it usable from any language with C FFI support (C++, Go, MATLAB, Fortran, etc.).
 
 #### Build
 
@@ -894,7 +894,7 @@ The header `include/nlmrs.h` is generated automatically by `cbindgen` during the
 
 ### WASM bindings
 
-NLMrs can run in the browser or Node.js via WebAssembly.
+`nlmrs` can run in the browser or Node.js via WebAssembly.
 
 #### Build
 

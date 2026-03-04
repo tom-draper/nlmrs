@@ -1,4 +1,4 @@
-name = "NLMrs"
+name = "nlmrs"
 uuid = "4f6e2d8c-3b1a-4e9f-8d7c-5a2b3c4d5e6f"
 authors = ["Tom Draper"]
 version = "0.1.0"

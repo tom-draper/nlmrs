@@ -1,8 +1,8 @@
-module NLMrs
+module nlmrs
 
 const _deps = joinpath(@__DIR__, "..", "deps", "deps.jl")
 isfile(_deps) ||
-    error("NLMrs not built. Run `import Pkg; Pkg.build(\"NLMrs\")`.")
+    error("nlmrs not built. Run `import Pkg; Pkg.build(\"nlmrs\")`.")
 include(_deps)  # defines _libpath
 
 # ── Internal C struct ─────────────────────────────────────────────────────────
@@ -430,4 +430,4 @@ function hexagonal_voronoi(rows::Integer, cols::Integer;
         rows, cols, n, _seed(seed)))
 end
 
-end # module NLMrs
+end # module nlmrs
