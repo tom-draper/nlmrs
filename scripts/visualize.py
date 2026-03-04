@@ -127,7 +127,7 @@ def main():
         png_path = os.path.join(out_dir, f"{stem}.png")
         title    = stem.replace("_", " ").title()
 
-        print(f"  {title:<28}", end="", flush=True)
+        print(f"  {title:<32}", end="", flush=True)
         fn = getattr(nlmrs, fn_name)
         grid = fn(SIZE, SIZE, **kwargs, seed=SEED)
         save_png(grid, png_path)

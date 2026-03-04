@@ -2819,7 +2819,7 @@ pub fn space_colonization(rows: usize, cols: usize, n: usize, seed: Option<u64>)
     let influence_r = (rows.max(cols) as f64) * 0.4;
     let kill_dist   = (rows.max(cols) as f64) * 0.04;
     let step_size   = 1.5f64;
-    let max_iter    = n * 20 + 100;
+    let max_iter    = rows.max(cols) * 10 + n;
     let max_nodes   = rows * cols;
 
     let mark = |data: &mut Vec<f64>, r: f64, c: f64| {
@@ -2833,29 +2833,44 @@ pub fn space_colonization(rows: usize, cols: usize, n: usize, seed: Option<u64>)
         if auxin.is_empty() || nodes.len() >= max_nodes {
             break;
         }
-        let n_nodes = nodes.len();
-        let mut new_nodes: Vec<(f64, f64)> = Vec::new();
 
-        for ni in 0..n_nodes {
-            let (nr, nc) = nodes[ni];
-            let mut dir_r = 0.0f64;
-            let mut dir_c = 0.0f64;
-            let mut count = 0usize;
-
-            for &(ar, ac) in &auxin {
+        // For each auxin point, find the closest node within influence_r.
+        // Each auxin influences only that one node, preventing exponential growth
+        // and enabling natural branching as different tree segments compete for
+        // different attractor regions.
+        let mut node_dirs: Vec<(f64, f64, usize)> = vec![(0.0, 0.0, 0); nodes.len()];
+        for &(ar, ac) in &auxin {
+            let mut closest_dist = influence_r;
+            let mut closest_ni = usize::MAX;
+            for (ni, &(nr, nc)) in nodes.iter().enumerate() {
                 let dr = ar - nr;
                 let dc = ac - nc;
                 let dist = (dr * dr + dc * dc).sqrt();
-                if dist < influence_r && dist > 0.0 {
-                    dir_r += dr / dist;
-                    dir_c += dc / dist;
-                    count += 1;
+                if dist < closest_dist {
+                    closest_dist = dist;
+                    closest_ni = ni;
                 }
             }
+            if closest_ni != usize::MAX {
+                let (nr, nc) = nodes[closest_ni];
+                let dr = ar - nr;
+                let dc = ac - nc;
+                let dist = (dr * dr + dc * dc).sqrt().max(1e-12);
+                node_dirs[closest_ni].0 += dr / dist;
+                node_dirs[closest_ni].1 += dc / dist;
+                node_dirs[closest_ni].2 += 1;
+            }
+        }
+
+        let n_nodes = nodes.len();
+        let mut new_nodes: Vec<(f64, f64)> = Vec::new();
+        for ni in 0..n_nodes {
+            let (_, _, count) = node_dirs[ni];
             if count == 0 {
                 continue;
             }
-
+            let (nr, nc) = nodes[ni];
+            let (dir_r, dir_c, _) = node_dirs[ni];
             let len = (dir_r * dir_r + dir_c * dir_c).sqrt().max(1e-12);
             let new_r = (nr + step_size * dir_r / len).clamp(0.0, rows as f64 - 1.0);
             let new_c = (nc + step_size * dir_c / len).clamp(0.0, cols as f64 - 1.0);
