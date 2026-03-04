@@ -1493,6 +1493,63 @@ fn game_of_life(
     to_numpy(py, grid)
 }
 
+/// Cyclic dominance (rock-paper-scissors) spiral domains. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// iterations : int
+///     Number of synchronous update steps (default 200).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, iterations=200, seed=None))]
+fn rock_paper_scissors(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::rock_paper_scissors(rows, cols, iterations, seed));
+    to_numpy(py, grid)
+}
+
+/// Greenberg-Hastings excitable media — spiral waves and target patterns. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// iterations : int
+///     Number of synchronous update steps (default 200).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, iterations=200, seed=None))]
+fn excitable_media(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::excitable_media(rows, cols, iterations, seed));
+    to_numpy(py, grid)
+}
+
+/// Truchet quarter-circle tile pattern. Values in [0, 1].
+///
+/// Parameters
+/// ----------
+/// n : int
+///     Tile side length in cells (default 10).
+#[pyfunction]
+#[pyo3(signature = (rows, cols, n=10, seed=None))]
+fn truchet(
+    py: Python<'_>,
+    rows: usize,
+    cols: usize,
+    n: usize,
+    seed: Option<u64>,
+) -> Bound<'_, PyArray2<f64>> {
+    let grid = py.allow_threads(|| crate::truchet(rows, cols, n, seed));
+    to_numpy(py, grid)
+}
+
 // ── Post-processing ──────────────────────────────────────────────────────────
 
 /// Quantise a grid into `n` equal-width classes.
@@ -1631,6 +1688,9 @@ fn nlmrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(space_colonization, m)?)?;
     m.add_function(wrap_pyfunction!(substrate, m)?)?;
     m.add_function(wrap_pyfunction!(game_of_life, m)?)?;
+    m.add_function(wrap_pyfunction!(rock_paper_scissors, m)?)?;
+    m.add_function(wrap_pyfunction!(excitable_media, m)?)?;
+    m.add_function(wrap_pyfunction!(truchet, m)?)?;
     m.add_function(wrap_pyfunction!(classify, m)?)?;
     m.add_function(wrap_pyfunction!(threshold, m)?)?;
     Ok(())

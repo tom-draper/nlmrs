@@ -717,6 +717,30 @@ enum Commands {
         #[arg(long, default_value = "200")]
         iterations: usize,
     },
+    /// Cyclic dominance (rock-paper-scissors) spiral domains
+    RockPaperScissors {
+        rows: usize,
+        cols: usize,
+        /// Number of synchronous update steps
+        #[arg(long, default_value = "200")]
+        iterations: usize,
+    },
+    /// Greenberg-Hastings excitable media — spiral waves and target patterns
+    ExcitableMedia {
+        rows: usize,
+        cols: usize,
+        /// Number of synchronous update steps
+        #[arg(long, default_value = "200")]
+        iterations: usize,
+    },
+    /// Truchet quarter-circle tile pattern
+    Truchet {
+        rows: usize,
+        cols: usize,
+        /// Tile side length in cells
+        #[arg(long, default_value = "10")]
+        n: usize,
+    },
 }
 
 fn main() {
@@ -894,6 +918,13 @@ fn main() {
         Commands::GameOfLife { rows, cols, iterations } => {
             nlmrs::game_of_life(rows, cols, iterations, seed)
         }
+        Commands::RockPaperScissors { rows, cols, iterations } => {
+            nlmrs::rock_paper_scissors(rows, cols, iterations, seed)
+        }
+        Commands::ExcitableMedia { rows, cols, iterations } => {
+            nlmrs::excitable_media(rows, cols, iterations, seed)
+        }
+        Commands::Truchet { rows, cols, n } => nlmrs::truchet(rows, cols, n, seed),
     };
 
     let mut grid = grid;

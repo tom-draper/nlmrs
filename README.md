@@ -437,6 +437,14 @@ Hierarchical rectilinear partition: the largest rectangle is repeatedly split al
 
 *Source: [Etherington, Morgan & O'Sullivan (2022)](https://doi.org/10.1007/s10980-022-01452-6)*
 
+#### Truchet
+
+`truchet(rows: 100, cols: 100, n: 10, seed: 42)`
+
+Divides the grid into square macro-tiles of side `n`. Each tile is randomly assigned one of two orientations: quarter-circle arcs connecting either the top-left/bottom-right corners or the top-right/bottom-left corners. The interlocking curves produce flowing maze-like patterns.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/truchet.png" alt="" width=300 />
+
 #### Schelling
 
 `schelling(rows: 100, cols: 100, tolerance: 0.5, iterations: 50, seed: 42)`
@@ -643,6 +651,14 @@ Gray-Scott reaction-diffusion model where two chemicals (A and B) diffuse and re
 
 <img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/reaction_diffusion.png" alt="" width=300 />
 
+#### Excitable Media
+
+`excitable_media(rows: 100, cols: 100, iterations: 150, seed: 42)`
+
+Greenberg-Hastings excitable media model. Each cell cycles through resting, excited, and refractory states. A resting cell becomes excited if any cardinal neighbour is excited; excited cells enter a refractory chain before returning to rest. Random initial states seed broken wave fronts that self-organise into propagating spiral waves and target patterns.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/excitable_media.png" alt="" width=300 />
+
 #### Predator-Prey
 
 `predator_prey(rows: 100, cols: 100, iterations: 500, seed: 42)`
@@ -658,6 +674,14 @@ Spatial Lotka-Volterra PDE with diffusion. Two fields, prey (`u`) and predators 
 Spatial SIR reaction-diffusion model. Susceptible (S), infected (I), and recovered (R) compartments evolve via a PDE with diffusion and mass-action infection kinetics. The output is the recovered field, showing which regions were swept by the epidemic wavefront.
 
 <img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/sir_epidemic.png" alt="" width=300 />
+
+#### Rock-Paper-Scissors
+
+`rock_paper_scissors(rows: 100, cols: 100, iterations: 200, seed: 42)`
+
+Spatial cyclic dominance model with three competing species (0, 1, 2). Each generation performs `rows × cols` Monte-Carlo trials: a random cell is selected along with one random neighbour; if the neighbour carries the predator state `(state + 1) % 3`, the cell is consumed. Asynchronous updates allow domains to coarsen and rotate into the characteristic spiral waves of cyclic competition.
+
+<img src="https://raw.githubusercontent.com/tom-draper/nlmrs/main/examples/rock_paper_scissors.png" alt="" width=300 />
 
 ## Usage
 

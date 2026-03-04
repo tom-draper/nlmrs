@@ -3042,6 +3042,191 @@ pub fn game_of_life(rows: usize, cols: usize, iterations: usize, seed: Option<u6
     grid
 }
 
+/// Returns a cyclic-dominance (rock-paper-scissors) NLM with values in [0, 1).
+///
+/// Each cell holds one of three states (0, 1, 2). Each generation consists of
+/// `rows × cols` Monte-Carlo trials: a random cell and one of its four random
+/// cardinal neighbours are selected; if the neighbour carries the predator state
+/// `(cell_state + 1) % 3`, the cell is consumed and adopts it. Asynchronous
+/// updates allow domains to coarsen, producing the characteristic rotating
+/// spiral waves of cyclic competition. After `iterations` generations the raw
+/// state values are scaled to [0, 1).
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `iterations` - Number of generations (each = rows × cols Monte-Carlo trials).
+/// * `seed`       - Optional RNG seed for reproducible results.
+pub fn rock_paper_scissors(
+    rows: usize,
+    cols: usize,
+    iterations: usize,
+    seed: Option<u64>,
+) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let mut states: Vec<u8> = (0..rows * cols).map(|_| rng.gen_range(0..3u8)).collect();
+
+    let n_trials = rows * cols;
+    for _ in 0..iterations {
+        for _ in 0..n_trials {
+            let r = rng.gen_range(0..rows);
+            let c = rng.gen_range(0..cols);
+            let s = states[r * cols + c];
+            let predator = (s + 1) % 3;
+            let (nr, nc) = match rng.gen_range(0..4u8) {
+                0 => ((r + rows - 1) % rows, c),
+                1 => ((r + 1) % rows, c),
+                2 => (r, (c + cols - 1) % cols),
+                _ => (r, (c + 1) % cols),
+            };
+            if states[nr * cols + nc] == predator {
+                states[r * cols + c] = predator;
+            }
+        }
+    }
+
+    let data: Vec<f64> = states.iter().map(|&s| s as f64).collect();
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns an excitable-media NLM with values in [0, 1).
+///
+/// Implements the Greenberg-Hastings cellular automaton. Each cell cycles
+/// through states: 0 (resting) → 1 (excited) → 2..`n_states-1` (refractory)
+/// → 0. A resting cell becomes excited if at least one cardinal neighbour is
+/// in the excited state. Excited cells immediately enter the refractory chain
+/// and cannot re-excite until they return to resting. With random initial
+/// seeds the model self-organises into propagating spiral waves and target
+/// patterns.
+///
+/// # Arguments
+///
+/// * `rows`       - Number of rows.
+/// * `cols`       - Number of columns.
+/// * `iterations` - Number of synchronous update steps.
+/// * `seed`       - Optional RNG seed for reproducible results.
+pub fn excitable_media(rows: usize, cols: usize, iterations: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let n_states: u8 = 8; // 1 excited + 6 refractory + 1 resting
+
+    // Initialise every cell with a random state across the full cycle.
+    // This immediately creates broken wave fronts that curl into self-sustaining
+    // spiral waves; seeding only a few excited cells causes all waves to die out.
+    let mut states: Vec<u8> = (0..rows * cols)
+        .map(|_| rng.gen_range(0..n_states))
+        .collect();
+    let mut next = states.clone();
+
+    for _ in 0..iterations {
+        for idx in 0..rows * cols {
+            let r = (idx / cols) as i64;
+            let c = (idx % cols) as i64;
+            let s = states[idx];
+            next[idx] = if s == 0 {
+                // Resting → excited if any neighbour is in the excited state.
+                let mut has_excited = false;
+                for (dr, dc) in [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)] {
+                    let nr = (r + dr).rem_euclid(rows as i64) as usize;
+                    let nc = (c + dc).rem_euclid(cols as i64) as usize;
+                    if states[nr * cols + nc] == 1 {
+                        has_excited = true;
+                        break;
+                    }
+                }
+                if has_excited { 1 } else { 0 }
+            } else if s == n_states - 1 {
+                0 // last refractory state → resting
+            } else {
+                s + 1 // advance through excitation/refractory chain
+            };
+        }
+        std::mem::swap(&mut states, &mut next);
+    }
+
+    let data: Vec<f64> = states.iter().map(|&s| s as f64).collect();
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
+/// Returns a Truchet-tile NLM with values in [0, 1).
+///
+/// The grid is divided into square macro-tiles of side `n`. Each macro-tile
+/// is randomly assigned one of two orientations. Orientation 0 places
+/// quarter-circle arcs at the top-left and bottom-right corners; orientation 1
+/// places them at the top-right and bottom-left corners. Each grid cell is
+/// assigned 1 if its centre lies inside one of the arcs (radius = half the
+/// tile side) and 0 otherwise. The resulting field of interlocking curves is
+/// then scaled to [0, 1).
+///
+/// # Arguments
+///
+/// * `rows` - Number of rows.
+/// * `cols` - Number of columns.
+/// * `n`    - Tile side length in cells (clamped to at least 2).
+/// * `seed` - Optional RNG seed for reproducible results.
+pub fn truchet(rows: usize, cols: usize, n: usize, seed: Option<u64>) -> Grid {
+    if rows == 0 || cols == 0 {
+        return Grid::new(0, 0);
+    }
+    let mut rng = make_rng(seed);
+    let tile = n.max(2);
+    let tiles_r = (rows + tile - 1) / tile;
+    let tiles_c = (cols + tile - 1) / tile;
+
+    // Pre-assign a random orientation (0 or 1) to every macro-tile.
+    let tile_types: Vec<u8> = (0..tiles_r * tiles_c)
+        .map(|_| rng.gen_range(0..2u8))
+        .collect();
+
+    let mut data = vec![0.0f64; rows * cols];
+    for r in 0..rows {
+        for c in 0..cols {
+            let tr = r / tile;
+            let tc = c / tile;
+            let tile_type = tile_types[tr * tiles_c + tc];
+
+            // Normalised position of cell centre within its macro-tile → (0, 1).
+            let fr = ((r % tile) as f64 + 0.5) / tile as f64;
+            let fc = ((c % tile) as f64 + 0.5) / tile as f64;
+
+            // Quarter-circle arcs have radius 0.5, centred on two opposite corners.
+            data[r * cols + c] = if tile_type == 0 {
+                // Arcs at corners (0, 0) and (1, 1).
+                if fr * fr + fc * fc < 0.25
+                    || (fr - 1.0) * (fr - 1.0) + (fc - 1.0) * (fc - 1.0) < 0.25
+                {
+                    1.0
+                } else {
+                    0.0
+                }
+            } else {
+                // Arcs at corners (0, 1) and (1, 0).
+                if fr * fr + (fc - 1.0) * (fc - 1.0) < 0.25
+                    || (fr - 1.0) * (fr - 1.0) + fc * fc < 0.25
+                {
+                    1.0
+                } else {
+                    0.0
+                }
+            };
+        }
+    }
+
+    let mut grid = Grid { data, rows, cols };
+    scale(&mut grid);
+    grid
+}
+
 #[cfg(test)]
 mod new_tests {
     use super::*;
@@ -3426,6 +3611,72 @@ mod new_tests {
     fn test_game_of_life_seeded_determinism() {
         let a = game_of_life(50, 50, 50, Some(42));
         let b = game_of_life(50, 50, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── rock_paper_scissors ───────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_rock_paper_scissors(#[case] rows: usize, #[case] cols: usize) {
+        let grid = rock_paper_scissors(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_rock_paper_scissors_seeded_determinism() {
+        let a = rock_paper_scissors(50, 50, 50, Some(42));
+        let b = rock_paper_scissors(50, 50, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── excitable_media ───────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_excitable_media(#[case] rows: usize, #[case] cols: usize) {
+        let grid = excitable_media(rows, cols, 50, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_excitable_media_seeded_determinism() {
+        let a = excitable_media(50, 50, 50, Some(42));
+        let b = excitable_media(50, 50, 50, Some(42));
+        assert_eq!(a.data, b.data);
+    }
+
+    // ── truchet ───────────────────────────────────────────────────────────────
+
+    #[rstest]
+    #[case(0, 0)]
+    #[case(1, 1)]
+    #[case(10, 10)]
+    #[case(100, 100)]
+    fn test_truchet(#[case] rows: usize, #[case] cols: usize) {
+        let grid = truchet(rows, cols, 10, None);
+        assert_eq!(grid.rows, rows);
+        assert_eq!(grid.cols, cols);
+        assert_eq!(nan_count(&grid), 0);
+        assert_eq!(zero_to_one_count(&grid), rows * cols);
+    }
+
+    #[test]
+    fn test_truchet_seeded_determinism() {
+        let a = truchet(50, 50, 10, Some(42));
+        let b = truchet(50, 50, 10, Some(42));
         assert_eq!(a.data, b.data);
     }
 }
