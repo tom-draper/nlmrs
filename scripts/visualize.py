@@ -87,7 +87,7 @@ ALGORITHMS = [
     ("perlin_worley",            "perlin_worley",            {"scale": 4.0}),
     ("fault_uplift",             "fault_uplift",             {"n": 50}),
     ("triangular_tessellation",  "triangular_tessellation",  {"n": 30}),
-    ("physarum",                 "physarum",                 {"n": 1000, "iterations": 300}),
+    ("physarum",                 "physarum",                 {"n": 150, "iterations": 25}),
     ("cahn_hilliard",            "cahn_hilliard",            {"iterations": 2000}),
     ("crystal_growth",           "crystal_growth",           {"iterations": 300}),
     ("predator_prey",            "predator_prey",            {"iterations": 500}),
