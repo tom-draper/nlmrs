@@ -2,7 +2,7 @@
 
 A Rust crate for building **Neutral Landscape Models**.
 
-<img src="https://user-images.githubusercontent.com/41476809/211358340-8e4d68de-fdc4-4e75-846b-b7b5c6105bfb.png" alt="" />
+<img src="https://github.com/user-attachments/assets/b0b587dd-a206-4d7c-a455-d97c182b5c5f" alt="" />
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/tom-draper/nlmrs/blob/main/examples/examples.ipynb)
 
