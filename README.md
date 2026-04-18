@@ -4,6 +4,8 @@ A Rust crate for building **Neutral Landscape Models**.
 
 <img src="https://user-images.githubusercontent.com/41476809/211358340-8e4d68de-fdc4-4e75-846b-b7b5c6105bfb.png" alt="" />
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/tom-draper/nlmrs/blob/main/examples/examples.ipynb)
+
 Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.com/ropensci/NLMR).
 
 `nlmrs` is available as a Rust crate or as a CLI tool. Language bindings are also provided for Python, R, Julia, WASM, and C.
