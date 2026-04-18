@@ -4,9 +4,9 @@ A Rust crate for building **Neutral Landscape Models**.
 
 <img src="https://github.com/user-attachments/assets/b0b587dd-a206-4d7c-a455-d97c182b5c5f" alt="" />
 
-[![Crates.io](https://img.shields.io/crates/v/nlmrs.svg)](https://crates.io/crates/nlmrs)
-[![PyPI](https://img.shields.io/pypi/v/nlmrs.svg)](https://pypi.org/project/nlmrs/)
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/tom-draper/nlmrs/blob/main/examples/examples.ipynb)
+[![Crates.io](https://img.shields.io/crates/v/nlmrs.svg?color=blue)](https://crates.io/crates/nlmrs)
+[![PyPI](https://img.shields.io/pypi/v/nlmrs.svg?color=blue)](https://pypi.org/project/nlmrs/)
+[![Open In Colab](https://img.shields.io/badge/Open%20in%20Colab-blue?logo=google-colab)](https://colab.research.google.com/github/tom-draper/nlmrs/blob/main/examples/examples.ipynb)
 
 Inspired by [nlmpy](https://pypi.org/project/nlmpy/) and [nlmr](https://github.com/ropensci/NLMR).
 
